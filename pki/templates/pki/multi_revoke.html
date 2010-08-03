@@ -1,0 +1,101 @@
+{% extends "admin/base_site.html" %}
+
+{% load i18n %}
+
+{% block extrahead %}
+
+  <style type="text/css">
+    ul.root_tree, ul.root_tree li { 
+      list-style-type: none; 
+      margin: 0; padding: 0; 
+    } 
+    
+    ul.tree, ul.tree ul { 
+      list-style-type: none; 
+      margin: 0; padding-left: 35px; 
+    } 
+      
+      
+    ul.tree ul { 
+      margin-left: 10px; 
+    } 
+    
+    ul.tree li { 
+      list-style-type: none; 
+      margin: 0; 
+      padding: 0 12px; 
+      line-height: 20px; 
+      background: url({{ MEDIA_URL }}pki/img/node.png) no-repeat; 
+      color: #369; 
+      font-weight: bold;  
+    }
+
+    ul.tree li.last { 
+      background: #fff url({{ MEDIA_URL }}pki/img/lastnode.png) no-repeat; 
+    } 
+  </style>
+
+{% endblock %}
+
+
+{% block title %}Revoke multiple certificates{% endblock %}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs"><a href="{% url admin:index %}">{% trans 'Home' %}</a> &rsaquo; <a href="{% url admin:index %}{{ back_url }}">{{ back_name }}</a></div>
+  
+  {% if message %}
+    <ul class="messagelist">
+      <li>{{ message }}</li>
+    </ul>
+  {% endif %}
+
+{% endblock %}
+
+{% block content_title %}<h1>Certificate revocation</h1>{% endblock %}
+
+{% block content %}
+  <p />
+  
+  {% if parent_list %}
+	These are the certificates that will be revoked:
+	
+	{% regroup parents by parent as parent_list %}
+	<div style="border: 2px coral dotted; padding: 4px; margin-bottom: 15px;">
+	{% for p in parent_list %}
+	  <ul class="root_tree">
+		<li>CA: <b>{{ p.grouper }}</b>
+		  <ul class="tree">
+			{% for item in p.list %}
+			  {% if forloop.last %}
+				<li class="last" style="color: red;">{{ item.name }} &larr; will be revoked</li>
+			  {% else %}
+				<li style="color: red;">{{ item.name }} &larr; will be revoked</li>
+			  {% endif %}
+			{% endfor %}
+		  </ul>
+		</li>
+	  </ul>
+	  {% if not forloop.last %}
+		<hr />
+	  {% endif %}
+	{% endfor %}
+	</div>
+  {% endif %}
+
+  {% for i in errors %}
+    <ul class="errorlist">
+      <li>{{ i }} </li>
+    </ul>
+  {% endfor %}
+  
+  {% if form %}
+    <form action="" method="POST">
+      <p style="height:30px" />
+      <u>Please enter the passphrase for the signing CA:</u><p />
+      
+      {{ form.as_p }} 
+      
+      <p><input type="submit" value="Revoke certificates!" /></p>
+    </form>
+  {% endif %}
+{% endblock %}
