@@ -1,5 +1,18 @@
 $(document).ready( function() {
     
+    $(".details").hide();
+    $(".switch").click(function() {
+                            if ( $(this).attr("src") == "/static/pki/img/plus.png" ) {
+                                var new_src = "/static/pki/img/minus.png";
+                                $(this).next(".details").show();
+                            }
+                            else {
+                                var new_src = "/static/pki/img/plus.png";
+                                $(this).next(".details").hide();
+                            }
+                            
+                            $(this).attr("src", new_src);});
+    
     // Make passphrase look required
     $("label[for=id_passphrase]").addClass('required');
     

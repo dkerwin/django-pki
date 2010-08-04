@@ -2,8 +2,9 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponse, Http404, HttpResponseRedirect
 from django.utils.safestring import mark_safe
+from django.template import RequestContext
 
-from pki.settings import PKI_DIR, PKI_LOG
+from pki.settings import PKI_DIR, PKI_LOG, MEDIA_URL
 from pki.models import CertificateAuthority, Certificate
 from pki.openssl import handle_exception
 from pki.forms import CaPassphraseForm
@@ -17,7 +18,7 @@ logger = logging.getLogger("pki")
 ## Download views
 ##------------------------------------------------------------------##
 
-@login_required
+@permission_required('pki.can_download', login_url='/pki/permission_denied')
 def ca_download(request, ca, type):
     '''Download ca stuff'''
     
@@ -102,14 +103,19 @@ def chain_recursion(r_id, store):
     
     i = CertificateAuthority.objects.get(pk=r_id)
     
-    store.append( mark_safe('Certificate Authority: <a href="../../%d/">%s</a>' % (i.pk, i.name)) )
+    #div_content = "<ul><li>Serial: %s</li><li>Description: %s</li><li>Created: %s</li><li>Expiry date: %s</li></ul>" % ( i.serial, i.description, i.created, i.expiry_date)
+    div_content = build_delete_item(i)
+    
+    store.append( mark_safe('Certificate Authority: <a href="../../%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div id="detail_%s" class="details">%s</div>' % (i.pk, i.name, MEDIA_URL, i.pk, div_content)) )
     
     ## Search for child certificates
     child_certs = Certificate.objects.filter(parent=r_id)
     if child_certs:
         helper = []
         for cert in child_certs:
-            helper.append( mark_safe('Certificate: <a href="../../../certificate/%d/">%s</a>' % (cert.pk, cert.name)) )
+            div_content = build_delete_item(cert)
+            #div_content = "<ul><li>Serial: %s</li><li>Description: %s</li><li>Created: %s</li><li>Expiry date: %s</li></ul>" % ( cert.serial, cert.description, cert.created, cert.expiry_date)
+            helper.append( mark_safe('Certificate: <a href="../../../certificate/%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div id="detail_%s" class="details">%s</div>' % (cert.pk, cert.name, MEDIA_URL, cert.pk, div_content)) )
         store.append(helper)
     
     ## Search for related CA's
@@ -120,6 +126,10 @@ def chain_recursion(r_id, store):
             chain_recursion(ca.pk, helper)
         store.append(helper)
 
+## Helper function for ul delete tree
+def build_delete_item(i):
+    
+    return "<ul><li>Serial: %s</li><li>Description: %s</li><li>Created: %s</li><li>Expiry date: %s</li></ul>" % ( i.serial, i.description, i.created, i.expiry_date)
 
 @login_required
 #@permission_required('pki.can_revoke', login_url='/admin/')
@@ -154,7 +164,8 @@ def admin_delete(request, model, id):
         except:
             raise Http404
         
-        deleted_objects.append( mark_safe('Certificate: <a href="../../../certificate/%d/">%s</a>' % (item.pk, item.name)) )
+        div_content = build_delete_item(item)
+        deleted_objects.append( mark_safe('Certificate: <a href="../../../certificate/%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div id="detail_%s" class="details">%s</div>' % (item.pk, item.name, MEDIA_URL, item.pk, div_content)) )
         
         ## Fill the required data for delete_confirmation.html template
         opts               = Certificate._meta
@@ -179,7 +190,7 @@ def admin_delete(request, model, id):
                                                                       'app_label': opts.app_label, 'opts': opts, 'object': object, 'form': form,
                                                                       'auth_object': auth_object, 'parent_object_name': parent_object_name,
                                                                       'title': title,
-                                                                    })
+                                                                    }, RequestContext(request))
 
 #@login_required
 #def multi_revoke(request, type, ids):

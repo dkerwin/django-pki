@@ -29,3 +29,6 @@ PKI_LOGLEVEL = getattr(settings, 'PKI_LOG', 'info')
 
 # get other settings directly from settings.py:
 ADMIN_MEDIA_PREFIX = getattr(settings, 'ADMIN_MEDIA_PREFIX')
+
+# media url
+MEDIA_URL = getattr(settings, 'MEDIA_URL')
