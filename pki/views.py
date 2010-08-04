@@ -6,7 +6,7 @@ from django.template import RequestContext
 
 from pki.settings import PKI_DIR, PKI_LOG, MEDIA_URL
 from pki.models import CertificateAuthority, Certificate
-from pki.openssl import handle_exception
+from pki.openssl import handle_exception, OpensslActions
 from pki.forms import CaPassphraseForm
 
 import os, sys
@@ -103,19 +103,16 @@ def chain_recursion(r_id, store):
     
     i = CertificateAuthority.objects.get(pk=r_id)
     
-    #div_content = "<ul><li>Serial: %s</li><li>Description: %s</li><li>Created: %s</li><li>Expiry date: %s</li></ul>" % ( i.serial, i.description, i.created, i.expiry_date)
-    div_content = build_delete_item(i)
-    
-    store.append( mark_safe('Certificate Authority: <a href="../../%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div id="detail_%s" class="details">%s</div>' % (i.pk, i.name, MEDIA_URL, i.pk, div_content)) )
+    div_content = build_delete_item(i, 'ca')
+    store.append( mark_safe('Certificate Authority: <a href="../../%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div class="details">%s</div>' % (i.pk, i.name, MEDIA_URL, div_content)) )
     
     ## Search for child certificates
     child_certs = Certificate.objects.filter(parent=r_id)
     if child_certs:
         helper = []
         for cert in child_certs:
-            div_content = build_delete_item(cert)
-            #div_content = "<ul><li>Serial: %s</li><li>Description: %s</li><li>Created: %s</li><li>Expiry date: %s</li></ul>" % ( cert.serial, cert.description, cert.created, cert.expiry_date)
-            helper.append( mark_safe('Certificate: <a href="../../../certificate/%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div id="detail_%s" class="details">%s</div>' % (cert.pk, cert.name, MEDIA_URL, cert.pk, div_content)) )
+            div_content = build_delete_item(cert, 'cert')
+            helper.append( mark_safe('Certificate: <a href="../../../certificate/%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div class="details">%s</div>' % (cert.pk, cert.name, MEDIA_URL, div_content)) )
         store.append(helper)
     
     ## Search for related CA's
@@ -127,9 +124,11 @@ def chain_recursion(r_id, store):
         store.append(helper)
 
 ## Helper function for ul delete tree
-def build_delete_item(i):
+def build_delete_item(i, type):
     
-    return "<ul><li>Serial: %s</li><li>Description: %s</li><li>Created: %s</li><li>Expiry date: %s</li></ul>" % ( i.serial, i.description, i.created, i.expiry_date)
+    o = OpensslActions( type, i )
+    
+    return "<ul><li>Serial: %s</li><li>Subject: %s</li><li>Description: %s</li><li>Created: %s</li><li>Expiry date: %s</li></ul>" % ( i.serial, o.build_subject(), i.description, i.created, i.expiry_date)
 
 @login_required
 #@permission_required('pki.can_revoke', login_url='/admin/')
@@ -164,8 +163,8 @@ def admin_delete(request, model, id):
         except:
             raise Http404
         
-        div_content = build_delete_item(item)
-        deleted_objects.append( mark_safe('Certificate: <a href="../../../certificate/%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div id="detail_%s" class="details">%s</div>' % (item.pk, item.name, MEDIA_URL, item.pk, div_content)) )
+        div_content = build_delete_item(item, 'cert')
+        deleted_objects.append( mark_safe('Certificate: <a href="../../../certificate/%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div class="details">%s</div>' % (item.pk, item.name, MEDIA_URL, div_content)) )
         
         ## Fill the required data for delete_confirmation.html template
         opts               = Certificate._meta
