@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import render_to_response, get_object_or_404
-from django.http import HttpResponse, Http404, HttpResponseRedirect
+from django.http import HttpResponse, Http404, HttpResponseRedirect, HttpResponseForbidden, HttpResponseBadRequest
 from django.utils.safestring import mark_safe
 from django.template import RequestContext
 
@@ -18,82 +18,86 @@ logger = logging.getLogger("pki")
 ## Download views
 ##------------------------------------------------------------------##
 
-@permission_required('pki.can_download', login_url='/pki/permission_denied')
-def ca_download(request, ca, type):
-    '''Download ca stuff'''
-    
-    ca_dir    = os.path.join(PKI_DIR, ca)
-    file      = None
-    file_name = None
-
-    ## Create the file name
-    if type == 'chain':
-        file      = os.path.join(ca_dir, '%s-chain.cert.pem' % ca)
-        file_name = '%s-chain.cert.pem' % ca
-    elif type == 'crl':
-        file      = os.path.join(ca_dir, 'crl', '%s.crl.pem' % ca)
-        file_name = '%s.crl.pem' % ca
-    elif type == 'pem':
-        file      = os.path.join(ca_dir, 'certs', '%s.cert.pem' % ca)
-        file_name = '%s.cert.pem' % ca
-    elif type == 'der':
-        file      = os.path.join(ca_dir, 'certs', '%s.cert.der' % ca)
-        file_name = '%s.cert.der' % ca
-    
-    ## open and read the file if it exists
-    if os.path.exists(file):
-        f = open(file, 'r')
-        x = f.readlines()
-        f.close()
-        
-        ## return the HTTP response
-        response = HttpResponse(x, mimetype='application/force-download')
-        response['Content-Disposition'] = 'attachment; filename="%s"' % file_name
-        
-        return response
-    else:
-        raise Http404
-
 @login_required
-def cert_download(request, cert, type):
-    '''Download certificate stuff'''
+def pki_download(request, type, id, item):
+    '''Download PKI data'''
     
-    c  = Certificate.objects.get(name=cert)
-    ca = c.parent.name
+    logger.info( "Download of %s" % item )
     
-    ca_dir = os.path.join(PKI_DIR, ca)
+    category = None
     
-    ## Create the file name
-    if type == 'chain':
-        file      = os.path.join(ca_dir, '%s-chain.cert.pem' % ca)
-        file_name = '%s-chain.cert.pem' % ca
-    elif type == 'crl':
-        file      = os.path.join(ca_dir, 'crl', '%s.crl.pem' % ca)
-        file_name = '%s.crl.pem' % ca
-    elif type == 'pem':
-        file      = os.path.join(ca_dir, 'certs', '%s.cert.pem' % cert)
-        file_name = '%s.cert.pem' % cert
-    elif type == 'der':
-        file      = os.path.join(ca_dir, 'certs', '%s.cert.der' % cert)
-        file_name = '%s.cert.der' % cert
-    elif type == 'pkcs12':
-        file      = os.path.join(ca_dir, 'certs', '%s.cert.p12' % cert)
-        file_name = '%s.cert.p12' % cert
+    if type == "ca":
+        c       = CertificateAuthority.objects.get(pk=id)
+        c_name  = c.name
+        ca_dir  = os.path.join(PKI_DIR, c.name)
+        key_loc = os.path.join(ca_dir, 'private')
+    elif type == "cert":
+        c       = Certificate.objects.get(pk=id)
+        c_name  = c.name
+        ca_dir  = os.path.join(PKI_DIR, c.parent.name)
+        key_loc = os.path.join(ca_dir, 'certs')
+    else:
+        logger.error( "Unsupported type %s requested!" % type )
+        return HttpResponseBadRequest()
+    
+    pki_data = { 'public' : { 'chain' : { 'local': os.path.join(ca_dir, '%s-chain.cert.pem' % c_name),
+                                          'name' : '%s-chain.cert.pem' % c_name,
+                                        },
+                              'crl'   : { 'local': os.path.join(ca_dir, 'crl', '%s.crl.pem' % c_name),
+                                          'name' : '%s.crl.pem' % c_name,
+                                        },
+                              'pem'   : { 'local': os.path.join(ca_dir, 'certs', '%s.cert.pem' % c_name),
+                                          'name' : '%s.cert.pem' % c_name,
+                                        },
+                              'csr'   : { 'local': os.path.join(ca_dir, 'certs', '%s.csr.pem' % c_name),
+                                          'name' : '%s.csr.pem' % c_name,
+                                        },
+                              'der'   : { 'local': os.path.join(ca_dir, 'certs', '%s.cert.der' % c_name),
+                                          'name' : '%s.cert.der' % c_name,
+                                        },
+                              'pkcs12': { 'local': os.path.join(ca_dir, 'certs', '%s.cert.p12' % c_name),
+                                          'name' : '%s.cert.p12' % c_name,
+                                        },
+                            },
+                 'private': { 'key'   : { 'local': os.path.join(ca_dir, key_loc, '%s.key.pem' % c_name),
+                                          'name' : '%s.key.pem' % c_name,
+                                        },
+                            },
+               }
+    
+    if item in pki_data['private']:
+        logger.debug( "Private item requested. Checking permissions" )
+        category = 'private'
+        
+        if not request.user.has_perm('pki.can_download_%s' % type):
+            logger.error( "Permission denied: Not allowed to download %s/%s" % (type, item) )
+            return HttpResponseForbidden( content="<p>Permission denied: Not allowed to download %s/%s<p>" % (type, item) )
+        else:
+            logger.debug( "Access granted. User is allowed to download %s/%s" % (type, item) )
+    elif item in pki_data['public']:
+        logger.debug( "Public item requested. No permissions to verify" )
+        category = 'public'
+    else:
+        logger.error( "Item %s not found in valid download categories!" % item )
+        raise Http404
+    
+    logger.error( "Before file open" )
     
     ## open and read the file if it exists
-    if os.path.exists(file):
-        f = open(file, 'r')
+    if os.path.exists(pki_data[category][item]['local']):
+        f = open(pki_data[category][item]['local'], 'r')
         x = f.readlines()
         f.close()
         
         ## return the HTTP response
         response = HttpResponse(x, mimetype='application/force-download')
-        response['Content-Disposition'] = 'attachment; filename="%s"' % file_name
+        response['Content-Disposition'] = 'attachment; filename="%s"' % pki_data[category][item]['name']
         
         return response
     else:
+        logger.error( "File not found: %s" % pki_data[category][item]['local'] )
         raise Http404
-    
+
 ##------------------------------------------------------------------##
 ## Admin views
 ##------------------------------------------------------------------##

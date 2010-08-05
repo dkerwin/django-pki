@@ -363,16 +363,23 @@ class CertificateAuthority(CertificateBase):
             chain = '<font color="grey">chain</font>'
             pem   = '<font color="grey">pem</font>'
             der   = '<font color="grey">der</font>'
+            csr   = '<font color="grey">csr</font>'
+            key   = '<font color="grey">key</font>'
         else:
-            crl   = '<a href="/pki/ca-download/%s/crl"><strong>crl</strong></a>' % self.name
-            chain = '<a href="/pki/ca-download/%s/chain"><strong>chain</strong></a>' % self.name
-            pem   = '<a href="/pki/ca-download/%s/pem"><strong>pem</strong></a>' % self.name
+            crl   = '<a href="/pki/download/ca/%d/crl"><strong>crl</strong></a>' % self.pk
+            chain = '<a href="/pki/download/ca/%d/chain"><strong>chain</strong></a>' % self.pk
+            pem   = '<a href="/pki/download/ca/%d/pem"><strong>pem</strong></a>' % self.pk
+            key   = '<a href="/pki/download/ca/%d/key"><strong>key</strong></a>' % self.pk
             der   = '<font color="grey">der</font>'
+            csr   = '<font color="grey">csr</font>'
             
             if self.der_encoded:
-                der = '<a href="/pki/ca-download/%s/der"><strong>der</strong></a>' % self.name
+                der = '<a href="/pki/download/ca/%d/der"><strong>der</strong></a>' % self.pk
+            
+            if self.parent:
+                csr = '<a href="/pki/download/ca/%d/csr"><strong>csr</strong></a>' % self.pk
         
-        return ' | '.join((pem, der, chain, crl))
+        return ' | '.join((pem, key, csr, der, chain, crl))
     
     download.allow_tags = True
     

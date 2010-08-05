@@ -25,7 +25,7 @@ JQUERY_URL = getattr(settings, 'JQUERY_URL', 'pki/jquery-1.3.2.min.js')
 
 # logging (TODO: syslog, handlers and formatters)
 PKI_LOG = getattr(settings, 'PKI_LOG', os.path.join(PKI_DIR, 'pki.log'))
-PKI_LOGLEVEL = getattr(settings, 'PKI_LOG', 'info')
+PKI_LOGLEVEL = getattr(settings, 'PKI_LOG', 'debug')
 
 # get other settings directly from settings.py:
 ADMIN_MEDIA_PREFIX = getattr(settings, 'ADMIN_MEDIA_PREFIX')
