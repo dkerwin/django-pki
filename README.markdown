@@ -31,21 +31,21 @@ Dependencies
 Support
 -------
 
-  * Bugs and feature requests : http://code.google.com/p/django-pki/issues/
-  * Discussion                : http://groups.google.com/group/django-pki or django-pki@googlegroups.com
+  * Bugs and feature requests : [http://code.google.com/p/django-pki/issues/](http://code.google.com/p/django-pki/issues/)
+  * Discussion                : [http://groups.google.com/group/django-pki](http://groups.google.com/group/django-pki) or django-pki@googlegroups.com
 
 Installation
 ------------
 
 1. Get the latest release or checkout from the master branch
-2. Copy pki directory to your existing django project (or create new one with django-admin.py startproject). 
+2. Copy pki directory to your existing django project (or create new one with `django-admin.py startproject`). 
    Alternatively, you can place it somewhere in python path
 3. Configure django-pki
 
 Configuration
 -------------
 
-Make the contents of pki/media/pki directory available at MEDIA_URL/pki url. This can be done by making a symlink, 
+Make the contents of pki/media/pki directory available at `MEDIA_URL/pki` url. This can be done by making a symlink, 
 copying it to your existing directory for static content, or via webserver configuration.
 
 ### Configure urls.py
@@ -59,12 +59,12 @@ Add exception handler:
 
     handler500 = 'pki.views.show_exception'
 
-Add following lines to urlpatterns (make sure pki.urls is specified before admin.site.urls):
+Add following lines to urlpatterns (make sure `pki.urls` is specified before `admin.site.urls`):
 
     (r'^', include('pki.urls')),
     (r'^admin/', include(admin.site.urls)),
 
-If you want to serve static files with ./manage.py runserver in DEBUG mode, add following code. Do not use this in production!
+If you want to serve static files with `./manage.py runserver` in DEBUG mode, add following code. Do not use this in production!
 
     from django.conf import settings
     
@@ -79,8 +79,8 @@ If you want to serve static files with ./manage.py runserver in DEBUG mode, add 
 
 Enable admin application (refer to the Django documentation for additional details):
 
-  * Add `django.contrib.admin` to INSTALLED_APPS
-  * Configure ADMIN_MEDIA_PREFIX and your webserver to serve admin static files
+  * Add `django.contrib.admin` to `INSTALLED_APPS`
+  * Configure `ADMIN_MEDIA_PREFIX` and your webserver to serve admin static files
 
 Setup your database:
 
@@ -88,9 +88,9 @@ Setup your database:
 
 Mandatory settings:
 
- * Add pki/templates to TEMPLATE_DIRS variable (use absolute path). Alternatively, use app_directories 
+ * Add pki/templates to `TEMPLATE_DIRS` variable (use absolute path). Alternatively, use app_directories 
    django template loader (refer to the Django docs for details)
- * Add pki to INSTALLED_APPS
+ * Add pki to `INSTALLED_APPS`
  * make sure `django.core.context_processors.media` is included in `TEMPLATE_CONTEXT_PROCESSORS`
    (it is enabled by default in recent Django versions)
 
@@ -119,4 +119,4 @@ Additionally, you can add your own logging destinations. This is an example for 
 Hasattr hack is required because Django imports settings.py multiple times. If you do not like
 this, place handler initialization code to urls.py or somewhere else in your project.
 
-### Do not forget to run "python manage.py syncdb" to create necessary database objects
+### Do not forget to run `python manage.py syncdb` to create necessary database objects
