@@ -107,3 +107,4 @@ class Certificate_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
 
 admin.site.register(Certificate, Certificate_Admin)
 admin.site.disable_action('delete_selected')
+

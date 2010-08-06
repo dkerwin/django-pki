@@ -116,6 +116,7 @@ class CertificateAuthority(CertificateBase):
                                                                                                               match the signing CA<br> \
                                                                                                               policy_anything: Nothing has to match the \
                                                                                                               signing CA')
+    #crl_distribution  = models.URLField(verbose_name='CRL Distribution Point', null=True, blank=True, verify_exists=False, help_text='Optional CRL distribution URL (http://my.host.com/ca.crl)')
 
     class Meta:
         verbose_name_plural = 'Certificate Authorities'
@@ -149,6 +150,32 @@ class CertificateAuthority(CertificateBase):
                     
                 elif self.action == 'revoke':
                     
+                    ## DB-revoke all related certs
+                    garbage = []
+                    id_dict = { 'cert': [], 'ca': [], }
+                    
+                    from pki.views import chain_recursion as r_chain_recursion
+                    r_chain_recursion(self.id, garbage, id_dict)
+                    
+                    for i in id_dict['cert']:
+                        x = Certificate.objects.get(pk=i)
+                        x.active         = False
+                        x.der_encoded    = False
+                        x.pem_encoded    = False
+                        x.pkcs12_encoded = False
+                        x.revoked        = datetime.datetime.now()
+                        
+                        super(Certificate, x).save()
+                    
+                    for i in id_dict['ca']:
+                        x = CertificateAuthority.objects.get(pk=i)
+                        x.active       = False
+                        x.der_encoded  = False
+                        x.pem_encoded  = False
+                        x.revoked      = datetime.datetime.now()
+                        
+                        super(CertificateAuthority, x).save()
+                    
                     ## Revoke and generate CRL
                     action.revoke_certificate(self.parent_passphrase)
                     action.generate_crl(self.parent.name, self.parent_passphrase)
@@ -163,7 +190,7 @@ class CertificateAuthority(CertificateBase):
                 elif self.action == 'renew':
                     
                     ## Revoke if certificate is active
-                    if self.active:
+                    if action.get_revoke_status_from_cert():
                         action.revoke_certificate(self.parent_passphrase)
                     
                     ## Rebuild the ca metadata
@@ -427,8 +454,9 @@ class Certificate(CertificateBase):
     pkcs12_encoded    = models.BooleanField(default=False, verbose_name="Create #PKCS12 encoded certificate (additional)")
     pkcs12_passphrase = models.CharField(max_length=255, verbose_name="#PKCS12 passphrase", blank=True, null=True)
     cert_extension    = models.CharField(max_length=64, choices=EXTENSIONS, verbose_name="Purpose")
-    subjaltname       = models.CharField(max_length=255, blank=True, null=True, verbose_name="SubjectAltName", help_text='Refer to openssl \
-                                         documentation for details' )
+    subjaltname       = models.CharField(max_length=255, blank=True, null=True, verbose_name="SubjectAltName", \
+                                         help_text='Comma seperated list of alt names. Valid are DNS:www.xyz.com, IP:1.2.3.4 and email:a@b.com in any \
+                                         combination. Refer to the official openssl documentation for details' )
 
     class Meta:
         verbose_name_plural = 'Certificates'
@@ -487,8 +515,8 @@ class Certificate(CertificateBase):
                     
                 elif self.action == 'renew':
                     
-                    ## Revoke is certificate is active
-                    if self.active:
+                    ## Revoke if certificate is active
+                    if not action.get_revoke_status_from_cert():
                         action.revoke_certificate(self.parent_passphrase)
                     
                     ## Renew and update CRL
@@ -659,10 +687,10 @@ class Certificate(CertificateBase):
         
         if self.active:
             
-            chain = '<a href="/pki/cert-download/%s/chain"><strong>chain</strong></a>' % self.name
-            pem   = '<a href="/pki/cert-download/%s/pem"><strong>pem</strong></a>' % self.name
-            key   = '<a href="/pki/cert-download/%s/key"><strong>key</strong></a>' % self.name
-            csr   = '<a href="/pki/cert-download/%s/csr"><strong>csr</strong></a>' % self.name
+            chain = '<a href="/pki/download/cert/%d/chain"><strong>chain</strong></a>' % self.id
+            pem   = '<a href="/pki/download/cert/%d/pem"><strong>pem</strong></a>' % self.id
+            key   = '<a href="/pki/download/cert/%d/key"><strong>key</strong></a>' % self.id
+            csr   = '<a href="/pki/download/cert/%d/csr"><strong>csr</strong></a>' % self.id
             
             if self.der_encoded:
                 der = '<a href="/pki/cert-download/%s/der"><strong>der</strong></a>' % self.name
@@ -670,7 +698,7 @@ class Certificate(CertificateBase):
             if self.pkcs12_encoded:
                 p12 = '<a href="/pki/cert-download/%s/pkcs12"><strong>p12</strong></a>' % self.name
         
-        return ' | '.join((key, csr, pem, der, p12, chain))
+        return ' | '.join((pem, key, csr, der, p12, chain))
     
     download.allow_tags = True
     

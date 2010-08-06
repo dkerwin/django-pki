@@ -108,26 +108,27 @@ class CertificateForm(forms.ModelForm):
                 ## Check parent passphrase
                 if ca.passphrase != enc_p_pf:
                     self._errors['parent_passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA %s' % parent])
+            else:
+                self._errors['parent'] = ErrorList(['You cannot renew a certificate while the parent is not active. Renew requires the intial parent to be active'])
             
             ## Verify subjAltName
             if subjaltname and len(subjaltname) > 0:
-                allowed = { 'email': 'copy|\w+\@[\w\.]+\.\w+',
-                            'IP'   : '[\d\.\:]+',
-                            'DNS'  : '[\w\.]+',
+                allowed = { 'email': '^copy|\w+\@[\w\.]+\.\w+$',
+                            'IP'   : '^[\d\.\:]+$',
+                            'DNS'  : '^[a-zA-Z0-9\-\.]+$',
                           }
                 items = subjaltname.split(',')
                 
                 for i in items:
-                    kv = i.split(':')
-                    kv[0] = kv[0].strip()
+                    kv  = i.split(':')
+                    key = kv[0].lstrip().rstrip()
+                    val = kv[1].lstrip().rstrip()
                     
-                    try:
-                        if allowed[kv[0]]:
-                            if not re.match( allowed[kv[0]], kv[1] ):
-                                self._errors['subjaltname'] = ErrorList(['Invalid subjAltName value supplied: %s' % kv[1]])
-                    except KeyError:
-                        self._errors['subjaltname'] = ErrorList(['Invalid subjAltName key supplied: "%s" (supported are %s)' % (kv[0], ', '.join(allowed.keys()))])
-                
+                    if key in allowed:
+                        if not re.match( allowed[key], val ):
+                            self._errors['subjaltname'] = ErrorList(['Invalid subjAltName value supplied: \"%s\"' % i])
+                    else:
+                        self._errors['subjaltname'] = ErrorList(['Invalid subjAltName key supplied: "%s" (supported are %s)' % (key, ', '.join(allowed.keys()))])
         elif action == 'revoke':
             
             if parent:

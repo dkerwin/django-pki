@@ -146,6 +146,7 @@ class OpensslActions():
             self.parent_certs = os.path.join(PKI_DIR, self.i.parent.name, 'certs')
             self.crl = os.path.join(PKI_DIR, self.i.parent.name, 'crl', '%s.crl.pem' % self.i.parent.name)
         else:
+            ## self-signed RootCA
             self.parent_certs = os.path.join(PKI_DIR, self.i.name, 'certs')
             self.crl = os.path.join(PKI_DIR, self.i.name, 'crl', '%s.crl.pem' % self.i.name)
         
@@ -154,7 +155,6 @@ class OpensslActions():
             self.key    = os.path.join(ca_dir, 'private', '%s.key.pem' % self.i.name)
             self.ext    = ''
             self.pkcs12 = False
-            self.i.subjaltname = 'DNS: %s' % self.i.common_name
         elif type == 'cert':
             ca_dir      = os.path.join(PKI_DIR, self.i.parent.name)
             self.key    = os.path.join(ca_dir, 'certs', '%s.key.pem' % self.i.name)
@@ -162,7 +162,7 @@ class OpensslActions():
             self.pkcs12 = os.path.join(ca_dir, 'certs', '%s.cert.p12' % self.i.name)
             
             if not self.i.subjaltname:
-                self.i.subjaltname = 'DNS: %s' % self.i.common_name
+                self.i.subjaltname = 'email:copy'
         
         self.csr  = os.path.join(ca_dir, 'certs', '%s.csr.pem'  % self.i.name)
         self.crt  = os.path.join(ca_dir, 'certs', '%s.cert.pem' % self.i.name)
@@ -192,6 +192,7 @@ class OpensslActions():
             
             handle_exception("%s.%s" % (self.__class__.__name__, sys._getframe().f_code.co_name))
         else:
+            #logger.error( stdout_value )
             return stdout_value
     
     def generate_key(self):
@@ -214,9 +215,9 @@ class OpensslActions():
         
         logger.info( 'Generating self-signed root certificate' )
         
-        command = ['req', '-batch', '-new', '-x509', '-subj', self.subj, '-days', str(self.i.valid_days), '-key', \
-                            self.key, '-out', self.crt, '-passin', 'env:%s' % self.env_pw]
-        self.exec_openssl( command, env_vars={ self.env_pw: str(self.i.passphrase) })
+        command = ['req', '-config', PKI_OPENSSL_CONF, '-verbose', '-batch', '-new', '-x509', '-subj', self.subj, '-days', str(self.i.valid_days), \
+                   '-extensions', 'v3_ca', '-set_serial', '1', '-key', self.key, '-out', self.crt, '-passin', 'env:%s' % self.env_pw]
+        self.exec_openssl( command, env_vars={ self.env_pw: str(self.i.passphrase), })
     
     def generate_csr(self):
         '''Generate the CSR'''
@@ -300,7 +301,7 @@ class OpensslActions():
         
         command = 'ca -config %s -name %s -batch %s -in %s -out %s -days %d %s -passin env:%s' % \
                   ( PKI_OPENSSL_CONF, self.i.parent, self.ext, self.csr, self.crt, self.i.valid_days, extension, self.env_pw)
-        self.exec_openssl(command.split(), env_vars={ self.env_pw: str(self.i.parent_passphrase), "S_A_N": self.i.subjaltname })
+        self.exec_openssl(command.split(), env_vars={ self.env_pw: str(self.i.parent_passphrase), "S_A_N": self.i.subjaltname, })
         
         ## Get the just created serial
         if self.parent_certs:
@@ -323,6 +324,8 @@ class OpensslActions():
         logger.info( 'Revoking certificate %s' % self.i.name )
         
         command = 'ca -config %s -name %s -batch -revoke %s -passin env:%s' % (PKI_OPENSSL_CONF, self.i.parent, self.crt, self.env_pw)
+        
+        logger.info( command )
         self.exec_openssl(command.split(), env_vars={ self.env_pw: str(ppf) })
     
     def renew_certificate(self):
@@ -460,4 +463,3 @@ class OpensslCaManagement():
         
         return True
 
-    

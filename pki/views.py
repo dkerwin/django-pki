@@ -89,6 +89,8 @@ def pki_download(request, type, id, item):
         x = f.readlines()
         f.close()
         
+        logger.info(pki_data[category][item]['local'])
+        
         ## return the HTTP response
         response = HttpResponse(x, mimetype='application/force-download')
         response['Content-Disposition'] = 'attachment; filename="%s"' % pki_data[category][item]['name']
@@ -103,12 +105,14 @@ def pki_download(request, type, id, item):
 ##------------------------------------------------------------------##
 
 ## Helper function for recusion
-def chain_recursion(r_id, store):
+def chain_recursion(r_id, store, id_dict={ 'cert': [], 'ca': [],  }):
     
     i = CertificateAuthority.objects.get(pk=r_id)
     
     div_content = build_delete_item(i, 'ca')
     store.append( mark_safe('Certificate Authority: <a href="../../%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div class="details">%s</div>' % (i.pk, i.name, MEDIA_URL, div_content)) )
+    
+    id_dict['ca'].append(i.pk)
     
     ## Search for child certificates
     child_certs = Certificate.objects.filter(parent=r_id)
@@ -117,6 +121,7 @@ def chain_recursion(r_id, store):
         for cert in child_certs:
             div_content = build_delete_item(cert, 'cert')
             helper.append( mark_safe('Certificate: <a href="../../../certificate/%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div class="details">%s</div>' % (cert.pk, cert.name, MEDIA_URL, div_content)) )
+            id_dict['cert'].append(cert.pk)
         store.append(helper)
     
     ## Search for related CA's
