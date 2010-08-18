@@ -3,6 +3,7 @@ from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponse, Http404, HttpResponseRedirect, HttpResponseForbidden, HttpResponseBadRequest
 from django.utils.safestring import mark_safe
 from django.template import RequestContext
+from django.core.exceptions import PermissionDenied
 
 from pki.settings import PKI_DIR, PKI_LOG, MEDIA_URL
 from pki.models import CertificateAuthority, Certificate
@@ -71,7 +72,7 @@ def pki_download(request, type, id, item):
         
         if not request.user.has_perm('pki.can_download_%s' % type):
             logger.error( "Permission denied: Not allowed to download %s/%s" % (type, item) )
-            return HttpResponseForbidden( content="<p>Permission denied: Not allowed to download %s/%s<p>" % (type, item) )
+            raise PermissionDenied
         else:
             logger.debug( "Access granted. User is allowed to download %s/%s" % (type, item) )
     elif item in pki_data['public']:
@@ -81,15 +82,11 @@ def pki_download(request, type, id, item):
         logger.error( "Item %s not found in valid download categories!" % item )
         raise Http404
     
-    logger.error( "Before file open" )
-    
     ## open and read the file if it exists
     if os.path.exists(pki_data[category][item]['local']):
         f = open(pki_data[category][item]['local'], 'r')
         x = f.readlines()
         f.close()
-        
-        logger.info(pki_data[category][item]['local'])
         
         ## return the HTTP response
         response = HttpResponse(x, mimetype='application/force-download')
