@@ -29,11 +29,13 @@ def pki_download(request, type, id, item):
     
     if type == "ca":
         c       = CertificateAuthority.objects.get(pk=id)
+        chain   = c.name
         c_name  = c.name
         ca_dir  = os.path.join(PKI_DIR, c.name)
         key_loc = os.path.join(ca_dir, 'private')
     elif type == "cert":
         c       = Certificate.objects.get(pk=id)
+        chain   = c.parent.name
         c_name  = c.name
         ca_dir  = os.path.join(PKI_DIR, c.parent.name)
         key_loc = os.path.join(ca_dir, 'certs')
@@ -41,8 +43,8 @@ def pki_download(request, type, id, item):
         logger.error( "Unsupported type %s requested!" % type )
         return HttpResponseBadRequest()
     
-    pki_data = { 'public' : { 'chain' : { 'local': os.path.join(ca_dir, '%s-chain.cert.pem' % c_name),
-                                          'name' : '%s-chain.cert.pem' % c_name,
+    pki_data = { 'public' : { 'chain' : { 'local': os.path.join(ca_dir, '%s-chain.cert.pem' % chain),
+                                          'name' : '%s-chain.cert.pem' % chain,
                                         },
                               'crl'   : { 'local': os.path.join(ca_dir, 'crl', '%s.crl.pem' % c_name),
                                           'name' : '%s.crl.pem' % c_name,

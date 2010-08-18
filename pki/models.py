@@ -90,10 +90,63 @@ class CertificateBase(models.Model):
         abstract = True
     
     def get_icon_html(self, state):
+        
         if state is True:
             return '<center><img src="%simg/admin/icon-yes.gif" alt="True" /></center>' % ADMIN_MEDIA_PREFIX
         else:
             return '<center><img src="%simg/admin/icon-no.gif" alt="False" /></center>'  % ADMIN_MEDIA_PREFIX
+    
+    def active_center(self):
+        '''Overwrite the Booleanfield admin for admin's changelist'''
+        
+        return self.get_icon_html(self.active)
+    
+    active_center.allow_tags = True
+    active_center.short_description = 'Active'
+    active_center.admin_order_field = 'active'
+    
+    def Description(self):
+        
+        if len(self.description) > 30:
+            return "%s..." % self.description[:30]
+        else:
+            return "%s" % self.description
+    
+    Description.allow_tags = True
+    Description.admin_order_field = 'description'
+    
+    def Expiry_date(self):
+        now = datetime.datetime.now().date()        
+        diff = self.expiry_date - now
+        
+        if diff.days < 30 and diff.days >= 0:
+            return '<font color="#f19d09"><strong>%s (%sd)</strong></font>' % (self.expiry_date, diff.days)
+        elif diff.days < 0:
+            return '<font color="red"><strong>%s (EXPIRED)</strong></font>' % self.expiry_date
+        else:
+            return '%s (%sd)' % (self.expiry_date, diff.days)
+    
+    Expiry_date.allow_tags = True
+    Expiry_date.admin_order_field = 'expiry_date'
+    
+    def CA_chain(self):
+        return "%s" % self.ca_chain
+    
+    CA_chain.allow_tags = True
+    CA_chain.admin_order_field = 'ca_chain'
+    
+    def build_download_links(self, type):
+        
+        items_on_active = ( 'pem', 'key', 'chain' )
+        result = []
+        
+        for i in items_on_active:
+            if self.active:
+                result.append( '<a href="/pki/download/%s/%d/%s"><strong>%s</strong></a>' % (type, self.id, i, i) )
+            else:
+                result.append( '<font color="grey">%s</font>' % i )
+        
+        return result
 
 ##------------------------------------------------------------------##
 ## Certificate authority class
@@ -375,72 +428,24 @@ class CertificateAuthority(CertificateBase):
     def __unicode__(self):
         return self.name
     
-    def active_center(self):
-        '''Overwrite the Booleanfield admin for admin's changelist'''
-        
-        return self.get_icon_html(self.active)
-    
-    active_center.allow_tags = True
-    active_center.short_description = 'Active'
-    active_center.admin_order_field = 'active'
-    
     def download(self):
         
-        if not self.active:        
-            crl   = '<font color="grey">crl</font>'
-            chain = '<font color="grey">chain</font>'
-            pem   = '<font color="grey">pem</font>'
-            der   = '<font color="grey">der</font>'
-            csr   = '<font color="grey">csr</font>'
-            key   = '<font color="grey">key</font>'
-        else:
-            crl   = '<a href="/pki/download/ca/%d/crl"><strong>crl</strong></a>' % self.pk
-            chain = '<a href="/pki/download/ca/%d/chain"><strong>chain</strong></a>' % self.pk
-            pem   = '<a href="/pki/download/ca/%d/pem"><strong>pem</strong></a>' % self.pk
-            key   = '<a href="/pki/download/ca/%d/key"><strong>key</strong></a>' % self.pk
-            der   = '<font color="grey">der</font>'
-            csr   = '<font color="grey">csr</font>'
-            
-            if self.der_encoded:
-                der = '<a href="/pki/download/ca/%d/der"><strong>der</strong></a>' % self.pk
-            
-            if self.parent:
-                csr = '<a href="/pki/download/ca/%d/csr"><strong>csr</strong></a>' % self.pk
+        items = self.build_download_links('ca')
         
-        return ' | '.join((pem, key, csr, der, chain, crl))
+        if self.active:
+            if self.der_encoded:
+                items.append( '<a href="/pki/download/ca/%d/der"><strong>der</strong></a>' % self.pk )
+            else:
+                items.append( '<font color="grey">der</font>' )
+            items.append( '<a href="/pki/download/ca/%d/crl"><strong>crl</strong></a>' % self.pk )
+        else:
+            items.append( '<font color="grey">der</font>' )
+            items.append( '<font color="grey">crl</font>' )
+        
+        return ' | '.join(items)
     
     download.allow_tags = True
     
-    def Expiry_date(self):
-        now = datetime.datetime.now().date()        
-        diff = self.expiry_date - now
-        
-        day_string = 'd'
-        
-        if diff.days < 30:
-            return '<font color="red"><strong>%s (%sd)</strong></font>' % (self.expiry_date, diff.days)
-        else:
-            return '%s (%sd)' % (self.expiry_date, diff.days)
-    
-    Expiry_date.allow_tags = True
-    Expiry_date.admin_order_field = 'expiry_date'
-    
-    def CA_chain(self):
-        return "%s" % self.ca_chain
-    
-    CA_chain.allow_tags = True
-    CA_chain.admin_order_field = 'ca_chain'
-    
-    def Description(self):
-        
-        if len(self.description) > 30:
-            return "%s..." % self.description[:30]
-        else:
-            return "%s" % self.description
-    
-    Description.allow_tags = True
-    Description.admin_order_field = 'description'
-
 ##------------------------------------------------------------------##
 ## Certificate class
 ##------------------------------------------------------------------##
@@ -617,98 +622,28 @@ class Certificate(CertificateBase):
     def __unicode__(self):
         return self.name
     
-    def Expiry_date(self):
-        now = datetime.datetime.now().date()        
-        diff = self.expiry_date - now
-        
-        day_string = 'days'
-        
-        if diff.days == 1:
-            day_string = 'day'
-            
-        if diff.days < 30:
-            return '<font color="red"><strong>%s (%s %s)</strong></font>' % (self.expiry_date, diff.days, day_string)
-        else:
-            return '%s (%s %s)' % (self.expiry_date, diff.days, day_string)
-    
-    Expiry_date.allow_tags = True
-    
-    def CA_chain(self):
-        return "%s" % self.ca_chain
-    
-    CA_chain.allow_tags = True
-    
-    def active_center(self):
-        '''Overwrite the Booleanfield admin for admin's changelist'''
-        
-        return self.get_icon_html(self.active)
-    
-    active_center.allow_tags = True
-    active_center.short_description = 'Active'
-    
-    def pem_encoded_center(self):
-        '''Overwrite the Booleanfield admin for admin's changelist'''
-        
-        return self.get_icon_html(self.pem_encoded)
-    
-    pem_encoded_center.allow_tags = True
-    pem_encoded_center.short_description = 'PEM'
-    
-    def p12_encoded_center(self):
-        '''Overwrite the Booleanfield admin for admin's changelist'''
-        
-        return self.get_icon_html(self.pkcs12_encoded)
-    
-    p12_encoded_center.allow_tags = True
-    p12_encoded_center.short_description = 'P12'
-    
-    def der_encoded_center(self):
-        '''Overwrite the Booleanfield admin for admin's changelist'''
-        
-        return self.get_icon_html(self.der_encoded)
-    
-    der_encoded_center.allow_tags = True
-    der_encoded_center.short_description = 'DER'
-    
-    def actions(self):
-        '''Define actions for admin's changelist'''
-        
-        return '<a href="/ca-manage/%d/revoke"<strong>revoke</strong></a> | <a href="/ca-manage/%d/renew"<strong>renew</strong></a>' % (self.id,self.id)
-    
-    actions.allow_tags = True
-    
     def download(self):
         
-        der   = '<font color="grey">der</font>'
-        p12   = '<font color="grey">p12</font>'
-        chain = '<font color="grey">chain</font>'
-        pem   = '<font color="grey">pem</font>'
-        csr   = '<font color="grey">csr</font>'
-        key   = '<font color="grey">key</font>'
+        items = self.build_download_links('cert')
         
         if self.active:
-            
-            chain = '<a href="/pki/download/cert/%d/chain"><strong>chain</strong></a>' % self.id
-            pem   = '<a href="/pki/download/cert/%d/pem"><strong>pem</strong></a>' % self.id
-            key   = '<a href="/pki/download/cert/%d/key"><strong>key</strong></a>' % self.id
-            csr   = '<a href="/pki/download/cert/%d/csr"><strong>csr</strong></a>' % self.id
-            
             if self.der_encoded:
-                der = '<a href="/pki/cert-download/%s/der"><strong>der</strong></a>' % self.name
+                items.append( '<a href="/pki/download/cert/%d/der"><strong>der</strong></a>' % self.pk )
+            else:
+                items.append( '<font color="grey">der</font>' )
             
             if self.pkcs12_encoded:
-                p12 = '<a href="/pki/cert-download/%s/pkcs12"><strong>p12</strong></a>' % self.name
+                items.append( '<a href="/pki/download/cert/%d/pkcs12"><strong>p12</strong></a>' % self.pk )
+            else:
+                items.append( '<font color="grey">p12</font>' )
+            
+            items.append( '<a href="/pki/download/cert/%d/csr"><strong>csr</strong></a>' % self.pk )
+        else:
+            items.append( '<font color="grey">der</font>' )
+            items.append( '<font color="grey">p12</font>' )
+            items.append( '<font color="grey">csr</font>' )
         
-        return ' | '.join((pem, key, csr, der, p12, chain))
+        return ' | '.join(items)
     
     download.allow_tags = True
     
-    def Description(self):
-        
-        if len(self.description) > 30:
-            return "%s..." % self.description[:30]
-        else:
-            return "%s" % self.description
-    
-    Description.allow_tags = True
-    Description.admin_order_field = 'description'
