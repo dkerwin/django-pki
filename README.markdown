@@ -7,16 +7,16 @@ django-pki offers the following features:
 
   * CA management
 
-    - Create chains
-    - Allow or deny sub CA's
-    - Revoke and renew
-    - Export PEM and DER encoded certificates
-    - Automatic CRL generation/update when CA or certificate is modified
+    - Create CA chains based on self-signed Root CA's
+    - CA's can contain other CA's or normal certificates
+    - Revoke and renew for non self-signed CA's
+    - Create and export PEM and DER encoded certificates
+    - Automatic CRL generation/update when CA or related certificate is modified
 
   * Certificate management
 
     - Revoke and renew
-    - Export DER, PKCS12 and PEM encoded versions
+    - Create and export PEM, PKCS12 and DER encoded versions
 
 django-pki stores the data in your favourite database backend (if supported by Django - MySQL, PostgreSQL, SQLite, Oracle). The main work is done by using Django's swiss army knife - the builtin admin. There is only a small number of custom views (download and logviewer).
 
@@ -32,7 +32,7 @@ Support
 -------
 
   * Bugs and feature requests : [http://code.google.com/p/django-pki/issues/](http://code.google.com/p/django-pki/issues/)
-  * Discussion                : [http://groups.google.com/group/django-pki](http://groups.google.com/group/django-pki) or django-pki@googlegroups.com
+  * Discussion : [http://groups.google.com/group/django-pki](http://groups.google.com/group/django-pki) or django-pki@googlegroups.com
 
 Installation
 ------------
