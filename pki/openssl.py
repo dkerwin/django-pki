@@ -155,6 +155,7 @@ class OpensslActions():
             self.key    = os.path.join(ca_dir, 'private', '%s.key.pem' % self.i.name)
             self.ext    = ''
             self.pkcs12 = False
+            self.i.subjaltname = ''
         elif type == 'cert':
             ca_dir      = os.path.join(PKI_DIR, self.i.parent.name)
             self.key    = os.path.join(ca_dir, 'certs', '%s.key.pem' % self.i.name)

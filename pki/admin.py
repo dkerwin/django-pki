@@ -37,7 +37,6 @@ class Certificate_Authority_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
                            'CA_chain', 'Description', 'type', 'revoked', 'download' )
     list_display_links = ('common_name', )
     actions            = []
-    #actions           = ['delete_selected', 'revoke_selected_objects']
     list_filter        = ( 'parent', 'active', )
     radio_fields       = { "action": admin.VERTICAL }
     search_fields      = [ 'name', 'common_name', 'description' ]
