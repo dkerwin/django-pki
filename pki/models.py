@@ -493,12 +493,19 @@ class Certificate(CertificateBase):
                     
                     ## Create or remove PKCS12 certificate
                     if self.pkcs12_encoded:
-                        action.generate_pkcs12_encoded()
+                        if prev.pkcs12_passphrase == self.pkcs12_passphrase:
+                            logger.debug( 'P12 passphrase is unchanged. Nothing to do' )
+                        else:
+                            action.generate_pkcs12_encoded()
                     else:
                         action.remove_pkcs12_encoded()
+                        self.pkcs12_passphrase = None
+                        prev.pkcs12_passphrase = None
                     
                     if self.pkcs12_passphrase:
                         prev.pkcs12_passphrase = md5_constructor(self.pkcs12_passphrase).hexdigest()
+                    else:
+                        prev.pkcs12_passphrase = None
                     
                     prev.description    = self.description
                     prev.der_encoded    = self.der_encoded
