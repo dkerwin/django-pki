@@ -1,25 +1,35 @@
 {% extends "admin/change_list.html" %}
-{% load adminmedia admin_list i18n %}
+
+{% block extrahead %}
+<style type="text/css">
+  
+  a.pkinav { float: right; 
+	     font-weight: bold;
+  	     margin-bottom: -20px; 
+             margin-left: 0px;
+	     margin-right: 200px;
+	     margin-top: -24px;
+	     padding-bottom: 0px;
+	     padding-left: 0px;
+	     padding-right: 20px;
+	     padding-top: 0px;
+	     position: relative;
+	   };
+</style>
+
+{% endblock %}
 
     {% block object-tools %}
+      
+	    {% ifequal cl.opts.verbose_name 'certificate' %}
+            <a href="../certificateauthority" class="pkinav">GoTo Certificate Authorities
+            {% else %}
+            <a href="../certificate/" class="pkinav">GoTo Certificates
+            {% endifequal %}
+            </a>
+            
+	    {{ block.super }} 
 
-      {% if has_add_permission %}
-        <ul class="object-tools">
-          <li>
-            {% ifequal cl.opts.verbose_name 'certificate' %}
-	    <a href="../certificateauthority"/>GoTo Certificate Authorities
-	    {% else %}
-	    <a href="../certificate/">GoTo Certificates
-	    {% endifequal %}
-            </a>
-          </li>
-          <li>
-            <a href="add/{% if is_popup %}?_popup=1{% endif %}" class="addlink">
-              {% blocktrans with cl.opts.verbose_name as name %}Add {{ name }}{% endblocktrans %}
-            </a>
-          </li>
-        </ul>
-      {% endif %}
     {% endblock %}
 
 
