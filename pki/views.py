@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import render_to_response, get_object_or_404
-from django.http import HttpResponse, Http404, HttpResponseRedirect, HttpResponseForbidden, HttpResponseBadRequest
+from django.http import HttpResponse, Http404, HttpResponseRedirect, HttpResponseBadRequest
 from django.utils.safestring import mark_safe
 from django.template import RequestContext
 from django.core.exceptions import PermissionDenied

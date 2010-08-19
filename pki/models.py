@@ -174,9 +174,7 @@ class CertificateAuthority(CertificateBase):
 
     class Meta:
         verbose_name_plural = 'Certificate Authorities'
-        permissions         = ( ( "can_download_ca", "Can download", ),
-                                ( "can_revoke_ca", "Can revoke", ), 
-                              )
+        permissions         = ( ( "can_download_ca", "Can download", ), )
     
     ##---------------------------------##
     ## Redefined functions
@@ -466,9 +464,7 @@ class Certificate(CertificateBase):
 
     class Meta:
         verbose_name_plural = 'Certificates'
-        permissions         = ( ( "can_download", "Can download certificate", ),
-                                ( "can_revoke", "Can revoke certificate", ),)
-
+        permissions         = ( ( "can_download", "Can download certificate", ), )
     
     ##---------------------------------##
     ## Redefined functions

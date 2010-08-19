@@ -1,6 +1,7 @@
 from django import forms
-from pki.models import *
 from django.forms.util import ErrorList
+
+from pki.models import *
 from openssl import md5_constructor
 import re
 
@@ -55,6 +56,7 @@ class CertificateAuthorityForm(forms.ModelForm):
                     self._errors['action'] = ErrorList(['You cannot renew a self-signed root certificate as this would break the whole chain!'])
 
         elif action == 'revoke':
+            
             if parent:
                 ca = CertificateAuthority.objects.get(name='%s' % parent)
                 enc_p_pf = md5_constructor(cleaned_data.get('parent_passphrase')).hexdigest()
