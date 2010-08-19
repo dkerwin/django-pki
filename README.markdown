@@ -120,3 +120,9 @@ Hasattr hack is required because Django imports settings.py multiple times. If y
 this, place handler initialization code to urls.py or somewhere else in your project.
 
 ### Do not forget to run `python manage.py syncdb` to create necessary database objects
+
+WSGI setup example
+------------------
+
+You can find a example wsgi script in `apache/django.wsgi`.
+
