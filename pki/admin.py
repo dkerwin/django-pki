@@ -1,8 +1,20 @@
 from pki.models import CertificateAuthority, Certificate
 from pki.forms import ReadOnlyAdminFields, CertificateAuthorityForm, CertificateForm
-from pki.settings import PKI_LOG, PKI_LOGLEVEL, JQUERY_URL
+from pki.settings import PKI_DIR, PKI_LOG, PKI_LOGLEVEL, JQUERY_URL
 
 from django.contrib import admin
+
+import os
+
+##------------------------------------------------------------------##
+## Create PKI_DIR if it's missing
+##------------------------------------------------------------------##
+
+if not os.path.exists( PKI_DIR ):
+    try:
+        os.mkdir( PKI_DIR, 0750 )
+    except OSError, e:
+        print "Failed to create PKI_DIR %s: %s" % (PKI_DIR, e)
 
 ##------------------------------------------------------------------##
 ## Initialize logging
