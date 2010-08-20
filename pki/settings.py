@@ -32,3 +32,6 @@ ADMIN_MEDIA_PREFIX = getattr(settings, 'ADMIN_MEDIA_PREFIX')
 
 # media url
 MEDIA_URL = getattr(settings, 'MEDIA_URL')
+
+# base url: without trailing slash. Leave empty if mounted on /
+PKI_BASE_URL = ''

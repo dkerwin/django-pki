@@ -104,6 +104,7 @@ Mandatory settings:
  * `PKI_LOG` - absolute path for log file (defaults to PKI_DIR/pki.log)
  * `PKI_LOGLEVEL` - logging level (info)
  * `JQUERY_URL` - jquery url (defaults to pki/jquery-1.3.2.min.js)
+ * `PKI_BASE_URL` - Base URL of your deployment (http:///xyz.com/django/tools/ => /django/tools)
 
 Additionally, you can add your own logging destinations. This is an example for syslog:
 

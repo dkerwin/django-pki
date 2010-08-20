@@ -48,6 +48,7 @@ class Certificate_Authority_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
     list_display       = ( 'id', 'common_name', 'serial', 'active_center', 'Expiry_date',
                            'CA_chain', 'Description', 'type', 'revoked', 'download' )
     list_display_links = ('common_name', )
+    save_on_top        = True
     actions            = []
     list_filter        = ( 'parent', 'active', )
     radio_fields       = { "action": admin.VERTICAL }

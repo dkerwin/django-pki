@@ -4,7 +4,7 @@ from logging import getLogger
 from shutil import rmtree
 
 from pki.openssl import handle_exception, OpensslActions, OpensslCaManagement, md5_constructor, refresh_pki_metadata
-from pki.settings import ADMIN_MEDIA_PREFIX 
+from pki.settings import ADMIN_MEDIA_PREFIX, PKI_BASE_URL
 
 import datetime
 
@@ -142,7 +142,7 @@ class CertificateBase(models.Model):
         
         for i in items_on_active:
             if self.active:
-                result.append( '<a href="/pki/download/%s/%d/%s"><strong>%s</strong></a>' % (type, self.id, i, i) )
+                result.append( '<a href="%s/pki/download/%s/%d/%s"><strong>%s</strong></a>' % (PKI_BASE_URL, type, self.id, i, i) )
             else:
                 result.append( '<font color="grey">%s</font>' % i )
         
@@ -432,10 +432,10 @@ class CertificateAuthority(CertificateBase):
         
         if self.active:
             if self.der_encoded:
-                items.append( '<a href="/pki/download/ca/%d/der"><strong>der</strong></a>' % self.pk )
+                items.append( '<a href="%s/pki/download/ca/%d/der"><strong>der</strong></a>' % (PKI_BASE_URL, self.pk) )
             else:
                 items.append( '<font color="grey">der</font>' )
-            items.append( '<a href="/pki/download/ca/%d/crl"><strong>crl</strong></a>' % self.pk )
+            items.append( '<a href="%s/pki/download/ca/%d/crl"><strong>crl</strong></a>' % (PKI_BASE_URL, self.pk) )
         else:
             items.append( '<font color="grey">der</font>' )
             items.append( '<font color="grey">crl</font>' )
