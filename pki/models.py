@@ -209,8 +209,6 @@ class CertificateAuthority(CertificateBase):
                     from pki.views import chain_recursion as r_chain_recursion
                     r_chain_recursion(self.id, garbage, id_dict)
                     
-                    logger.error( id_dict )
-                    
                     for i in id_dict['cert']:
                         x = Certificate.objects.get(pk=i)
                         x.active         = False
