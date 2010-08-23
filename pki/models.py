@@ -631,16 +631,16 @@ class Certificate(CertificateBase):
         
         if self.active:
             if self.der_encoded:
-                items.append( '<a href="/pki/download/cert/%d/der"><strong>der</strong></a>' % self.pk )
+                items.append( '<a href="%s/pki/download/cert/%d/der"><strong>der</strong></a>' % (PKI_BASE_URL, self.pk) )
             else:
                 items.append( '<font color="grey">der</font>' )
             
             if self.pkcs12_encoded:
-                items.append( '<a href="/pki/download/cert/%d/pkcs12"><strong>p12</strong></a>' % self.pk )
+                items.append( '<a href="%s/pki/download/cert/%d/pkcs12"><strong>p12</strong></a>' % (PKI_BASE_URL, self.pk) )
             else:
                 items.append( '<font color="grey">p12</font>' )
             
-            items.append( '<a href="/pki/download/cert/%d/csr"><strong>csr</strong></a>' % self.pk )
+            items.append( '<a href="%s/pki/download/cert/%d/csr"><strong>csr</strong></a>' % (PKI_BASE_URL, self.pk) )
         else:
             items.append( '<font color="grey">der</font>' )
             items.append( '<font color="grey">p12</font>' )
