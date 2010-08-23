@@ -64,8 +64,6 @@ COUNTRY    = ( ('AD', 'AD'),('AE', 'AE'),('AF', 'AF'),('AG', 'AG'),('AI', 'AI'),
 class CertificateBase(models.Model):
     '''Base class for all type of certificates'''
     
-    common_name  = models.CharField(max_length=64, unique=True)
-    name         = models.CharField(max_length=64, unique=True, help_text="Only change the suggestion if you really know what you're doing")
     description  = models.CharField(max_length=255)
     country      = models.CharField(max_length=2, choices=COUNTRY, default='DE')
     state        = models.CharField(max_length=32)
@@ -159,6 +157,8 @@ class CertificateAuthority(CertificateBase):
     ## Model definition
     ##---------------------------------##
     
+    common_name       = models.CharField(max_length=64, unique=True)
+    name              = models.CharField(max_length=64, unique=True, help_text="Only change the suggestion if you really know what you're doing")
     subcas_allowed    = models.BooleanField(verbose_name="Sub CA's allowed", help_text="If enabled you cannot sign certificates with this CA")
     parent            = models.ForeignKey('self', blank=True, null=True)
     type              = models.CharField(max_length=32, null=True, choices=CA_TYPES, default='RootCA')
@@ -451,6 +451,8 @@ class CertificateAuthority(CertificateBase):
 class Certificate(CertificateBase):
     '''CA specification'''
     
+    common_name       = models.CharField(max_length=64)
+    name              = models.CharField(max_length=64, help_text="Only change the suggestion if you really know what you're doing")
     parent            = models.ForeignKey('CertificateAuthority', blank=True, null=True, help_text='Leave blank to only generate a KEY and CSR')
     passphrase        = models.CharField(max_length=255, null=True, blank=True)
     pf_encrypted      = models.NullBooleanField()
@@ -465,6 +467,7 @@ class Certificate(CertificateBase):
     class Meta:
         verbose_name_plural = 'Certificates'
         permissions         = ( ( "can_download", "Can download certificate", ), )
+        unique_together     = ( ( "name", "parent" ), ("common_name", "parent"), )
     
     ##---------------------------------##
     ## Redefined functions
