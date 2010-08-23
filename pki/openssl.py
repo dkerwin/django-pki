@@ -82,11 +82,11 @@ def refresh_pki_metadata(ca_list):
                 
                 initial_serial = 0x01
                 
-                if not ca.parent and PKI_SELF_SIGNED_SERIAL:
-                    try:
+                try:
+                    if not ca.parent and int(PKI_SELF_SIGNED_SERIAL) > 0:
                         initial_serial = PKI_SELF_SIGNED_SERIAL+1 
-                    except ValueError:
-                        logger.error( "PKI_SELF_SIGNED_SERIAL failed conversion to hex!" )
+                except ValueError:
+                    logger.error( "PKI_SELF_SIGNED_SERIAL failed conversion to int!" )
                 
                 h2s = '%X' % initial_serial
                 
@@ -233,10 +233,10 @@ class OpensslActions():
                    '-extensions', 'v3_ca', '-key', self.key, '-out', self.crt, '-passin', 'env:%s' % self.env_pw]
         
         try:
-            if PKI_SELF_SIGNED_SERIAL and int(PKI_SELF_SIGNED_SERIAL):
+            if PKI_SELF_SIGNED_SERIAL and int(PKI_SELF_SIGNED_SERIAL) > 0:
                 command.extend( [ '-set_serial', str(PKI_SELF_SIGNED_SERIAL) ] )
         except:
-            logger.error( "Failed to set inital serial number to %s. Fallback to random number" % PKI_SELF_SIGNED_SERIAL )
+            logger.error( "Not setting inital serial number to %s. Fallback to random number" % PKI_SELF_SIGNED_SERIAL )
         
         self.exec_openssl( command, env_vars={ self.env_pw: str(self.i.passphrase), })
     

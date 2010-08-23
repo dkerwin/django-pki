@@ -105,7 +105,7 @@ Mandatory settings:
  * `PKI_LOGLEVEL` - logging level (info)
  * `JQUERY_URL` - jquery url (defaults to pki/jquery-1.3.2.min.js)
  * `PKI_BASE_URL` - Base URL of your deployment (http://xyz.com/django/tools/ => /django/tools)
- * `PKI_SELF_SIGNED_SERIAL` - The serial of self-signed CA certificates. Leave empty to get a random number (0xabc = HEX; 123 = DEC)
+ * `PKI_SELF_SIGNED_SERIAL` - The serial of self-signed CA certificates. Set to 0 or 0x0 to get a random serial number (0xabc = HEX; 123 = DEC)
 
 Additionally, you can add your own logging destinations. This is an example for syslog:
 
