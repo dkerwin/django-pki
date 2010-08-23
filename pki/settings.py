@@ -35,3 +35,7 @@ MEDIA_URL = getattr(settings, 'MEDIA_URL')
 
 # base url: without trailing slash. Leave empty if mounted on /
 PKI_BASE_URL = ''
+
+# self_signed_serial; The serial a self signed CA starts with. Leave empty for random number
+PKI_SELF_SIGNED_SERIAL = 07
+

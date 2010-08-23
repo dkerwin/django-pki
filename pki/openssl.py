@@ -2,7 +2,7 @@ import os, re, sys
 import datetime
 import string, random
 
-from pki.settings import PKI_OPENSSL_BIN, PKI_OPENSSL_CONF, PKI_DIR, PKI_OPENSSL_TEMPLATE
+from pki.settings import PKI_OPENSSL_BIN, PKI_OPENSSL_CONF, PKI_DIR, PKI_OPENSSL_TEMPLATE, PKI_SELF_SIGNED_SERIAL
 
 from subprocess import Popen, PIPE, STDOUT
 from shutil import rmtree
@@ -80,9 +80,22 @@ def refresh_pki_metadata(ca_list):
                 for d, m in dirs.items():
                     os.mkdir(os.path.join(ca_dir, d), m)
                 
+                initial_serial = 0x01
+                
+                if not ca.parent and PKI_SELF_SIGNED_SERIAL:
+                    try:
+                        initial_serial = PKI_SELF_SIGNED_SERIAL+1 
+                    except ValueError:
+                        logger.error( "PKI_SELF_SIGNED_SERIAL failed conversion to hex!" )
+                
+                h2s = '%X' % initial_serial
+                
+                if len(h2s) % 2 == 1:
+                    h2s = '0' + h2s
+                
                 # initialize certificate serial number
                 s = open(os.path.join(ca_dir, 'serial'), 'wb')
-                s.write('01')
+                s.write(h2s)
                 s.close()
                 
                 # initialize CRL serial number
@@ -146,7 +159,7 @@ class OpensslActions():
             self.parent_certs = os.path.join(PKI_DIR, self.i.parent.name, 'certs')
             self.crl = os.path.join(PKI_DIR, self.i.parent.name, 'crl', '%s.crl.pem' % self.i.parent.name)
         else:
-            ## self-signed RootCA
+            ## self-signed RootCA            
             self.parent_certs = os.path.join(PKI_DIR, self.i.name, 'certs')
             self.crl = os.path.join(PKI_DIR, self.i.name, 'crl', '%s.crl.pem' % self.i.name)
         
@@ -217,7 +230,14 @@ class OpensslActions():
         logger.info( 'Generating self-signed root certificate' )
         
         command = ['req', '-config', PKI_OPENSSL_CONF, '-verbose', '-batch', '-new', '-x509', '-subj', self.subj, '-days', str(self.i.valid_days), \
-                   '-extensions', 'v3_ca', '-set_serial', '1', '-key', self.key, '-out', self.crt, '-passin', 'env:%s' % self.env_pw]
+                   '-extensions', 'v3_ca', '-key', self.key, '-out', self.crt, '-passin', 'env:%s' % self.env_pw]
+        
+        try:
+            if PKI_SELF_SIGNED_SERIAL and int(PKI_SELF_SIGNED_SERIAL):
+                command.extend( [ '-set_serial', str(PKI_SELF_SIGNED_SERIAL) ] )
+        except:
+            logger.error( "Failed to set inital serial number to %s. Fallback to random number" % PKI_SELF_SIGNED_SERIAL )
+        
         self.exec_openssl( command, env_vars={ self.env_pw: str(self.i.passphrase), })
     
     def generate_csr(self):
