@@ -104,7 +104,7 @@ def pki_download(request, type, id, item):
 ##------------------------------------------------------------------##
 
 ## Helper function for recusion
-def chain_recursion(r_id, store, id_dict={ 'cert': [], 'ca': [],  }):
+def chain_recursion(r_id, store, id_dict):
     
     i = CertificateAuthority.objects.get(pk=r_id)
     
@@ -128,7 +128,7 @@ def chain_recursion(r_id, store, id_dict={ 'cert': [], 'ca': [],  }):
     if child_cas:
         helper = []
         for ca in child_cas:
-            chain_recursion(ca.pk, helper)
+            chain_recursion(ca.pk, helper, id_dict)
         store.append(helper)
 
 ## Helper function for ul delete tree
@@ -150,7 +150,7 @@ def admin_delete(request, model, id):
     if model == 'certificateauthority':
         ## Get the list of objects to delete as list of lists
         item = get_object_or_404(CertificateAuthority, pk=id)
-        chain_recursion(item.id, deleted_objects)
+        chain_recursion(item.id, deleted_objects, id_dict={ 'cert': [], 'ca': [], })
         
         ## Fill the required data for delete_confirmation.html template
         opts               = CertificateAuthority._meta
