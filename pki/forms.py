@@ -39,7 +39,17 @@ class CertificateAuthorityForm(forms.ModelForm):
             if pf and len(pf) < 8:
                 self._errors['passphrase'] = ErrorList(['Passphrase has to be at least 8 characters long'])
             
-            if parent:
+            ## Take care that parent is active when action is revoke
+            if action == 'renew':
+                ca = CertificateAuthority.objects.get(name='%s' % name)
+                
+                logger.error( "The parent is %s" % ca.parent.active)
+                
+                if ca.parent is not None and ca.parent.active is not True:
+                    self._errors['action'] = ErrorList(['Cannot renew CA certificate when parent "%s" isn\'t active!' % ca.parent.name])
+                    return cleaned_data
+            
+            if parent:                
                 ca = CertificateAuthority.objects.get(name='%s' % parent)
                 p_pf = cleaned_data.get('parent_passphrase')
                 if p_pf: enc_p_pf = md5_constructor(p_pf).hexdigest()
@@ -102,6 +112,14 @@ class CertificateForm(forms.ModelForm):
             ## Verify passphrase length
             if pf and len(pf) < 8:
                 self._errors['passphrase'] = ErrorList(['Passphrase has to be at least 8 characters long'])
+            
+            ## Take care that parent is active when action is revoke
+            if action == 'renew':
+                cert = Certificate.objects.get(name='%s' % name)
+                
+                if cert.parent is not None and cert.parent.active is not True:
+                    self._errors['action'] = ErrorList(['Cannot renew certificate when parent CA "%s" isn\'t active!' % cert.parent.name])
+                    return cleaned_data
             
             if parent:
                 ca = CertificateAuthority.objects.get(name='%s' % parent)
