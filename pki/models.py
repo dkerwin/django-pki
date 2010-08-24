@@ -585,6 +585,8 @@ class Certificate(CertificateBase):
             self.serial = action.get_serial_from_cert()
             
             self.ca_chain = self.parent.ca_chain
+            if self.ca_chain == 'self-signed':
+                self.ca_chain = self.parent.name
             
             self.pem_encoded = True
             
