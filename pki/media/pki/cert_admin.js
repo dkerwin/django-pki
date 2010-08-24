@@ -85,6 +85,8 @@ function onActionChange() {
                                 
                                 if ( ! el.id.match('id_action_[1-3]') ) {
                                     
+                                    $("label[for=id_parent_passphrase]").addClass('required');
+                                    
                                     if ( el.name == "der_encoded" ) {
                                         
                                         $(el).attr("disabled", "disabled");
@@ -110,6 +112,8 @@ function onActionChange() {
                             }
                             // Renew: Cert settings are
                             else if ( $("input[id=id_action_3]").attr("checked") ) {
+                                
+                                $("label[for=id_parent_passphrase]").addClass('required');
                                 
                                 var enabled_fields = new Array();
                                 enabled_fields['description'] = 1;

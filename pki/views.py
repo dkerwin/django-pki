@@ -136,10 +136,9 @@ def build_delete_item(i, type):
     
     o = OpensslActions( type, i )
     
-    return "<ul><li>Serial: %s</li><li>Subject: %s</li><li>Description: %s</li><li>Created: %s</li><li>Expiry date: %s</li></ul>" % ( i.serial, o.build_subject(), i.description, i.created, i.expiry_date)
+    return "<ul><li>Serial: %s</li><li>Subject: %s</li><li>Parent: %s</li><li>Description: %s</li><li>Created: %s</li><li>Expiry date: %s</li></ul>" % ( i.serial, o.build_subject(), i.parent.name, i.description, i.created, i.expiry_date)
 
 @login_required
-#@permission_required('pki.can_revoke', login_url='/admin/')
 def admin_delete(request, model, id):
     '''Overwite the default admin delete view'''
     
@@ -198,65 +197,6 @@ def admin_delete(request, model, id):
                                                                       'auth_object': auth_object, 'parent_object_name': parent_object_name,
                                                                       'title': title,
                                                                     }, RequestContext(request))
-
-#@login_required
-#def multi_revoke(request, type, ids):
-#    '''Revoke multiple certificates in 1 view'''
-#    
-#    certs    = ids.split(',')
-#    errors   = []
-#    parents  = []
-#    ca       = ''
-#    cert_obj = []
-#    
-#    form = None
-#    
-#    if type == 'ca':
-#        for item in certs:
-#            cert = CertificateAuthority.objects.get(pk=item)
-#            logger.error( cert.parent)
-#            
-#            if cert.parent == None:
-#                logger.error( "The CA '%s' is a self-signed RootCA. Revoking this certificate kills the whole chain. Forget it!" % cert.name )
-#                errors.append('Certificate Authority "%s" is self-signed RootCA and cannot be revoked. Revoking this certificate kills the whole chain!' % cert.name)
-#            else:
-#                cert_obj.append(cert)
-#                
-#                if ca != '':
-#                    if ca != cert.parent.pk:
-#                        errors.append('You tried to revoke certificates with different parents. Make sure all certificates belong to the same parent')
-#                else:
-#                    ca = cert.parent.pk
-#                
-#                parents.append({ 'parent': cert.parent.name, 'name': cert.name})
-#                
-#    
-#    if ( len(errors) == 0 ):
-#        if request.method == 'POST':
-#            form = CaPassphraseForm(request.POST)
-#            if form.is_valid():
-#                ## Let's revoke our certs
-#                for c in cert_obj:
-#                    c.action = 'revoke'
-#                    c.parent_passphrase = form.cleaned_data['passphrase']
-#                    c.save()
-#                
-#                return render_to_response('pki/multi_revoke.html', { 'message': 'Certificate(s) have been revoked successfully',
-#                                                                 'errors': errors,
-#                                                                 'back_url': 'pki/certificateauthority/',
-#                                                                 'back_name': 'Back to CA management'
-#                                                               })
-#        else:
-#            form = CaPassphraseForm()
-#            form.fields['ca_id'].initial = ca
-#        
-#    
-#    return render_to_response('pki/multi_revoke.html', { 'form': form,
-#                                                     'errors': errors,
-#                                                     'parents': parents,
-#                                                     'back_url': 'pki/certificateauthority/',
-#                                                     'back_name': 'Back to CA management'
-#                                                   })
 
 @login_required
 def show_exception(request):
