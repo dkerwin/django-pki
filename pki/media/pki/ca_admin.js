@@ -110,13 +110,10 @@ function onActionChange() {
                                 
                                 var enabled_fields = new Array();
                                 enabled_fields['description'] = 1;
-                                enabled_fields['key_length'] = 1;
                                 enabled_fields['valid_days'] = 1;
-                                enabled_fields['passphrase'] = 1;
                                 enabled_fields['parent_passphrase'] = 1;
                                 enabled_fields['policy'] = 1;
                                 enabled_fields['der_encoded'] = 1;
-                                enabled_fields['subcas_allowed'] = 1;
                                 
                                 if ( ! el.id.match('id_action_[1-3]') ) {
                                     
@@ -134,18 +131,9 @@ function onActionChange() {
                                             
                                             $(el.parentNode.parentNode).css('background-color', '#fffcaa');
                                         }
-                                        else if ( el.name == "subcas_allowed" ) {
-                                            
-                                            $(el.parentNode.parentNode).css('background-color', '#fffcaa');
-                                        }
                                         else {
                                             
                                             $(el).css('background-color', '#fffcaa');
-                                        }
-                                        
-                                        if ( el.name == "passphrase" ) {
-                                            
-                                            $(el).val("");
                                         }
                                     }
                                 }

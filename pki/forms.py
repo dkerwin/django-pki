@@ -36,14 +36,12 @@ class CertificateAuthorityForm(forms.ModelForm):
                 self._errors['name'] = ErrorList(['Name may only contain characters in range a-Z0-9_-.'])
             
             ## Verify passphrase length
-            if pf and len(pf) < 8:
+            if action == 'create' and pf and len(pf) < 8:
                 self._errors['passphrase'] = ErrorList(['Passphrase has to be at least 8 characters long'])
             
             ## Take care that parent is active when action is revoke
             if action == 'renew':
                 ca = CertificateAuthority.objects.get(name='%s' % name)
-                
-                logger.error( "The parent is %s" % ca.parent.active)
                 
                 if ca.parent is not None and ca.parent.active is not True:
                     self._errors['action'] = ErrorList(['Cannot renew CA certificate when parent "%s" isn\'t active!' % ca.parent.name])
@@ -110,7 +108,7 @@ class CertificateForm(forms.ModelForm):
                 self._errors['name'] = ErrorList(['Name may only contain characters in range a-Z0-9'])
             
             ## Verify passphrase length
-            if pf and len(pf) < 8:
+            if action == 'create' and pf and len(pf) < 8:
                 self._errors['passphrase'] = ErrorList(['Passphrase has to be at least 8 characters long'])
             
             ## Take care that parent is active when action is revoke

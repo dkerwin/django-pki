@@ -345,8 +345,6 @@ class OpensslActions():
         logger.info( 'Revoking certificate %s' % self.i.name )
         
         command = 'ca -config %s -name %s -batch -revoke %s -passin env:%s' % (PKI_OPENSSL_CONF, self.i.parent, self.crt, self.env_pw)
-        
-        logger.info( command )
         self.exec_openssl(command.split(), env_vars={ self.env_pw: str(ppf) })
     
     def renew_certificate(self):
@@ -356,6 +354,8 @@ class OpensslActions():
         
         if os.path.exists(self.csr):
             self.sign_csr()
+        else:
+            handle_exception( func=__name__, exception="Failed to renew certificate %s! CSR is missing!" % self.i.name )
     
     def generate_crl(self, ca=None, pf=None):
         '''Generate CRL: When a CA is modified'''
@@ -367,32 +367,46 @@ class OpensslActions():
         command = 'ca -config %s -name %s -gencrl -out %s -crldays 1 -passin env:%s' % (PKI_OPENSSL_CONF, ca, crl, self.env_pw)
         self.exec_openssl(command.split(), env_vars={ self.env_pw: str(pf) })
     
-    def update_ca_chain_file(self, ca, mode):
+    def update_ca_chain_file(self):
         '''Build/update the CA chain'''
         
-        ca_cert    = os.path.join( PKI_DIR, ca, 'certs', '%s.cert.pem' % ca )
+        ## Build list of parents
+        chain = []
+        chain_str = ''
+        
+        p = self.i.parent
+        
+        if self.i.parent == None:
+            chain.append( self.i.name )
+        else:
+            chain.append( self.i.name )
+            while p != None:
+                chain.append(p.name)
+                p = p.parent
+        
+        chain.reverse()
+        
+        #ca_cert    = os.path.join( PKI_DIR, self.name, 'certs', '%s.cert.pem' % self.name )
         chain_file = os.path.join( PKI_DIR, self.i.name, '%s-chain.cert.pem' % self.i.name )
         
-        ## Open chain file
-        w = None
-        
-        if mode == 'create':
+        try:
             w = open(chain_file, 'w')
-        elif mode == 'append':
-            w = open(chain_file, 'a')
-        else:
-            handle_exception(__name__, 'Invalid mode supplied!')
-        
-        command = 'x509 -in %s' % ca_cert
-        output  = self.exec_openssl(command.split())
-        
-        ## Get the subject to print it first in the chain file
-        subj = self.get_subject_from_cert(ca_cert)
-        
-        w.write( '%s\n' % subj )
-        w.write(output)
-        
-        w.close()
+            
+            for c in chain:
+                cert_file = os.path.join( PKI_DIR, c, 'certs', '%s.cert.pem' % c )
+                command = 'x509 -in %s' % cert_file
+                output  = self.exec_openssl(command.split())
+                
+                ## Get the subject to print it first in the chain file
+                subj = self.get_subject_from_cert(cert_file)
+                
+                w.write( '%s\n' % subj )
+                w.write(output)
+            
+            w.close()
+        except:
+            handle_exception(__name__, 'Failed to write chain file!')
+    
     
     def build_subject(self):
         '''Return a subject string for CSR and self-sgined certs'''

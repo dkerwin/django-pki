@@ -242,8 +242,9 @@ class CertificateAuthority(CertificateBase):
                 elif self.action == 'renew':
                     
                     ## Revoke if certificate is active
-                    if action.get_revoke_status_from_cert():
+                    if not action.get_revoke_status_from_cert():
                         action.revoke_certificate(self.parent_passphrase)
+                        action.generate_crl(self.parent.name, self.parent_passphrase)
                     
                     ## Rebuild the ca metadata
                     self.rebuild_ca_metadata(modify=True, task='replace')
@@ -251,22 +252,23 @@ class CertificateAuthority(CertificateBase):
                     ## Renew and update CRL
                     action.renew_certificate()
                     action.generate_crl(self.parent.name, self.parent_passphrase)
+                    action.update_ca_chain_file()
                     
                     ## Modify fields
                     prev.created = datetime.datetime.now()
                     delta = datetime.timedelta(self.valid_days)
                     prev.expiry_date = datetime.datetime.now() + delta
+                    prev.valid_days = self.valid_days
                     
                     prev.parent_passphrase = None
                     prev.active            = True
                     prev.pem_encoded       = True
                     prev.der_encoded       = self.der_encoded
                     prev.revoked           = None
-                    prev.subcas_allowed    = self.subcas_allowed
                     
                     ## Get the new serial
                     prev.serial     = action.get_serial_from_cert()
-                    prev.passphrase = md5_constructor(self.passphrase).hexdigest()
+                    #prev.passphrase = md5_constructor(self.passphrase).hexdigest()
                 
                 ## Save the data
                 self = prev
@@ -327,23 +329,19 @@ class CertificateAuthority(CertificateBase):
                 while p != None:
                     chain.append(p.name)
                     p = p.parent
-                
+            
             chain.reverse()
             
             ## Build chain string and file
             for i in chain:
                 if chain_str == '':
                     chain_str += '%s' % i
-                    
-                    if i == 'self-signed':
-                        action.update_ca_chain_file(ca=self.name, mode='create')
-                    else:
-                        action.update_ca_chain_file(ca=i, mode='create')
                 else:
                     chain_str += '&rarr;%s' % i
-                    action.update_ca_chain_file(ca=i, mode='append')
             
             self.ca_chain = chain_str
+            
+            action.update_ca_chain_file()
             
             ## Encrypt passphrase and blank parent's passphrase
             self.passphrase = md5_constructor(self.passphrase).hexdigest()
@@ -546,10 +544,11 @@ class Certificate(CertificateBase):
                     prev.der_encoded       = self.der_encoded
                     prev.pkcs12_encoded    = self.pkcs12_encoded
                     prev.revoked           = None
+                    prev.valid_days = self.valid_days
                     
                     ## Get the new serial
                     prev.serial     = action.get_serial_from_cert()
-                    prev.passphrase = md5_constructor(self.passphrase).hexdigest()
+                    #prev.passphrase = md5_constructor(self.passphrase).hexdigest()
                 
                 ## Save the data
                 self = prev

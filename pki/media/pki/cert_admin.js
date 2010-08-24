@@ -113,9 +113,8 @@ function onActionChange() {
                                 
                                 var enabled_fields = new Array();
                                 enabled_fields['description'] = 1;
-                                enabled_fields['key_length'] = 1;
+                                enabled_fields['cert_extension'] = 1;
                                 enabled_fields['valid_days'] = 1;
-                                enabled_fields['passphrase'] = 1;
                                 enabled_fields['parent_passphrase'] = 1;
                                 enabled_fields['policy'] = 1;
                                 enabled_fields['der_encoded'] = 1;
@@ -145,11 +144,6 @@ function onActionChange() {
                                         else {
                                             
                                             $(el).css('background-color', '#fffcaa');
-                                        }
-                                        
-                                        if ( el.name == "passphrase" ) {
-                                            
-                                            $(el).val("");
                                         }
                                     }
                                 }
