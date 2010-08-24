@@ -39,3 +39,6 @@ PKI_BASE_URL = ''
 # self_signed_serial; The serial a self signed CA starts with. Set to 0 or 0x0 for q random number
 PKI_SELF_SIGNED_SERIAL = 0x0
 
+# default_country: The default country selected (2-letter country code)
+PKI_DEFAULT_COUNTRY = 'DE'
+

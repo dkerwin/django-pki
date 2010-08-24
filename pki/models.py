@@ -4,7 +4,7 @@ from logging import getLogger
 from shutil import rmtree
 
 from pki.openssl import handle_exception, OpensslActions, OpensslCaManagement, md5_constructor, refresh_pki_metadata
-from pki.settings import ADMIN_MEDIA_PREFIX, PKI_BASE_URL
+from pki.settings import ADMIN_MEDIA_PREFIX, PKI_BASE_URL, PKI_DEFAULT_COUNTRY
 
 import datetime
 
@@ -65,7 +65,7 @@ class CertificateBase(models.Model):
     '''Base class for all type of certificates'''
     
     description  = models.CharField(max_length=255)
-    country      = models.CharField(max_length=2, choices=COUNTRY, default='DE')
+    country      = models.CharField(max_length=2, choices=COUNTRY, default='%s' % PKI_DEFAULT_COUNTRY.upper() )
     state        = models.CharField(max_length=32)
     locality     = models.CharField(max_length=32)
     organization = models.CharField(max_length=64)
@@ -81,8 +81,11 @@ class CertificateBase(models.Model):
     ca_chain     = models.CharField(max_length=200, blank=True, null=True)
     pem_encoded  = models.BooleanField(default=False)
     der_encoded  = models.BooleanField(default=False, verbose_name="Create DER encoded certificate (additional)")
-    action       = models.CharField(max_length=32, choices=ACTIONS, default='create', help_text="Be careful: Revoking/renewing a self-signed \
-                                    CA certificate will result in a completely broken chain!<br>Yellow fields can/have to be modified!")
+    action       = models.CharField(max_length=32, choices=ACTIONS, default='create', help_text="create: Create (CA) certificate<br /> \
+                                    update: Change description and export options<br /> \
+                                    revoke: Revoke (CA) certificate. May break whole chain<br /> \
+                                    renew: Re-sign csr. Key is unchanged. Chain stays valid<br /><br /> \
+                                    Yellow fields can/have to be modified!")
     
     class Meta:
         abstract = True
