@@ -245,16 +245,21 @@ class CertificateAuthority(CertificateBase):
                 elif self.action == 'renew':
                     
                     ## Revoke if certificate is active
-                    if not action.get_revoke_status_from_cert():
+                    if self.parent and not action.get_revoke_status_from_cert():
                         action.revoke_certificate(self.parent_passphrase)
                         action.generate_crl(self.parent.name, self.parent_passphrase)
                     
                     ## Rebuild the ca metadata
                     self.rebuild_ca_metadata(modify=True, task='replace')
                     
-                    ## Renew and update CRL
-                    action.renew_certificate()
-                    action.generate_crl(self.parent.name, self.parent_passphrase)
+                    ## Renew certificate and update CRL
+                    if self.parent == None:
+                        action.generate_self_signed_cert()
+                        action.generate_crl(self.name, self.passphrase)
+                    else:
+                        action.renew_certificate()
+                        action.generate_crl(self.parent.name, self.parent_passphrase)
+                    
                     action.update_ca_chain_file()
                     
                     ## Modify fields

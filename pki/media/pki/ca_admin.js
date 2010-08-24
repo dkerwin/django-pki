@@ -109,9 +109,20 @@ function onActionChange() {
                             else if ( $("input[id=id_action_3]").attr("checked") ) {
                                 
                                 var enabled_fields = new Array();
+                                
+                                if ($("#id_parent option:selected").val() == '') {
+                                    
+                                    // This is a self-signed RootCA
+                                    enabled_fields['passphrase'] = 1;
+                                    $('#id_passphrase').val('');
+                                }
+                                else {
+                                    
+                                    enabled_fields['parent_passphrase'] = 1;
+                                }
+                                
                                 enabled_fields['description'] = 1;
                                 enabled_fields['valid_days'] = 1;
-                                enabled_fields['parent_passphrase'] = 1;
                                 enabled_fields['policy'] = 1;
                                 enabled_fields['der_encoded'] = 1;
                                 
