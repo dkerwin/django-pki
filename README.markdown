@@ -8,8 +8,8 @@ django-pki offers the following features:
   * CA management
 
     - Create CA chains based on self-signed Root CA's
-    - CA's can contain other CA's or normal certificates
-    - Revoke and renew for non self-signed CA's
+    - CA's can contain other CA's or non-CA certificates
+    - Revoke and renew (re-sign CSR) for all CA's
     - Create and export PEM and DER encoded certificates
     - Automatic CRL generation/update when CA or related certificate is modified
 
@@ -24,7 +24,7 @@ Dependencies
 ------------
 
   * Python (tested on 2.5 and 2.6)
-  * Django framework (>1.1.1 is recommended)
+  * Django framework (>=1.1.1 is recommended)
   * Openssl
   * Optional Jquery library (djago-pki already shipped with built-in jquery-1.3.2)
 
