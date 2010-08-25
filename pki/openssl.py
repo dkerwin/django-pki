@@ -183,10 +183,10 @@ class OpensslActions():
         stdout_value, stderr_value = proc.communicate()
         
         if proc.returncode != 0:
-            logger.error( 'openssl command "%s" failed with returncode %d' % (c[1], self.__class__.__name__, proc.returncode) )
+            logger.error( 'openssl command "%s" failed with returncode %d' % (c[1], proc.returncode) )
             logger.error( stdout_value )
             
-            raise Exception()
+            raise Exception( stdout_value )
         else:
             return stdout_value
     
