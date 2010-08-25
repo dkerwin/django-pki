@@ -14,6 +14,7 @@
 	     padding-right: 20px;
 	     padding-top: 0px;
 	     position: relative;
+		 width: 200px;
 	   };
 </style>
 
@@ -22,9 +23,9 @@
     {% block object-tools %}
       
 	    {% ifequal cl.opts.verbose_name 'certificate' %}
-            <a href="../certificateauthority" class="pkinav">GoTo Certificate Authorities
+            <a href="../certificateauthority" class="pkinav">&rarr; Certificate Authorities
             {% else %}
-            <a href="../certificate/" class="pkinav">GoTo Certificates
+            <a href="../certificate/" class="pkinav">&rarr; Certificates
             {% endifequal %}
             </a>
             
