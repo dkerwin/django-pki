@@ -1,0 +1,7 @@
+recursive-include apache *.wsgi
+recursive-include pki/media *
+recursive-include pki/templates *
+include COPYING 
+include README.markdown 
+include LICENSE 
+include AUTHORS
