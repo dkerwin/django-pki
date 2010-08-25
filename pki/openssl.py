@@ -20,24 +20,6 @@ from django.template.loader import render_to_string
 logger = getLogger("pki")
 
 ##------------------------------------------------------------------##
-## Exception handlers
-##------------------------------------------------------------------##
-
-def handle_exception( func='unknown', exception='No exception data available', traceback='No traceback available' ):
-    '''Universal exception handler - log and raise'''
-    
-    logger.error( '' )
-    logger.error( '=============================================================' )
-    logger.error( ' Exception or error in %s' % func )
-    logger.error( '=============================================================' )
-    logger.error( '' )
-    logger.error( exception )
-    logger.error( traceback )
-    logger.error( '' )
-    
-    raise Exception()
-
-##------------------------------------------------------------------##
 ## OpenSSLConfig: Config related stuff
 ##------------------------------------------------------------------##
 
@@ -137,7 +119,7 @@ def refresh_pki_metadata(ca_list):
         f.close()
 
     except:
-        handle_exception("%s.%s" % (self.__class__.__name__, sys._getframe().f_code.co_name), sys.exc_info()[0], sys.exc_info()[1])
+        raise Exception( 'Failed to render OpenSSL template' )
         status = False
 
     return status # is it used somewhere?
@@ -201,12 +183,11 @@ class OpensslActions():
         stdout_value, stderr_value = proc.communicate()
         
         if proc.returncode != 0:
-            logger.error( 'openssl command "%s" failed in %s.%s with returncode %d' % (c[1], self.__class__.__name__, sys._getframe().f_code.co_name, proc.returncode) )
+            logger.error( 'openssl command "%s" failed with returncode %d' % (c[1], self.__class__.__name__, proc.returncode) )
             logger.error( stdout_value )
             
-            handle_exception("%s.%s" % (self.__class__.__name__, sys._getframe().f_code.co_name))
+            raise Exception()
         else:
-            #logger.error( stdout_value )
             return stdout_value
     
     def generate_key(self):
@@ -355,7 +336,7 @@ class OpensslActions():
         if os.path.exists(self.csr):
             self.sign_csr()
         else:
-            handle_exception( func=__name__, exception="Failed to renew certificate %s! CSR is missing!" % self.i.name )
+            raise Exception( "Failed to renew certificate %s! CSR is missing!" % self.i.name )
     
     def generate_crl(self, ca=None, pf=None):
         '''Generate CRL: When a CA is modified'''
@@ -386,7 +367,6 @@ class OpensslActions():
         
         chain.reverse()
         
-        #ca_cert    = os.path.join( PKI_DIR, self.name, 'certs', '%s.cert.pem' % self.name )
         chain_file = os.path.join( PKI_DIR, self.i.name, '%s-chain.cert.pem' % self.i.name )
         
         try:
@@ -405,7 +385,7 @@ class OpensslActions():
             
             w.close()
         except:
-            handle_exception(__name__, 'Failed to write chain file!')
+            raise Exception( 'Failed to write chain file!' )
     
     
     def build_subject(self):
@@ -494,7 +474,7 @@ class OpensslCaManagement():
         
         if proc.returncode != 0:
             logger.error( 'openssl command ca failed in %s.%s with returncode %d' % (self.__class__.__name__, sys._getframe().f_code.co_name, proc.returncode) )            
-            handle_exception("%s.%s" % (self.__class__.__name__, sys._getframe().f_code.co_name))
+            raise Exception()
         
         return True
 

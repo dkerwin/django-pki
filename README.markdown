@@ -93,6 +93,7 @@ Mandatory settings:
  * Add pki to `INSTALLED_APPS`
  * make sure `django.core.context_processors.media` is included in `TEMPLATE_CONTEXT_PROCESSORS`
    (it is enabled by default in recent Django versions)
+ * Add `pki.middleware.PkiExceptionMiddleware` to `MIDDLEWARE_CLASSES` (used for exception logging)
 
 ### Configure pki/settings.py:
 

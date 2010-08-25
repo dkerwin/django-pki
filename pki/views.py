@@ -7,7 +7,7 @@ from django.core.exceptions import PermissionDenied
 
 from pki.settings import PKI_DIR, PKI_LOG, MEDIA_URL
 from pki.models import CertificateAuthority, Certificate
-from pki.openssl import handle_exception, OpensslActions
+from pki.openssl import OpensslActions
 from pki.forms import CaPassphraseForm
 
 import os, sys

@@ -1,8 +1,5 @@
 <html>
     <head>
-        <script type="text/javascript" language="javascript">
-            function moveWindow (){window.location.hash="#end";}
-        </script>
         <style type="text/css">
             <!--
             div.scroll {
@@ -16,9 +13,10 @@
             -->
         </style> 
     </head>
-    <body onload="moveWindow()">
+
+    <body onload="document.getElementById('logs').scrollTop = document.getElementById('logs').scrollHeight">
         <h1>Ooooooops! Something went wrong</h1>
-        <div class="scroll"><pre>{% for i in log %}{{ i }}{% endfor %}</pre><a name="end"></a></div>
+        <div class="scroll" id="logs"><pre>{% for i in log %}{{ i }}{% endfor %}</pre></div>
         <p /><button onclick="javascript:history.go(-1)">Go back to admin interface</button>
     </body>
 </html>

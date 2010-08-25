@@ -3,7 +3,7 @@ from django.db import models
 from logging import getLogger
 from shutil import rmtree
 
-from pki.openssl import handle_exception, OpensslActions, OpensslCaManagement, md5_constructor, refresh_pki_metadata
+from pki.openssl import OpensslActions, OpensslCaManagement, md5_constructor, refresh_pki_metadata
 from pki.settings import ADMIN_MEDIA_PREFIX, PKI_BASE_URL, PKI_DEFAULT_COUNTRY
 
 import datetime
@@ -285,8 +285,7 @@ class CertificateAuthority(CertificateBase):
                 super(CertificateAuthority, self).save()
             else:
                 
-                handle_exception(handle_exception("%s.%s" % (self.__class__.__name__, sys._getframe().f_code.co_name), \
-                                                             'Invalid action %s supplied' % self.action, None))
+                raise Exception( 'Invalid action %s supplied' % self.action )
         else:
             ## Set creation data
             self.created = datetime.datetime.now()
