@@ -7,6 +7,8 @@ setup(
     description = 'A PKI based on the Django admin',
     author='Daniel Kerwin',
     author_email='daniel@linuxaddicted.de',
+    url='http://www.github.com/dkerwin/django-pki/',
+    download_url='http://github.com/dkerwin/django-pki/downloads',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
