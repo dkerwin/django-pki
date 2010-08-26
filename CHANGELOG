@@ -1,0 +1,56 @@
+
+0.10.1
+======
+48af689 - Changed version to 0.10.1 and added Gentoo ebuilds to Manifest
+d381047 - Make ebuild version-independent (just rename it to specific version)
+234ea8f - Added live gentoo ebuild
+1c0e80c - Data files weren't installed, fix this
+3b79480 - download_url should point to actual package location
+fc209ef - setup.py: get version and long_description from appropriate files
+aa71559 - Updated MANIFEST.in
+7b03159 - Added .gitignore for distutils files and python bytecode
+f9d7f64 - URLs for setup.py
+b3d9912 - distutils preparation
+
+0.10.0
+======
+eda88f6 - Added VERSION
+d171b51 - License, copying and template enhancements
+7d23ce8 - Fix features in README
+40a55b1 - Fix exception in openssl exec
+fe905d2 - Exception handling middleware; Remove handle_exception; error.html scrolls to end of log
+c45e3d9 - Replace ca-chain with parent.name when parent is self-signed
+74c973e - Support for self-signed RootCA renewal
+7f2fd6d - Remove dead code; Change CSS class of parent_passphrase when cert is revoked/renewed; Show parent in delete view details
+9c77047 - Country code handling
+69121d7 - Fix renew issues. CSR is required and chain stays valid
+145f3d6 - Deny renew when parent isn't active
+249a97b - Remove debugging message
+5f71d3c - Fix recursion bug when revoking a CA
+e2aae30 - CA: cn and name must be unique. CERT: Combination of name/parent and cn/parent must be unique
+18cc648 - BASE_URL for certificates too
+82062d2 - Set initial serial to 0x0
+a120eb3 - Initial serial number for self-signed CAs. This is globally for all new self-signed CAs but can be changed between runs. Can be specified as hex or dec number
+a7d840c - Remove /
+4d4de16 - PKI_BASE_URL setting to build correct download links. CA change page with save on top too
+2381486 - Authors and creation of PKI_DIR if missing
+f83cd64 - Authors and creation of PKI_DIR if missing
+7538301 - Fix P12 export with empty password
+530dc44 - Example wsgi file and updated README
+4d8861c - Cleanup
+6afb57c - Cleanup. Fix csr signing in CA mode
+3b8275f - Fix passphrase reset on P12 certificates
+d0a496d - Changed change_list template to use block super and add a link before the ul
+ee99303 - Code deduplication in models. Fix certificate chain download
+f52cb30 - Switched to PermissionDenied exception; Removed debug messages
+2c68f9d - Modified admin template for changelists to add a quick nav button. Removed unused templates
+3c6ddf1 - Updated README
+4e4f892 - Converted README to markdown and removed INSTALL
+5cab7b0 - self-signed CA uses v3_ca; Better comments; CA revoke also revokes clients (DB); Fix form validation for subjectAltNames
+1627c3a - Dedicated js for delete view
+f7f6fd2 - Combined download view for ca and cert using public and private items; Makes use of custom permission
+660539c - Adding the two images sounds like a good idea
+c54cf75 - Use MEDIA_URL in all files; Changed details div; Removed id from div
+b3f63a9 - More detailed delete view
+3dabee5 - Initial commit (SVN rev 46)
+
