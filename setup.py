@@ -47,7 +47,7 @@ setup(
     author_email='daniel@linuxaddicted.de',
     url='http://www.github.com/dkerwin/django-pki/',
     license='GPL',
-    download_url='http://github.com/downloads/dkerwin/django-pki/django-pki-%s.tar.gz' % version,
+    download_url='http://pypi.python.org/packages/source/d/django-pki/django-pki-%s.tar.gz' % version,
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
