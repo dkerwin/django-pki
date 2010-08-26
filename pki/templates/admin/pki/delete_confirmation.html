@@ -29,7 +29,7 @@ div.details li { list-style-type: none; }
 
     <hr />
 
-    <form action="" method="post">
+    <form action="" method="post">{% csrf_token %}
     <div>
 
     <h3>{% blocktrans with auth_object as escaped_object %}Please enter the passphrase for the {{ parent_object_name }} "<strong>{{ escaped_object }}</strong>":{% endblocktrans %}</h3>
