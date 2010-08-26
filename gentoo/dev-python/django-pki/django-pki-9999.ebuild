@@ -14,7 +14,7 @@ if [[ ${PV} = 9999* ]]; then
 	KEYWORDS=""
 	S="${WORKDIR}/${PN}"
 else
-	SRC_URI="http://github.com/downloads/dkerwin/django-pki/django-pki-${PV}.tar.gz"
+	SRC_URI="http://pypi.python.org/packages/source/${PN:0:1}/${PN}/${P}.tar.gz"
 	KEYWORDS="~amd64 ~x86"
 fi
 
