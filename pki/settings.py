@@ -25,7 +25,7 @@ JQUERY_URL = getattr(settings, 'JQUERY_URL', 'pki/jquery-1.3.2.min.js')
 
 # logging (TODO: syslog, handlers and formatters)
 PKI_LOG = getattr(settings, 'PKI_LOG', os.path.join(PKI_DIR, 'pki.log'))
-PKI_LOGLEVEL = getattr(settings, 'PKI_LOG', 'debug')
+PKI_LOGLEVEL = getattr(settings, 'PKI_LOGLEVEL', 'debug')
 
 # get other settings directly from settings.py:
 ADMIN_MEDIA_PREFIX = getattr(settings, 'ADMIN_MEDIA_PREFIX')
@@ -37,8 +37,8 @@ MEDIA_URL = getattr(settings, 'MEDIA_URL')
 PKI_BASE_URL = ''
 
 # self_signed_serial; The serial a self signed CA starts with. Set to 0 or 0x0 for q random number
-PKI_SELF_SIGNED_SERIAL = 0x0
+PKI_SELF_SIGNED_SERIAL = getattr(settings, 'PKI_SELF_SIGNED_SERIAL', 0x0)
 
 # default_country: The default country selected (2-letter country code)
-PKI_DEFAULT_COUNTRY = 'DE'
+PKI_DEFAULT_COUNTRY = getattr(settings, PKI_DEFAULT_COUNTRY, 'DE')
 

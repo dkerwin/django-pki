@@ -37,10 +37,15 @@ Support
 Installation
 ------------
 
-1. Get the latest release or checkout from the master branch
-2. Copy pki directory to your existing django project (or create new one with `django-admin.py startproject`). 
-   Alternatively, you can place it somewhere in python path
-3. Configure django-pki
+### pip or easy_install
+ 
+    # pip install django-pki
+    or
+    # easy_install django-pki
+  
+### Clone github repository (every release version is tagged)
+
+    # git clone git://github.com/dkerwin/django-pki.git
 
 Configuration
 -------------
