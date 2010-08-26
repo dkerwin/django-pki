@@ -1,3 +1,12 @@
+0.10.2
+======
+974fc0a - csrf token was missing in delete confirmation
+8ed8f5d - Merge remote branch 'max/master'; commit 'c04cf3a29b3c8375a8c6'
+434a13d - Fix removal of self-signed CA certificates (delete view)
+49463f3 - Added CHANGELOG to MANIFEST.in
+6a71d27 - Added CHANGELOG
+c04cf3a - Also changed download location in setup.py
+636218e - Changed download location in the ebuild so it points to pypi.python.org
 
 0.10.1
 ======
@@ -53,4 +62,5 @@ f7f6fd2 - Combined download view for ca and cert using public and private items;
 c54cf75 - Use MEDIA_URL in all files; Changed details div; Removed id from div
 b3f63a9 - More detailed delete view
 3dabee5 - Initial commit (SVN rev 46)
+
 
