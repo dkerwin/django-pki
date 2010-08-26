@@ -6,17 +6,19 @@ def get_file_contents(f):
     except IOError:
         return 'UNKNOWN'
 
+version = get_file_contents('VERSION')
+
 setup(
     name = 'django-pki',
     packages = ['pki'],
-    version=get_file_contents('VERSION'),
+    version=version,
     description = 'A PKI based on the Django admin',
     long_description=get_file_contents('README.markdown'),
     author='Daniel Kerwin',
     author_email='daniel@linuxaddicted.de',
     url='http://www.github.com/dkerwin/django-pki/',
     license='GPL',
-    download_url='http://github.com/dkerwin/django-pki/downloads',
+    download_url='http://github.com/downloads/dkerwin/django-pki/django-pki-%s.tar.gz' % version,
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
