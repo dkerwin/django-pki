@@ -6,3 +6,4 @@ include COPYING
 include LICENSE
 include README.markdown
 include VERSION
+include CHANGELOG
