@@ -136,7 +136,11 @@ def build_delete_item(i, type):
     
     o = OpensslActions( type, i )
     
-    return "<ul><li>Serial: %s</li><li>Subject: %s</li><li>Parent: %s</li><li>Description: %s</li><li>Created: %s</li><li>Expiry date: %s</li></ul>" % ( i.serial, o.build_subject(), i.parent.name, i.description, i.created, i.expiry_date)
+    parent = 'None'
+    if i.parent is not None:
+        parent = i.parent.name
+    
+    return "<ul><li>Serial: %s</li><li>Subject: %s</li><li>Parent: %s</li><li>Description: %s</li><li>Created: %s</li><li>Expiry date: %s</li></ul>" % ( i.serial, o.build_subject(), parent, i.description, i.created, i.expiry_date)
 
 @login_required
 def admin_delete(request, model, id):
