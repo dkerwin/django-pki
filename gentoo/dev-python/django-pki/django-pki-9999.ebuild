@@ -6,16 +6,23 @@ EAPI="2"
 SUPPORT_PYTHON_ABIS="1"
 RESTRICT_PYTHON_ABIS="3.*"
 
-inherit distutils git
+inherit distutils
+
+if [[ ${PV} = 9999* ]]; then
+	inherit git
+	EGIT_REPO_URI="git://github.com/dkerwin/django-pki.git"
+	KEYWORDS=""
+	S="${WORKDIR}/${PN}"
+else
+	SRC_URI="http://github.com/downloads/dkerwin/django-pki/django-pki-${PV}.tar.gz"
+	KEYWORDS="~amd64 ~x86"
+fi
 
 DESCRIPTION="A PKI based on the Django admin"
 HOMEPAGE="http://github.com/dkerwin/django-pki"
 
-EGIT_REPO_URI="git://github.com/dkerwin/django-pki.git"
-
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="~amd64 ~x86"
 IUSE=""
 
 DOCS="AUTHORS README.markdown"
@@ -23,5 +30,3 @@ DOCS="AUTHORS README.markdown"
 DEPEND=""
 RDEPEND=">=dev-python/django-1.1.1
 	dev-libs/openssl"
-
-S="${WORKDIR}/${PN}"
