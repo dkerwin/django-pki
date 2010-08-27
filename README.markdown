@@ -82,14 +82,9 @@ If you want to serve static files with `./manage.py runserver` in DEBUG mode, ad
 
 ### Configure your project's settings.py
 
-Enable admin application (refer to the Django documentation for additional details):
-
-  * Add `django.contrib.admin` to `INSTALLED_APPS`
-  * Configure `ADMIN_MEDIA_PREFIX` and your webserver to serve admin static files
-
 Setup your database:
 
-  * If you started a new project supply the database informations (refer to Django documentation for additional details)
+  * If you started a new project supply the database credentials (refer to Django documentation for additional details)
 
 Mandatory settings:
 
@@ -99,6 +94,12 @@ Mandatory settings:
  * make sure `django.core.context_processors.media` is included in `TEMPLATE_CONTEXT_PROCESSORS`
    (it is enabled by default in recent Django versions)
  * Add `pki.middleware.PkiExceptionMiddleware` to `MIDDLEWARE_CLASSES` (used for exception logging)
+
+Enable admin application (refer to the Django documentation for additional details):
+
+  * Add `django.contrib.admin` to `INSTALLED_APPS` (it is better to place it after django-pki to
+    ensure that admin templates are properly overridden)
+  * Configure `ADMIN_MEDIA_PREFIX` and your webserver to serve admin static files
 
 ### Configure pki/settings.py:
 
