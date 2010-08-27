@@ -34,9 +34,9 @@ ADMIN_MEDIA_PREFIX = getattr(settings, 'ADMIN_MEDIA_PREFIX')
 MEDIA_URL = getattr(settings, 'MEDIA_URL')
 
 # base url: without trailing slash. Leave empty if mounted on /
-PKI_BASE_URL = ''
+PKI_BASE_URL = getattr(settings, 'PKI_BASE_URL', '')
 
-# self_signed_serial; The serial a self signed CA starts with. Set to 0 or 0x0 for q random number
+# self_signed_serial; The serial a self signed CA starts with. Set to 0 or 0x0 for a random number
 PKI_SELF_SIGNED_SERIAL = getattr(settings, 'PKI_SELF_SIGNED_SERIAL', 0x0)
 
 # default_country: The default country selected (2-letter country code)
