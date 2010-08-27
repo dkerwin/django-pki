@@ -40,5 +40,5 @@ PKI_BASE_URL = ''
 PKI_SELF_SIGNED_SERIAL = getattr(settings, 'PKI_SELF_SIGNED_SERIAL', 0x0)
 
 # default_country: The default country selected (2-letter country code)
-PKI_DEFAULT_COUNTRY = getattr(settings, PKI_DEFAULT_COUNTRY, 'DE')
+PKI_DEFAULT_COUNTRY = getattr(settings, 'PKI_DEFAULT_COUNTRY', 'DE')
 
