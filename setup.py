@@ -5,6 +5,8 @@ from distutils.core import setup
 from distutils.command.install import INSTALL_SCHEMES
 from distutils.command.install_data import install_data
 
+from pki import __version__ as version
+
 root_dir = os.path.abspath(os.path.dirname(__file__))
 
 def get_file_contents(f):
@@ -35,8 +37,6 @@ if sys.platform == "darwin":
     cmdclasses = {'install_data': osx_install_data}
 else:
     cmdclasses = {'install_data': install_data}
-
-version = get_file_contents('VERSION')
 
 setup(
     name = 'django-pki',

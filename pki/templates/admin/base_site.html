@@ -1,4 +1,5 @@
 {% extends "admin/base.html" %}
+{% load version %}
 {% load i18n %}
 
 {% block title %}{{ title }} | {% trans 'Django PKI administration' %}{% endblock %}
@@ -7,4 +8,4 @@
 <h1 id="site-name">{% trans 'Django PKI administration' %}</h1>
 {% endblock %}
 
-{% block footer %}<div style="text-align: center; font-style: italic; font-size: 10px; margin-bottom: 20px;">django-pki - v0.10.2</div>{% endblock %}
+{% block footer %}<div style="text-align: center; font-style: italic; font-size: 10px; margin-bottom: 20px;">django-pki - v{% pki_version %}</div>{% endblock %}
