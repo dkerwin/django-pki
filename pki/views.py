@@ -9,6 +9,7 @@ from pki.settings import PKI_DIR, PKI_LOG, MEDIA_URL
 from pki.models import CertificateAuthority, Certificate
 from pki.openssl import OpensslActions
 from pki.forms import CaPassphraseForm
+from pki.graphviz import DepencyGraph
 
 import os, sys
 import logging
@@ -100,19 +101,30 @@ def pki_download(request, type, id, item):
         logger.error( "File not found: %s" % pki_data[category][item]['local'] )
         raise Http404
 
-def pki_tree(request,id):
+def pki_tree(request, type, id):
+    """Create PNG using graphviz and return it to the user"""
     
-    obj = get_object_or_404(CertificateAuthority, pk=id)    
+    obj = None
+    
+    if type == "ca":
+        obj = get_object_or_404(CertificateAuthority, pk=id)
+    elif type == "cert":
+        obj = get_object_or_404(Certificate, pk=id)
+    
     png = os.path.join(tempfile.gettempdir(), "%s_%s_%s" % (request.user, request.session.session_key, id))
 
-    from pki.graphviz import DepencyGraph
-    DepencyGraph(obj, png)
+    DepencyGraph(obj, png, type)
     
-    f = open(png)
-    x = f.read()
-    f.close()
-    
-    os.remove(png)
+    try:
+        if os.path.exists(png):
+            f = open(png)
+            x = f.read()
+            f.close()
+            
+            os.remove(png)
+    except OSError,e:
+        logger.error( "Failed to load depency tree: %s" % e)
+        raise Exception( e )
     
     response = HttpResponse(x, mimetype='image/png')
     return response

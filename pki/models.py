@@ -150,8 +150,15 @@ class CertificateBase(models.Model):
         return result
     
     def Tree_link(self):
+        print self.Meta
+        
+        type = "cert"
+        
+        if self.__class__.__name__ == "CertificateAuthority":
+            type = "ca"
+        
         if PKI_ENABLE_GRAPHVIZ:
-            return '<center><a href="%s/pki/tree/%d" target="_blank"><img src="%s/pki/img/tree.png" alt="Tree" /></a></center>' % (PKI_BASE_URL, self.pk, os.path.join(PKI_BASE_URL, MEDIA_URL))
+            return '<center><a href="%s/pki/tree/%s/%d" target="_blank"><img src="%s/pki/img/tree.png" alt="Tree" /></a></center>' % (PKI_BASE_URL, type, self.pk, os.path.join(PKI_BASE_URL, MEDIA_URL))
         else:
             return '<center><img src="%s/pki/img/tree_disabled.png" alt="Tree" /></center>' % os.path.join(PKI_BASE_URL, MEDIA_URL)
     
