@@ -4,9 +4,9 @@ from logging import getLogger
 from shutil import rmtree
 
 from pki.openssl import OpensslActions, OpensslCaManagement, md5_constructor, refresh_pki_metadata
-from pki.settings import ADMIN_MEDIA_PREFIX, PKI_BASE_URL, PKI_DEFAULT_COUNTRY
+from pki.settings import ADMIN_MEDIA_PREFIX, MEDIA_URL, PKI_BASE_URL, PKI_DEFAULT_COUNTRY, PKI_ENABLE_GRAPHVIZ
 
-import datetime
+import datetime, os
 
 logger = getLogger("pki")
 
@@ -148,7 +148,16 @@ class CertificateBase(models.Model):
                 result.append( '<font color="grey">%s</font>' % i )
         
         return result
-
+    
+    def Tree_link(self):
+        if PKI_ENABLE_GRAPHVIZ:
+            return '<center><a href="%s/pki/tree/%d" target="_blank"><img src="%s/pki/img/tree.png" alt="Tree" /></a></center>' % (PKI_BASE_URL, self.pk, os.path.join(PKI_BASE_URL, MEDIA_URL))
+        else:
+            return '<center><img src="%s/pki/img/tree_disabled.png" alt="Tree" /></center>' % os.path.join(PKI_BASE_URL, MEDIA_URL)
+    
+    Tree_link.allow_tags = True
+    Tree_link.short_description = 'Tree'
+    
 ##------------------------------------------------------------------##
 ## Certificate authority class
 ##------------------------------------------------------------------##

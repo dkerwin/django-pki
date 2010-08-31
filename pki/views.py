@@ -12,6 +12,7 @@ from pki.forms import CaPassphraseForm
 
 import os, sys
 import logging
+import tempfile
 
 logger = logging.getLogger("pki")
 
@@ -98,6 +99,23 @@ def pki_download(request, type, id, item):
     else:
         logger.error( "File not found: %s" % pki_data[category][item]['local'] )
         raise Http404
+
+def pki_tree(request,id):
+    
+    obj = get_object_or_404(CertificateAuthority, pk=id)    
+    png = os.path.join(tempfile.gettempdir(), "%s_%s_%s" % (request.user, request.session.session_key, id))
+
+    from pki.graphviz import DepencyGraph
+    DepencyGraph(obj, png)
+    
+    f = open(png)
+    x = f.read()
+    f.close()
+    
+    os.remove(png)
+    
+    response = HttpResponse(x, mimetype='image/png')
+    return response
 
 ##------------------------------------------------------------------##
 ## Admin views

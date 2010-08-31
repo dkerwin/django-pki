@@ -42,3 +42,6 @@ PKI_SELF_SIGNED_SERIAL = getattr(settings, 'PKI_SELF_SIGNED_SERIAL', 0x0)
 # default_country: The default country selected (2-letter country code)
 PKI_DEFAULT_COUNTRY = getattr(settings, 'PKI_DEFAULT_COUNTRY', 'DE')
 
+# enable graphviz_support: When True django-pki will render Graphviz PNG's to show relations
+PKI_ENABLE_GRAPHVIZ = getattr(settings, 'PKI_ENABLE_GRAPHVIZ', False)
+
