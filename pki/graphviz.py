@@ -9,18 +9,22 @@ except ImportError:
 def DepencyGraph(object, target, type):
     """Collect all objects in the depency tree and write Graphviz PNG"""
     
-    shape = "folder"
-    
     if type == "cert":
         shape = "note"
+    elif type == "ca":
+        shape = "folder"
+    else:
+        raise Exception( "Invalid object type '%s' given!" % type )
     
     if object.active:
-        obj_fill = "blue"
+        obj_fill = "green3"
     else:
         obj_fill = "red"
     
+    ## Initialize the object list
     obj_list = [ { 'name': object.common_name, 'state': object.active, 'fill': obj_fill, 'shape': shape }, ]
     
+    ## Create graph object
     G = pgv.AGraph(directed=True, layout="dot", pad=0.2)
     
     ## Find possible parents
@@ -31,15 +35,17 @@ def DepencyGraph(object, target, type):
             obj_list.append( { 'name': p.common_name, 'state': p.active, 'shape': 'folder' } )
             p = p.parent
     
+    ## Reverse list to get a top-down tree
     obj_list.reverse()
     
-    ## Add nodes
+    ## Add nodes to graph object
     for i in range(0, len(obj_list)):
         
-        c = 'black'
+        c = 'green3'
         if obj_list[i]['state'] is False:
             c = 'red'
         
+        ## Add dummys in non root level
         if i > 0:
             if obj_list[i]['shape'] == 'note' or obj_list[i-1]['state'] is False:
                 c_dummy = c
@@ -54,13 +60,12 @@ def DepencyGraph(object, target, type):
         else:
             G.add_node(obj_list[i]['name'], shape=obj_list[i]['shape'], color="%s" % c, style="bold")
         
-    ## Draw edges
-    color = "black"
-
+    ## Add edges to graph object
     for i in range(0, len(obj_list)-1):
         if obj_list[i+1]['state'] is False:
-            fail_from_here = True
             color = "red"
+        else:
+            color = "green3"
         
         G.add_edge(obj_list[i]['name'], "dummy_start_%s" % obj_list[i+1]['name'], color="black", weight=4.5)
         G.add_edge(obj_list[i]['name'], obj_list[i+1]['name'], color="%s" % color, weight=5, style="bold")
@@ -68,3 +73,5 @@ def DepencyGraph(object, target, type):
     
     G.layout()
     G.draw(target, format='png')
+    
+    return True
