@@ -149,8 +149,7 @@ class CertificateBase(models.Model):
         
         return result
     
-    def Tree_link(self):
-        print self.Meta
+    def Locate_link(self):
         
         type = "cert"
         
@@ -158,12 +157,12 @@ class CertificateBase(models.Model):
             type = "ca"
         
         if PKI_ENABLE_GRAPHVIZ:
-            return '<center><a href="%s/pki/tree/%s/%d" target="_blank"><img src="%s/pki/img/tree.png" alt="Tree" title="Locate object in PKI tree"/></a></center>' % (PKI_BASE_URL, type, self.pk, os.path.join(PKI_BASE_URL, MEDIA_URL))
+            return '<center><a href="%s/pki/locate/%s/%d" target="_blank"><img src="%s/pki/img/mag.png" height="13px" width="13px" alt="Locate" title="Locate object in PKI tree"/></a></center>' % (PKI_BASE_URL, type, self.pk, os.path.join(PKI_BASE_URL, MEDIA_URL))
         else:
-            return '<center><img src="%s/pki/img/tree_disabled.png" alt="Tree" title="Enable setting PKI_ENABLE_GRAPHVIZ"/></center>' % os.path.join(PKI_BASE_URL, MEDIA_URL)
+            return '<center><img src="%s/pki/img/mag_disabled.png" alt="Locate" title="Enable setting PKI_ENABLE_GRAPHVIZ"/></center>' % os.path.join(PKI_BASE_URL, MEDIA_URL)
     
-    Tree_link.allow_tags = True
-    Tree_link.short_description = 'Tree'
+    Locate_link.allow_tags = True
+    Locate_link.short_description = 'Find'
     
 ##------------------------------------------------------------------##
 ## Certificate authority class
@@ -464,6 +463,17 @@ class CertificateAuthority(CertificateBase):
         return ' | '.join(items)
     
     download.allow_tags = True
+    
+    def Tree_link(self):
+        
+        if PKI_ENABLE_GRAPHVIZ:
+            return '<center><a href="%s/pki/tree/%d" target="_blank"><img src="%s/pki/img/tree.png" height="13px" width="13px" alt="Tree" title="Show full CA tree"/></a></center>' % (PKI_BASE_URL, self.pk, os.path.join(PKI_BASE_URL, MEDIA_URL))
+        else:
+            return '<center><img src="%s/pki/img/tree_disabled.png" alt="Tree" title="Enable setting PKI_ENABLE_GRAPHVIZ"/></center>' % os.path.join(PKI_BASE_URL, MEDIA_URL)
+    
+    Tree_link.allow_tags = True
+    Tree_link.short_description = 'Tree'
+
     
 ##------------------------------------------------------------------##
 ## Certificate class
