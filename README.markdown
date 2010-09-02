@@ -140,3 +140,16 @@ WSGI setup example
 
 You can find a example wsgi script in `apache/django.wsgi`.
 
+Graphviz support
+----------------
+
+django-pki can visualize your PKI infrastructure if you have pygraphviz and graphviz installed. Just install pygraphviz and enable the PKI_ENABLE_GRAPHVIZ
+setting. The change list views for certificate authorities now has 2 clickable icons:
+
+  * Magnifying glass: Show CA chain up to selected element
+  * Tree: Show the full tree (including all certificates) in which this CA is located
+
+The certificate change list has only the magnifying glass available. Both links open a new window and return a PNG image containing the trees. These images (especially 
+the tree view) can become really big. You can affect the direction of the graph be setting PKI_GRAPHVIZ_DIRECTION to TD (top down) or LR (left right) depending on what fits
+your needs best.
+
