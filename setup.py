@@ -65,6 +65,6 @@ setup(
         'Topic :: System :: Systems Administration',
     ],
     packages = ['pki'],
-    data_files = list_data_files('pki/media') + list_data_files('pki/templates'),
+    data_files = list_data_files('pki/media') + list_data_files('pki/templates') + list_data_files('pki/templatetags'),
     cmdclass = cmdclasses,
 )
