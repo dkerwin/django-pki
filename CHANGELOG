@@ -1,3 +1,18 @@
+0.10.3
+======
+31dd0c1 - Version update to 0.10.3
+f3c450a - More details about the graphviz integration
+2dc7af5 - Extended README. Code cleanup for graphing. New settings paramter for tree direction
+1bd94b7 - Treeview and object location in different graphs. Tree view shows entire PKI tree
+8469b1b - Code cleanup and tooltip for tree icons
+dcea1a8 - Graphviz support for certificates and color fixes
+0a271dd - Graphviz support for certificate authority. Pretty basic so far
+a5ab9ec - Fix setting fot PKI_BASE_URL
+0b9470b - Added hint about proper ordering of INSTALLED_APPS
+4ba03fe - Make django-pki version number more DRY
+8754860 - Added missing quotes for PKI_DEFAULT_COUNTRY configuration parameter
+c9c01d7 - Changed install instructions. getattr for PKI_SELF_SIGNED_SERIAL and PKI_DEFAULT_COUNTRY
+
 0.10.2
 ======
 974fc0a - csrf token was missing in delete confirmation
