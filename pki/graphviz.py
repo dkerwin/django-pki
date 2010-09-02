@@ -6,71 +6,66 @@ except ImportError:
     raise Exception( "Failed to import pygraphviz. Disable PKI_ENABLE_GRAPHVIZ or install pygraphviz" )
 
 from pki.models import Certificate, CertificateAuthority
+from pki.settings import PKI_GRAPHVIZ_DIRECTION
 
-def DepencyGraph(object, target, type):
+##------------------------------------------------------------------##
+## Graphviz functions
+##------------------------------------------------------------------##
+
+def ObjectLocation(object, target):
     """Collect all objects in the depency tree and write Graphviz PNG"""
     
-    if type == "cert":
-        shape = "note"
-    elif type == "ca":
-        shape = "folder"
-    else:
-        raise Exception( "Invalid object type '%s' given!" % type )
+    ## Create graph object
+    G = pgv.AGraph(directed=True, layout="dot", pad=0.2, rankdir="TB")
     
+    ## Determine shape on object instance
+    if ( isinstance( object, Certificate) ):
+        o_shape = "note"
+    elif ( isinstance( object, CertificateAuthority) ):
+        o_shape = "folder"
+    else:
+        raise Exception( "Invalid object instance given!" )
+    
+    ## Set fill color bases in state
     if object.active:
         obj_fill = "green3"
     else:
         obj_fill = "red"
     
-    ## Initialize the object list
-    obj_list = [ { 'name': object.common_name, 'state': object.active, 'fill': obj_fill, 'shape': shape }, ]
+    edges = []
     
-    ## Create graph object
-    G = pgv.AGraph(directed=True, layout="dot", pad=0.2)
+    ## Add given object to graph
+    G.add_node(object.common_name, shape=o_shape, style="filled, bold", fillcolor=obj_fill, fontcolor="white")
     
-    ## Find possible parents
+    ## Get parents if any
     if object.parent != None:
+        
+        ## Set p to objects parent
         p = object.parent
         
+        ## Add parent node to graph
+        G.add_node(p.common_name, shape="folder", color="green3", style="bold")
+        
+        ## Set initial edge between requested onject and it's parent
+        edges.append( [p.common_name, object.common_name] )
+        
         while p != None:
-            obj_list.append( { 'name': p.common_name, 'state': p.active, 'shape': 'folder' } )
+            
+            if p.active:
+                col = "green3"
+            else:
+                col = "red"
+            
+            G.add_node(p.common_name, shape="folder", color=col, style="bold")
+            
+            if p.parent:
+                edges.append( [p.parent.common_name, p.common_name] )
+            
             p = p.parent
     
-    ## Reverse list to get a top-down tree
-    obj_list.reverse()
-    
-    ## Add nodes to graph object
-    for i in range(0, len(obj_list)):
-        
-        c = 'green3'
-        if obj_list[i]['state'] is False:
-            c = 'red'
-        
-        ## Add dummys in non root level
-        if i > 0:
-            if obj_list[i]['shape'] == 'note' or obj_list[i-1]['state'] is False:
-                c_dummy = c
-            else:
-                c_dummy = 'black'
-            
-            G.add_node("dummy_start_%s" % obj_list[i]['name'], shape=obj_list[i]['shape'], color=c_dummy, label="...")
-            G.add_node("dummy_end_%s" % obj_list[i]['name'], shape=obj_list[i]['shape'], color=c_dummy, label="...")
-        
-        if 'fill' in obj_list[i]:
-            G.add_node(obj_list[i]['name'], shape=obj_list[i]['shape'], color="%s" % c, style="filled,bold", fillcolor=obj_list[i]['fill'], fontcolor="white")
-        else:
-            G.add_node(obj_list[i]['name'], shape=obj_list[i]['shape'], color="%s" % c, style="bold")
-        
-    ## Add edges to graph object
-    for i in range(0, len(obj_list)-1):
-        if obj_list[i+1]['state'] is False:
-            color = "red"
-        else:
-            color = "green3"
-        
-        G.add_edge(obj_list[i]['name'], "dummy_start_%s" % obj_list[i+1]['name'], color="black", weight=4.5)
-        G.add_edge(obj_list[i]['name'], obj_list[i+1]['name'], color="%s" % color, weight=5, style="bold")
-        G.add_edge(obj_list[i]['name'], "dummy_end_%s" % obj_list[i+1]['name'], color="black", weight=4.5)
+    ## Draw the edges
+    for e in edges:
+        G.add_edge( e[0], e[1] )
     
     G.layout()
     G.draw(target, format='png')
@@ -80,15 +75,65 @@ def DepencyGraph(object, target, type):
 def ObjectTree(object, target):
     """Create full PKI tree for given CA object"""
     
+    ##-------------------------------------##
+    ## Helper function for tree traversal
+    ##-------------------------------------##
+    def TraverseToBottom(r_id, graph=None):
+        """Traverse the PKI tree down from a given id"""
+        
+        c = CertificateAuthority.objects.get(id=r_id)
+        
+        if c.subcas_allowed == True:
+            x = CertificateAuthority.objects.filter(parent__id=c.pk)
+            
+            for ca in x:
+                
+                if graph != None:
+                    if ca.active is True:
+                        col = "green3"
+                    else:
+                        col = "red"
+                    
+                    graph.add_node(ca.name, shape='folder', color=col, style="bold")
+                    graph.add_edge(c.common_name, ca.common_name, color="black", weight=4.5)
+                
+                if ca.subcas_allowed == True:
+                    TraverseToBottom(ca.pk, graph)
+                else:
+                    certs = Certificate.objects.filter(parent__id=ca.pk)
+                    
+                    if certs:
+                        subgraph_list = [ ca.common_name ]
+                        
+                        for cert in certs:
+                            
+                            subgraph_list.append( cert.common_name )
+                            
+                            if graph != None:
+                                if cert.active:
+                                    col = "green3"
+                                else:
+                                    col = "red"
+                                
+                                graph.add_node(str(cert.common_name), shape='note', color=col, style="bold")
+                                graph.add_edge(ca.common_name, cert.common_name, color="black", weight=4.5)
+                        
+                        sg = graph.subgraph(nbunch=subgraph_list, name="cluster_%d" % ca.pk, style='bold', color='black', label="")
+    
+    ##-------------------------------------##
+    ## Object tree starts here
+    ##-------------------------------------##
+    
     ## Create graph object
-    G = pgv.AGraph(directed=True, layout="dot", pad=0.2)
+    G = pgv.AGraph(directed=True, layout="dot", pad=0.2, ranksep=1.00, nodesep=0.10, rankdir=PKI_GRAPHVIZ_DIRECTION,)
+                   #label="PKI Tree of CertificateAuthority \"%s\"" % str(object.common_name), labeljust="l", labelloc="t")
     
     if object.active: obj_fill = "green3"
     else: obj_fill = "red"
     
     G.add_node(object.common_name, shape='folder', style="filled,bold", fillcolor=obj_fill, fontcolor="white")
     
-    if object.__class__.__name__ != 'CertificateAuthority':
+    if not isinstance(object, CertificateAuthority):
         raise Exception( "Object has to be of type CertificateAuthority, not %s" % object.__class__.__name__ )
     
     ## Find top parents
@@ -108,44 +153,7 @@ def ObjectTree(object, target):
     else:
         TraverseToBottom(object.id, G)
     
-    print G.to_string()
-    
     G.layout()
     G.draw(target, format='png')
-
-def TraverseToBottom(r_id, graph=None):
-    """Traverse the PKI tree down from a given id"""
     
-    c = CertificateAuthority.objects.get(id=r_id)
-    
-    if c.subcas_allowed == True:
-        x = CertificateAuthority.objects.filter(parent__id=c.pk)
-        
-        for ca in x:
-            
-            if graph != None:
-                if ca.active is True:
-                    col = "green3"
-                else:
-                    col = "red"
-                
-                graph.add_node(ca.name, shape='folder', color=col, style="bold")
-                graph.add_edge(c.common_name, ca.common_name, color="black", weight=4.5)
-            
-            if ca.subcas_allowed == True:
-                TraverseToBottom(ca.pk, graph)
-            else:
-                certs = Certificate.objects.filter(parent__id=ca.pk)
-                
-                for cert in certs:
-                    
-                    if graph != None:
-                        if cert.active:
-                            col = "green3"
-                        else:
-                            col = "red"
-                        
-                        graph.add_node(cert.common_name, shape='note', color=col, style="bold")
-                        graph.add_edge(ca.common_name, cert.common_name, color="black", weight=4.5)
-
-
+    return True

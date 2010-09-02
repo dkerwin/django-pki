@@ -27,6 +27,7 @@ Dependencies
   * Django framework (>=1.1.1 is recommended)
   * Openssl
   * Optional Jquery library (djago-pki already shipped with built-in jquery-1.3.2)
+  * pygraphviz + Graphviz (Tree viewer and object locator will not work without)
 
 Support
 -------
@@ -101,19 +102,22 @@ Enable admin application (refer to the Django documentation for additional detai
     ensure that admin templates are properly overridden)
   * Configure `ADMIN_MEDIA_PREFIX` and your webserver to serve admin static files
 
-### Configure pki/settings.py:
+#### Configure django-pki:
 
- * `PKI_DIR` - absolute path to directory for pki storage (defaults to /path-to-django-pki/PKI),
-   should be writable
- * `PKI_OPENSSL_BIN` - path to openssl binary (/usr/bin/openssl)
- * `PKI_OPENSSL_CONF` - where to store openssl config (defaults to PKI_DIR/openssl.conf)
- * `PKI_OPENSSL_TEMPLATE` - openssl configuration template (defaults to pki/openssl.conf.in)
- * `PKI_LOG` - absolute path for log file (defaults to PKI_DIR/pki.log)
- * `PKI_LOGLEVEL` - logging level (info)
- * `JQUERY_URL` - jquery url (defaults to pki/jquery-1.3.2.min.js)
- * `PKI_BASE_URL` - Base URL of your deployment (http://xyz.com/django/tools/ => /django/tools)
- * `PKI_SELF_SIGNED_SERIAL` - The serial of self-signed CA certificates. Set to 0 or 0x0 to get a random serial number (0xabc = HEX; 123 = DEC)
- * `PKI_DEFAULT_COUNTRY` - The default country (as 2-letter code) selected when adding certificates (http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
+Add the following variables to your projects settings.py to set custom values:
+
+ * `PKI_DIR` - Default=/path-to-django-pki/PKI: absolute path to directory for pki storage. Must be writable
+ * `PKI_OPENSSL_BIN` - Default=/usr/bin/openssl: path to openssl binary
+ * `PKI_OPENSSL_CONF` - Default=PKI_DIR/openssl.conf: where to store openssl config
+ * `PKI_OPENSSL_TEMPLATE` - Default=pki/openssl.conf.in: openssl configuration template
+ * `PKI_LOG` - Default=PKI_DIR/pki.log: absolute path for log file
+ * `PKI_LOGLEVEL` - Default=info: logging level
+ * `JQUERY_URL` - Default=pki/jquery-1.3.2.min.js: jquery url
+ * `PKI_BASE_URL` - Default="": Base URL of your deployment (http://xyz.com/django/tools/ => /django/tools)
+ * `PKI_SELF_SIGNED_SERIAL` - Default=0x0: The serial of self-signed CA certificates. Set to 0 or 0x0 to get a random serial number (0xabc = HEX; 123 = DEC)
+ * `PKI_DEFAULT_COUNTRY` - Default=DE: The preselected country (as 2-letter code) selected when adding certificates (http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
+ * `PKI_ENABLE_GRAPHVIZ` - Default=False: Enable graphviz support (see requirements)
+ * `PKI_GRAPHVIZ_DIRECTION` - Default=LR: Graph tree direction (LR=left-to-right, TD=top-down)
 
 Additionally, you can add your own logging destinations. This is an example for syslog:
 

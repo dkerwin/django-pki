@@ -9,7 +9,7 @@ from pki.settings import PKI_DIR, PKI_LOG, MEDIA_URL
 from pki.models import CertificateAuthority, Certificate
 from pki.openssl import OpensslActions
 from pki.forms import CaPassphraseForm
-from pki.graphviz import DepencyGraph, ObjectTree
+from pki.graphviz import ObjectLocation, ObjectTree
 
 import os, sys
 import logging
@@ -113,7 +113,7 @@ def pki_locate(request, type, id):
     
     png = os.path.join(tempfile.gettempdir(), "%s_%s_%s" % (request.user, request.session.session_key, id))
 
-    DepencyGraph(obj, png, type)
+    ObjectLocation(obj, png)
     
     try:
         if os.path.exists(png):
