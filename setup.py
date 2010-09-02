@@ -64,7 +64,7 @@ setup(
         'Topic :: Security :: Cryptography',
         'Topic :: System :: Systems Administration',
     ],
-    packages = ['pki'],
-    data_files = list_data_files('pki/media') + list_data_files('pki/templates') + list_data_files('pki/templatetags'),
+    packages = ['pki', 'pki.templatetags'],
+    data_files = list_data_files('pki/media') + list_data_files('pki/templates'),
     cmdclass = cmdclasses,
 )
