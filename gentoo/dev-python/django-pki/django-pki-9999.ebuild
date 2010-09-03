@@ -23,10 +23,20 @@ HOMEPAGE="http://github.com/dkerwin/django-pki"
 
 LICENSE="GPL-2"
 SLOT="0"
-IUSE=""
+IUSE="graphviz"
 
+PYTHON_MODNAME="pki"
 DOCS="AUTHORS README.markdown"
 
 DEPEND=""
 RDEPEND=">=dev-python/django-1.1.1
-	dev-libs/openssl"
+	dev-libs/openssl
+	graphviz? ( dev-python/pygraphviz )"
+
+src_prepare() {
+	distutils_src_prepare
+
+	if use graphviz; then
+		sed -re "s/'PKI_ENABLE_GRAPHVIZ',\s+False/'PKI_ENABLE_GRAPHVIZ', True/" -i pki/settings.py
+	fi
+}
