@@ -1,12 +1,14 @@
 """Graphviz support for django-pki"""
 
-try:
-    import pygraphviz as pgv
-except ImportError:
-    raise Exception( "Failed to import pygraphviz. Disable PKI_ENABLE_GRAPHVIZ or install pygraphviz" )
+from pki.settings import PKI_ENABLE_GRAPHVIZ, PKI_GRAPHVIZ_DIRECTION
+
+if PKI_ENABLE_GRAPHVIZ is True:
+    try:
+        import pygraphviz as pgv
+    except ImportError, e:
+        raise Exception( "Failed to import pygraphviz. Disable PKI_ENABLE_GRAPHVIZ or install pygraphviz: %s" % e )
 
 from pki.models import Certificate, CertificateAuthority
-from pki.settings import PKI_GRAPHVIZ_DIRECTION
 
 ##------------------------------------------------------------------##
 ## Graphviz functions

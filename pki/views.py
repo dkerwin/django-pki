@@ -5,7 +5,7 @@ from django.utils.safestring import mark_safe
 from django.template import RequestContext
 from django.core.exceptions import PermissionDenied
 
-from pki.settings import PKI_DIR, PKI_LOG, MEDIA_URL
+from pki.settings import PKI_DIR, PKI_LOG, MEDIA_URL, PKI_ENABLE_GRAPHVIZ
 from pki.models import CertificateAuthority, Certificate
 from pki.openssl import OpensslActions
 from pki.forms import CaPassphraseForm
@@ -104,6 +104,9 @@ def pki_download(request, type, id, item):
 def pki_locate(request, type, id):
     """Create PNG using graphviz and return it to the user"""
     
+    if PKI_ENABLE_GRAPHVIZ is not True:
+        raise Exception( "Locate view is inoperable unless PKI_ENABLE_GRAPHVIZ is enabled" )
+    
     obj = None
     
     if type == "ca":
@@ -131,6 +134,9 @@ def pki_locate(request, type, id):
 
 def pki_tree(request, id):
     """Create PNG using graphviz and return it to user"""
+    
+    if PKI_ENABLE_GRAPHVIZ is not True:
+        raise Exception( "Tree view is inoperable unless PKI_ENABLE_GRAPHVIZ is enabled!" )
     
     obj = None
     
