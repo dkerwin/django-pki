@@ -16,7 +16,7 @@ def ObjectLocation(object, target):
     """Collect all objects in the depency tree and write Graphviz PNG"""
     
     ## Create graph object
-    G = pgv.AGraph(directed=True, layout="dot", pad=0.2, rankdir="TB")
+    G = pgv.AGraph(directed=True, layout="dot", pad="0.2", rankdir="TB")
     
     ## Determine shape on object instance
     if ( isinstance( object, Certificate) ):
@@ -95,7 +95,7 @@ def ObjectTree(object, target):
                         col = "red"
                     
                     graph.add_node(ca.name, shape='folder', color=col, style="bold")
-                    graph.add_edge(c.common_name, ca.common_name, color="black", weight=4.5)
+                    graph.add_edge(c.common_name, ca.common_name, color="black", weight="4.5")
                 
                 if ca.subcas_allowed == True:
                     TraverseToBottom(ca.pk, graph)
@@ -116,7 +116,7 @@ def ObjectTree(object, target):
                                     col = "red"
                                 
                                 graph.add_node(str(cert.common_name), shape='note', color=col, style="bold")
-                                graph.add_edge(ca.common_name, cert.common_name, color="black", weight=4.5)
+                                graph.add_edge(ca.common_name, cert.common_name, color="black", weight="4.5")
                         
                         sg = graph.subgraph(nbunch=subgraph_list, name="cluster_%d" % ca.pk, style='bold', color='black', label="")
     
@@ -125,7 +125,7 @@ def ObjectTree(object, target):
     ##-------------------------------------##
     
     ## Create graph object
-    G = pgv.AGraph(directed=True, layout="dot", pad=0.2, ranksep=1.00, nodesep=0.10, rankdir=PKI_GRAPHVIZ_DIRECTION,)
+    G = pgv.AGraph(directed=True, layout="dot", pad="0.2", ranksep="1.00", nodesep="0.10", rankdir=PKI_GRAPHVIZ_DIRECTION,)
                    #label="PKI Tree of CertificateAuthority \"%s\"" % str(object.common_name), labeljust="l", labelloc="t")
     
     if object.active: obj_fill = "green3"
