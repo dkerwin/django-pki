@@ -30,15 +30,15 @@ def refresh_pki_metadata(ca_list):
     'name': CA name
     'subcas_allowed': sub CAs allowed (boolean)
     """
-
+    
     status = True
-
+    
     # refresh directory structure
     dirs = { 'certs'  : 0755,
              'private': 0700,
              'crl'    : 0755,
            }
-
+    
     try:
         # create base PKI directory if necessary
         if not os.path.exists(PKI_DIR):
@@ -51,6 +51,7 @@ def refresh_pki_metadata(ca_list):
         
         # loop over CAs and create necessary filesystem objects
         for ca in ca_list:
+            
             ca_dir = os.path.join(PKI_DIR, ca.name)
             
             # create CA directory if necessary
