@@ -96,7 +96,7 @@ def ObjectTree(object, target):
                     else:
                         col = "red"
                     
-                    graph.add_node(ca.name, shape='folder', color=col, style="bold")
+                    graph.add_node(ca.common_name, shape='folder', color=col, style="bold")
                     graph.add_edge(c.common_name, ca.common_name, color="black", weight="4.5")
                 
                 if ca.subcas_allowed == True:
