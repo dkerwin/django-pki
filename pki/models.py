@@ -4,7 +4,7 @@ from logging import getLogger
 from shutil import rmtree
 
 from pki.openssl import OpensslActions, OpensslCaManagement, md5_constructor, refresh_pki_metadata
-from pki.settings import ADMIN_MEDIA_PREFIX, MEDIA_URL, PKI_BASE_URL, PKI_DEFAULT_COUNTRY, PKI_ENABLE_GRAPHVIZ
+from pki.settings import ADMIN_MEDIA_PREFIX, MEDIA_URL, PKI_BASE_URL, PKI_DEFAULT_COUNTRY, PKI_ENABLE_GRAPHVIZ, PKI_ENABLE_EMAIL
 
 import datetime, os
 
@@ -130,12 +130,6 @@ class CertificateBase(models.Model):
     Expiry_date.allow_tags = True
     Expiry_date.admin_order_field = 'expiry_date'
     
-    def CA_chain(self):
-        return "%s" % self.ca_chain
-    
-    CA_chain.allow_tags = True
-    CA_chain.admin_order_field = 'ca_chain'
-    
     def build_download_links(self, type):
         
         items_on_active = ( 'pem', 'key', 'chain' )
@@ -163,6 +157,26 @@ class CertificateBase(models.Model):
     
     Locate_link.allow_tags = True
     Locate_link.short_description = 'Find'
+    
+    def Email_send(self):
+        if self.email:
+            type = "cert"
+            
+            if self.__class__.__name__ == "CertificateAuthority":
+                type = "ca"
+            
+            return '<center><a href="%s/pki/email/%s/%d">send</a></center>' % (PKI_BASE_URL, type, self.pk)
+        else:
+            return '<center><font color="grey">send</font></center>'
+    
+    Email_send.allow_tags = True
+    Email_send.short_description = 'Email'
+    
+    def Parent(self):
+        if self.parent:
+            return self.parent.common_name
+        else:
+            return "self-signed"
     
 ##------------------------------------------------------------------##
 ## Certificate authority class
@@ -347,9 +361,9 @@ class CertificateAuthority(CertificateBase):
             if self.parent == None:
                 chain.append('self-signed')
             else:
-                chain.append( self.name )
+                chain.append( self.common_name )
                 while p != None:
-                    chain.append(p.name)
+                    chain.append(p.common_name)
                     p = p.parent
             
             chain.reverse()
@@ -359,7 +373,7 @@ class CertificateAuthority(CertificateBase):
                 if chain_str == '':
                     chain_str += '%s' % i
                 else:
-                    chain_str += '&rarr;%s' % i
+                    chain_str += ' &rarr; %s' % i
             
             self.ca_chain = chain_str
             

@@ -8,4 +8,5 @@ urlpatterns = patterns('',
     (r'^pki/download/(?P<type>ca|cert)/(?P<id>\d+)/(?P<item>chain|crl|pem|der|pkcs12|key|csr)/$', pki_download),
     (r'^pki/locate/(?P<type>ca|cert)/(?P<id>\d+)/$', pki_locate),
     (r'^pki/tree/(?P<id>\d+)/$', pki_tree),
+    (r'^pki/email/(?P<type>ca|cert)/(?P<id>\d+)/$', pki_email),
 )

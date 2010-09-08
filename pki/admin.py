@@ -3,6 +3,7 @@ from pki.forms import ReadOnlyAdminFields, CertificateAuthorityForm, Certificate
 from pki.settings import PKI_DIR, PKI_LOG, PKI_LOGLEVEL, JQUERY_URL
 
 from django.contrib import admin
+from django.utils.safestring import mark_safe
 
 import os
 
@@ -45,17 +46,17 @@ logger.addHandler(l_hdlr)
 
 class Certificate_Authority_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
     form               = CertificateAuthorityForm
-    list_display       = ( 'id', 'common_name', 'serial', 'active_center', 'Locate_link', 'Tree_link', 'Expiry_date',
-                           'CA_chain', 'Description', 'type', 'revoked', 'download' )
-    list_display_links = ('common_name', )
+    list_display       = ( 'id', 'common_name', 'serial', 'active_center', 'Locate_link', 'Tree_link', 'Parent',
+                           'Expiry_date', 'Description', 'type', 'revoked', 'download', 'Email_send', )
+    list_display_links = ( 'common_name', )
     save_on_top        = True
     actions            = []
     list_filter        = ( 'parent', 'active', )
     radio_fields       = { "action": admin.VERTICAL }
     search_fields      = [ 'name', 'common_name', 'description' ]
     date_hierarchy     = 'created'
-    readonly           = ( 'expiry_date', 'key', 'cert', 'serial',)
-    exclude            = ( 'pf_encrypted', 'ca_chain', 'pem_encoded', )
+    readonly           = ( 'expiry_date', 'key', 'cert', 'serial', 'ca_chain', )
+    exclude            = ( 'pf_encrypted', 'pem_encoded', )
     fieldsets          = ( ( 'Define action',    { 'fields': ( 'action', ) }, ),
                            ( 'Documentation',    { 'fields': ( 'description', ) } ), 
                            ( 'Certificate',      { 'fields': ( 'common_name', 'name', 'country', 'state', 'locality', 'organization', 'OU',
@@ -64,7 +65,7 @@ class Certificate_Authority_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
                                                  }
                            ),
                            ( 'Encoding options', { 'fields': ( 'der_encoded', ), } ),
-                           ( 'CA setup',         { 'fields': ( 'subcas_allowed', 'parent', 'type', 'parent_passphrase', 'policy', ), } ),
+                           ( 'CA setup',         { 'fields': ( 'subcas_allowed', 'ca_chain', 'parent', 'type', 'parent_passphrase', 'policy', ), } ),
                          )
     
     class Media:
@@ -83,8 +84,8 @@ admin.site.register(CertificateAuthority, Certificate_Authority_Admin)
 
 class Certificate_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
     form               = CertificateForm
-    list_display       = ( 'id', 'common_name', 'serial', 'active_center', 'Locate_link', 'Expiry_date',
-                           'CA_chain', 'Description', 'created', 'revoked', 'download' )
+    list_display       = ( 'id', 'common_name', 'serial', 'active_center', 'Locate_link', 'Parent',
+                           'Expiry_date', 'Description', 'created', 'revoked', 'download', 'Email_send' )
     list_display_links = ( 'common_name', )
     save_on_top        = True
     actions            = []

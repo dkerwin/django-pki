@@ -48,3 +48,6 @@ PKI_ENABLE_GRAPHVIZ = getattr(settings, 'PKI_ENABLE_GRAPHVIZ', False)
 # graphviz direction: From left to right (LR) or top down (TD)
 PKI_GRAPHVIZ_DIRECTION = getattr(settings, 'PKI_GRAPHVIZ_DIRECTION', 'LR')
 
+# enable email delivery: Certificates with defined email address can be sent via email
+PKI_ENABLE_EMAIL = getattr(settings, 'PKI_ENABLE_EMAIL', False)
+

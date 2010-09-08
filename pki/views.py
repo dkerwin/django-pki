@@ -5,11 +5,12 @@ from django.utils.safestring import mark_safe
 from django.template import RequestContext
 from django.core.exceptions import PermissionDenied
 
-from pki.settings import PKI_DIR, PKI_LOG, MEDIA_URL, PKI_ENABLE_GRAPHVIZ
+from pki.settings import PKI_DIR, PKI_LOG, MEDIA_URL, PKI_ENABLE_GRAPHVIZ, PKI_ENABLE_EMAIL
 from pki.models import CertificateAuthority, Certificate
 from pki.openssl import OpensslActions
 from pki.forms import CaPassphraseForm
 from pki.graphviz import ObjectLocation, ObjectTree
+from pki.email import SendCertificateData
 
 import os, sys
 import logging
@@ -159,6 +160,24 @@ def pki_tree(request, id):
     response = HttpResponse(x, mimetype='image/png')
     return response
 
+def pki_email(request, type, id):
+    """Send mail if object has email set"""
+    
+    if PKI_ENABLE_EMAIL is not True:
+        raise Exception( "Email sending is inoperable unless PKI_ENABLE_EMAIL is enabled!" )
+    
+    if type == "ca":
+        obj  = get_object_or_404(CertificateAuthority, pk=id)
+        back = "../../certificateauthority"
+    elif type == "cert":
+        obj = get_object_or_404(Certificate, pk=id)
+        back = request.META['HTTP_REFERER']
+    
+    if obj.email:
+        SendCertificateData(obj)
+    
+    request.user.message_set.create(message='Email to"%s" was sent successfully.' % obj.email)
+    return HttpResponseRedirect(back)
 
 ##------------------------------------------------------------------##
 ## Admin views
