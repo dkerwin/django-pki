@@ -32,7 +32,7 @@ Dependencies
 Support
 -------
 
-  * Bugs and feature requests : [http://code.google.com/p/django-pki/issues/](http://code.google.com/p/django-pki/issues/)
+  * Bugs and feature requests : [http://github.com/dkerwin/django-pki/issues](http://github.com/dkerwin/django-pki/issues)
   * Discussion : [http://groups.google.com/group/django-pki](http://groups.google.com/group/django-pki) or django-pki@googlegroups.com
 
 Installation
