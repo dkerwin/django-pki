@@ -151,23 +151,30 @@ class CertificateBase(models.Model):
             type = "ca"
         
         if PKI_ENABLE_GRAPHVIZ:
-            return '<center><a href="%s/pki/locate/%s/%d" target="_blank"><img src="%s/pki/img/mag.png" height="13px" width="13px" alt="Locate" title="Locate object in PKI tree"/></a></center>' % (PKI_BASE_URL, type, self.pk, os.path.join(PKI_BASE_URL, MEDIA_URL))
+            return '<center><a href="%s/pki/locate/%s/%d" target="_blank"><img src="%s/pki/img/chain.png" alt="Show chain" title="Show object chain"/></a></center>' % (PKI_BASE_URL, type, self.pk, os.path.join(PKI_BASE_URL, MEDIA_URL))
         else:
-            return '<center><img src="%s/pki/img/mag_disabled.png" alt="Locate" title="Enable setting PKI_ENABLE_GRAPHVIZ"/></center>' % os.path.join(PKI_BASE_URL, MEDIA_URL)
+            return '<center><img src="%s/pki/img/chain.png" alt="Show chain" title="Enable setting PKI_ENABLE_GRAPHVIZ"/></center>' % os.path.join(PKI_BASE_URL, MEDIA_URL)
     
     Locate_link.allow_tags = True
-    Locate_link.short_description = 'Find'
+    Locate_link.short_description = 'Chain'
     
     def Email_send(self):
-        if self.email:
+        if not PKI_ENABLE_EMAIL:
+            img_tag = '<img src="%s/pki/img/mail--arrow_bw.png" alt="Send email" title="Enable setting PKI_ENABLE_EMAIL" />' % os.path.join(PKI_BASE_URL, MEDIA_URL)
+            result  = '<center>%s</center>' % img_tag
+        else:
             type = "cert"
             
-            if self.__class__.__name__ == "CertificateAuthority":
-                type = "ca"
+            if self.__class__.__name__ == "CertificateAuthority": type = "ca"
             
-            return '<center><a href="%s/pki/email/%s/%d">send</a></center>' % (PKI_BASE_URL, type, self.pk)
-        else:
-            return '<center><font color="grey">send</font></center>'
+            if self.email:
+                img_tag = '<img src="%s/pki/img/mail--arrow.png" alt="Send email" title="Send cert to specified email" />' % os.path.join(PKI_BASE_URL, MEDIA_URL)
+                result  = '<center><a href="%s/pki/email/%s/%d">%s</a></center>' % (PKI_BASE_URL, type, self.pk, img_tag)
+            else:
+                img_tag = '<img src="%s/pki/img/mail--exclamation.png" alt="Send email" title="Certificate has no email set. Disabled" />' % os.path.join(PKI_BASE_URL, MEDIA_URL)
+                result  = '<center>%s</center>' % img_tag
+        
+        return result
     
     Email_send.allow_tags = True
     Email_send.short_description = 'Email'
@@ -536,9 +543,9 @@ class Certificate(CertificateBase):
                         action.remove_der_encoded()
                     
                     ## Create or remove PKCS12 certificate
-                    if self.pkcs12_encoded and not prev.pkcs12_encoded:
-                        if prev.pkcs12_passphrase == self.pkcs12_passphrase:
-                            logger.debug( 'P12 passphrase is unchanged. Nothing to do' )
+                    if self.pkcs12_encoded:
+                        if prev.pkcs12_encoded and prev.pkcs12_passphrase == self.pkcs12_passphrase:
+                            logger.debug( 'PKCS12 passphrase is unchanged. Nothing to do' )
                         else:
                             action.generate_pkcs12_encoded()
                     else:

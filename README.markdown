@@ -153,3 +153,8 @@ The certificate change list has only the magnifying glass available. Both links 
 the tree view) can become really big. You can affect the direction of the graph be setting PKI_GRAPHVIZ_DIRECTION to TD (top down) or LR (left right) depending on what fits
 your needs best.
 
+Icons used in django-pki
+------------------------
+
+Some Icons are Copyright © [Yusuke Kamiyamane](http://p.yusukekamiyamane.com/). All rights reserved.
+Licensed under a [Creative Commons Attribution 3.0 license](http://creativecommons.org/licenses/by/3.0/)

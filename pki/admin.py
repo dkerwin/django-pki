@@ -93,8 +93,8 @@ class Certificate_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
     list_filter        = ( 'parent', 'active', )
     search_fields      = [ 'name', 'description' ]
     date_hierarchy     = 'created'
-    readonly           = ( 'created', 'expiry_date', 'key', 'cert', 'serial', )
-    exclude            = ( 'pf_encrypted', 'ca_chain', )
+    readonly           = ( 'created', 'expiry_date', 'key', 'cert', 'serial', 'ca_chain', )
+    exclude            = ( 'pf_encrypted', )
     fieldsets          = ( ( 'Define action',   { 'fields': ( 'action', ) } ),
                            ( 'Documentation',   { 'fields': ( 'description', ) } ), 
                            ( 'Certificate',     { 'fields': ( 'common_name', 'name', 'country', 'state', 'locality', 'organization', 'OU',
@@ -103,7 +103,7 @@ class Certificate_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
                                                 }
                            ),
                            ( 'Encoding options', { 'fields': ( 'der_encoded', 'pkcs12_encoded', 'pkcs12_passphrase', ), } ),
-                           ( 'CA setup',         { 'fields': ( 'parent', 'parent_passphrase', ), } ),
+                           ( 'CA setup',         { 'fields': ( 'ca_chain', 'parent', 'parent_passphrase', ), } ),
                          )
     
     class Media:

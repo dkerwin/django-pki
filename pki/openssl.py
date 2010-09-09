@@ -1,8 +1,8 @@
 import os, re, sys
-import datetime
 import string, random
 
 from pki.settings import PKI_OPENSSL_BIN, PKI_OPENSSL_CONF, PKI_DIR, PKI_OPENSSL_TEMPLATE, PKI_SELF_SIGNED_SERIAL
+from pki.helper import subject_for_object
 
 from subprocess import Popen, PIPE, STDOUT
 from shutil import rmtree
@@ -136,7 +136,7 @@ class OpensslActions():
         '''Class constructor'''
         
         self.i    = instance
-        self.subj = self.build_subject()
+        self.subj = subject_for_object(self.i)
         
         if self.i.parent != None:
             self.parent_certs = os.path.join(PKI_DIR, self.i.parent.name, 'certs')
@@ -387,25 +387,6 @@ class OpensslActions():
             w.close()
         except:
             raise Exception( 'Failed to write chain file!' )
-    
-    
-    def build_subject(self):
-        '''Return a subject string for CSR and self-sgined certs'''
-        
-        subj = '/CN=%s/C=%s/ST=%s/localityName=%s/O=%s' % ( self.i.common_name,
-                                                            self.i.country,
-                                                            self.i.state,
-                                                            self.i.locality,
-                                                            self.i.organization,
-                                                          )
-        
-        if self.i.OU:
-            subj += '/organizationalUnitName=%s' % self.i.OU
-        
-        if self.i.email:
-            subj += '/emailAddress=%s' % self.i.email
-        
-        return subj
     
     def get_serial_from_cert(self):
         '''Use openssl to get the serial number from a given certificate'''
