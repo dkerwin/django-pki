@@ -143,7 +143,7 @@ You can find a example wsgi script in `apache/django.wsgi`.
 Graphviz support
 ----------------
 
-django-pki can visualize your PKI infrastructure if you have pygraphviz and graphviz installed. Just install pygraphviz and enable the PKI_ENABLE_GRAPHVIZ
+django-pki can visualize your PKI infrastructure if you have pygraphviz and graphviz installed. Just install pygraphviz and enable the `PKI_ENABLE_GRAPHVIZ`
 setting. The change list views for certificate authorities now has 2 clickable icons:
 
   * Magnifying glass: Show CA chain up to selected element
@@ -153,8 +153,17 @@ The certificate change list has only the magnifying glass available. Both links 
 the tree view) can become really big. You can affect the direction of the graph be setting PKI_GRAPHVIZ_DIRECTION to TD (top down) or LR (left right) depending on what fits
 your needs best.
 
+Email support
+-------------
+
+djngo-pki supports certificate delivery via email. All certificates that contain a valid email address can be sent to that address from the changelist screen.
+Please add `PKI_ENABLE_EMAIL` and the required parameters for your email setup to your projects settings.py.
+
+May be a combination of `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_PORT`, `EMAIL_SUBJECT_PREFIX`, `EMAIL_USE_TLS`, `DEFAULT_FROM_EMAIL`.
+Refer to [Django settings reference](http://docs.djangoproject.com/en/1.2/ref/settings/) for details.
+
 Icons used in django-pki
 ------------------------
 
-Some Icons are Copyright © [Yusuke Kamiyamane](http://p.yusukekamiyamane.com/). All rights reserved.
+Some Icons are Copyright (c) [Yusuke Kamiyamane](http://p.yusukekamiyamane.com/). All rights reserved.
 Licensed under a [Creative Commons Attribution 3.0 license](http://creativecommons.org/licenses/by/3.0/)

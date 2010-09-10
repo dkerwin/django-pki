@@ -91,11 +91,16 @@ class CertificateBase(models.Model):
         abstract = True
     
     def get_icon_html(self, state):
-        
         if state is True:
             return '<center><img src="%simg/admin/icon-yes.gif" alt="True" /></center>' % ADMIN_MEDIA_PREFIX
         else:
             return '<center><img src="%simg/admin/icon-no.gif" alt="False" /></center>'  % ADMIN_MEDIA_PREFIX
+    
+    def get_pki_icon_html(self, img, alt="", title=""):
+        
+        img_path = os.path.join(PKI_BASE_URL, MEDIA_URL, 'pki/img', img)
+        
+        return '<img src="%s" alt="%s" title="%s"/>' % (img_path, alt, title)
     
     def active_center(self):
         '''Overwrite the Booleanfield admin for admin's changelist'''
@@ -151,33 +156,46 @@ class CertificateBase(models.Model):
             type = "ca"
         
         if PKI_ENABLE_GRAPHVIZ:
-            return '<center><a href="%s/pki/locate/%s/%d" target="_blank"><img src="%s/pki/img/chain.png" alt="Show chain" title="Show object chain"/></a></center>' % (PKI_BASE_URL, type, self.pk, os.path.join(PKI_BASE_URL, MEDIA_URL))
+            return '<center><a href="%s/pki/locate/%s/%d" target="_blank">%s</a></center>' % (PKI_BASE_URL, type, self.pk, self.get_pki_icon_html('chain.png', "Show chain", "Show object chain"))
         else:
-            return '<center><img src="%s/pki/img/chain.png" alt="Show chain" title="Enable setting PKI_ENABLE_GRAPHVIZ"/></center>' % os.path.join(PKI_BASE_URL, MEDIA_URL)
+            return '<center>%s</center>' % self.get_pki_icon_html("chain.png", "Show chain", "Enable setting PKI_ENABLE_GRAPHVIZ")
     
     Locate_link.allow_tags = True
     Locate_link.short_description = 'Chain'
     
-    def Email_send(self):
+    def Email_link(self):
         if not PKI_ENABLE_EMAIL:
-            img_tag = '<img src="%s/pki/img/mail--arrow_bw.png" alt="Send email" title="Enable setting PKI_ENABLE_EMAIL" />' % os.path.join(PKI_BASE_URL, MEDIA_URL)
-            result  = '<center>%s</center>' % img_tag
+            result  = '<center>%s</center>' % self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Enable setting PKI_ENABLE_EMAIL")
+        elif not self.active:
+            result  = '<center>%s</center>' % self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Certificate is revoked. Disabled")
         else:
             type = "cert"
             
             if self.__class__.__name__ == "CertificateAuthority": type = "ca"
             
             if self.email:
-                img_tag = '<img src="%s/pki/img/mail--arrow.png" alt="Send email" title="Send cert to specified email" />' % os.path.join(PKI_BASE_URL, MEDIA_URL)
-                result  = '<center><a href="%s/pki/email/%s/%d">%s</a></center>' % (PKI_BASE_URL, type, self.pk, img_tag)
+                result  = '<center><a href="%s/pki/email/%s/%d">%s</a></center>' % (PKI_BASE_URL, type, self.pk, self.get_pki_icon_html("mail--arrow.png", "Send email", "Send cert to specified email"))
             else:
-                img_tag = '<img src="%s/pki/img/mail--exclamation.png" alt="Send email" title="Certificate has no email set. Disabled" />' % os.path.join(PKI_BASE_URL, MEDIA_URL)
-                result  = '<center>%s</center>' % img_tag
+                result  = '<center>%s</center>' % self.get_pki_icon_html("mail--exclamation.png", "Send email", "Certificate has no email set. Disabled")
         
         return result
     
-    Email_send.allow_tags = True
-    Email_send.short_description = 'Email'
+    Email_link.allow_tags = True
+    Email_link.short_description = 'Email'
+    
+    def Download_link(self):
+        if self.active:
+            type = "cert"
+            
+            if self.__class__.__name__ == "CertificateAuthority": type = "ca"
+            
+            return '<center><a href="%s/pki/download/%s/%d/">%s ZIP</href></center></center>' % (PKI_BASE_URL, type, self.pk, \
+                                                                                                 self.get_pki_icon_html("drive-download.png", "Download", "Download certificate data"))
+        else:
+            return '<center>%s <font color="grey">ZIP</font></center>' % self.get_pki_icon_html("drive-download_bw.png", "Download", "Cannot download because certificate is revoked")
+    
+    Download_link.allow_tags = True
+    Download_link.short_description = 'Download'
     
     def Parent(self):
         if self.parent:
@@ -467,24 +485,6 @@ class CertificateAuthority(CertificateBase):
     def __unicode__(self):
         return self.name
     
-    def download(self):
-        
-        items = self.build_download_links('ca')
-        
-        if self.active:
-            if self.der_encoded:
-                items.append( '<a href="%s/pki/download/ca/%d/der"><strong>der</strong></a>' % (PKI_BASE_URL, self.pk) )
-            else:
-                items.append( '<font color="grey">der</font>' )
-            items.append( '<a href="%s/pki/download/ca/%d/crl"><strong>crl</strong></a>' % (PKI_BASE_URL, self.pk) )
-        else:
-            items.append( '<font color="grey">der</font>' )
-            items.append( '<font color="grey">crl</font>' )
-        
-        return ' | '.join(items)
-    
-    download.allow_tags = True
-    
     def Tree_link(self):
         
         if PKI_ENABLE_GRAPHVIZ:
@@ -682,29 +682,4 @@ class Certificate(CertificateBase):
     
     def __unicode__(self):
         return self.name
-    
-    def download(self):
-        
-        items = self.build_download_links('cert')
-        
-        if self.active:
-            if self.der_encoded:
-                items.append( '<a href="%s/pki/download/cert/%d/der"><strong>der</strong></a>' % (PKI_BASE_URL, self.pk) )
-            else:
-                items.append( '<font color="grey">der</font>' )
-            
-            if self.pkcs12_encoded:
-                items.append( '<a href="%s/pki/download/cert/%d/pkcs12"><strong>p12</strong></a>' % (PKI_BASE_URL, self.pk) )
-            else:
-                items.append( '<font color="grey">p12</font>' )
-            
-            items.append( '<a href="%s/pki/download/cert/%d/csr"><strong>csr</strong></a>' % (PKI_BASE_URL, self.pk) )
-        else:
-            items.append( '<font color="grey">der</font>' )
-            items.append( '<font color="grey">p12</font>' )
-            items.append( '<font color="grey">csr</font>' )
-        
-        return ' | '.join(items)
-    
-    download.allow_tags = True
     
