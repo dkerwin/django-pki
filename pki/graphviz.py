@@ -14,16 +14,20 @@ from pki.models import Certificate, CertificateAuthority
 ## Graphviz functions
 ##------------------------------------------------------------------##
 
-def ObjectLocation(object, target):
-    """Collect all objects in the depency tree and write Graphviz PNG"""
+def ObjectChain(object, target):
+    """Render object chain PNG.
+    
+    Render a graphviz image for the given object and save the resulting PNG
+    in target.
+    """
     
     ## Create graph object
     G = pgv.AGraph(directed=True, layout="dot", pad="0.2", rankdir="TB")
     
     ## Determine shape on object instance
-    if ( isinstance( object, Certificate) ):
+    if isinstance( object, Certificate):
         o_shape = "note"
-    elif ( isinstance( object, CertificateAuthority) ):
+    elif isinstance( object, CertificateAuthority):
         o_shape = "folder"
     else:
         raise Exception( "Invalid object instance given!" )
@@ -75,7 +79,11 @@ def ObjectLocation(object, target):
     return True
 
 def ObjectTree(object, target):
-    """Create full PKI tree for given CA object"""
+    """Render object tree PNG.
+    
+    Render a graphviz image for the entire object tree object and save the resulting PNG
+    in target.
+    """
     
     ##-------------------------------------##
     ## Helper function for tree traversal

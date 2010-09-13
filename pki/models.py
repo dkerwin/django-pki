@@ -1,12 +1,12 @@
-from django.db import models
-
+import os
+import datetime
 from logging import getLogger
 from shutil import rmtree
 
-from pki.openssl import OpensslActions, OpensslCaManagement, md5_constructor, refresh_pki_metadata
-from pki.settings import ADMIN_MEDIA_PREFIX, MEDIA_URL, PKI_BASE_URL, PKI_DEFAULT_COUNTRY, PKI_ENABLE_GRAPHVIZ, PKI_ENABLE_EMAIL
+from django.db import models
 
-import datetime, os
+from pki.openssl import OpensslActions, md5_constructor, refresh_pki_metadata
+from pki.settings import ADMIN_MEDIA_PREFIX, MEDIA_URL, PKI_BASE_URL, PKI_DEFAULT_COUNTRY, PKI_ENABLE_GRAPHVIZ, PKI_ENABLE_EMAIL
 
 logger = getLogger("pki")
 
@@ -62,7 +62,7 @@ COUNTRY    = ( ('AD', 'AD'),('AE', 'AE'),('AF', 'AF'),('AG', 'AG'),('AI', 'AI'),
 ##------------------------------------------------------------------##
 
 class CertificateBase(models.Model):
-    '''Base class for all type of certificates'''
+    """Base class for all type of certificates"""
     
     description  = models.CharField(max_length=255)
     country      = models.CharField(max_length=2, choices=COUNTRY, default='%s' % PKI_DEFAULT_COUNTRY.upper() )
@@ -90,20 +90,37 @@ class CertificateBase(models.Model):
     class Meta:
         abstract = True
     
+    ##------------------------------------------------------------------##
+    ## Helper functions
+    ##------------------------------------------------------------------##
+    
     def get_icon_html(self, state):
+        """Return HTML based on state.
+        
+        True : Return Django's yes icon
+        False: Return Django's no icon
+        """
+        
         if state is True:
             return '<center><img src="%simg/admin/icon-yes.gif" alt="True" /></center>' % ADMIN_MEDIA_PREFIX
         else:
             return '<center><img src="%simg/admin/icon-no.gif" alt="False" /></center>'  % ADMIN_MEDIA_PREFIX
     
     def get_pki_icon_html(self, img, alt="", title=""):
+        """Return HTML for given image.
+        
+        Can add optional alt and title parameters.
+        """
         
         img_path = os.path.join(PKI_BASE_URL, MEDIA_URL, 'pki/img', img)
-        
         return '<img src="%s" alt="%s" title="%s"/>' % (img_path, alt, title)
     
+    ##------------------------------------------------------------------##
+    ## Changelist list_display functions
+    ##------------------------------------------------------------------##
+    
     def active_center(self):
-        '''Overwrite the Booleanfield admin for admin's changelist'''
+        """Overwrite the Booleanfield admin for admin's changelist"""
         
         return self.get_icon_html(self.active)
     
@@ -112,6 +129,11 @@ class CertificateBase(models.Model):
     active_center.admin_order_field = 'active'
     
     def Description(self):
+        """Limit description for changelist.
+        
+        Limit description to 30 characters to make changelist stay on one line per item.
+        At least in most cases.
+        """
         
         if len(self.description) > 30:
             return "%s..." % self.description[:30]
@@ -122,6 +144,13 @@ class CertificateBase(models.Model):
     Description.admin_order_field = 'description'
     
     def Expiry_date(self):
+        """Return expiry date with days left.
+        
+        Return color marked expiry date based on days left.
+        < 0 : EXPIRED text and red font color
+        < 30: Orange color
+        > 30: Just date and days left
+        """
         now = datetime.datetime.now().date()        
         diff = self.expiry_date - now
         
@@ -135,20 +164,12 @@ class CertificateBase(models.Model):
     Expiry_date.allow_tags = True
     Expiry_date.admin_order_field = 'expiry_date'
     
-    def build_download_links(self, type):
+    def Chain_link(self):
+        """Display chain link.
         
-        items_on_active = ( 'pem', 'key', 'chain' )
-        result = []
-        
-        for i in items_on_active:
-            if self.active:
-                result.append( '<a href="%s/pki/download/%s/%d/%s"><strong>%s</strong></a>' % (PKI_BASE_URL, type, self.id, i, i) )
-            else:
-                result.append( '<font color="grey">%s</font>' % i )
-        
-        return result
-    
-    def Locate_link(self):
+        If PKI_ENABLE_GRAPHVIZ is True a colored chain link is displayed. Otherwise
+        a b/w chain icon without link is displayed.
+        """
         
         type = "cert"
         
@@ -160,10 +181,17 @@ class CertificateBase(models.Model):
         else:
             return '<center>%s</center>' % self.get_pki_icon_html("chain.png", "Show chain", "Enable setting PKI_ENABLE_GRAPHVIZ")
     
-    Locate_link.allow_tags = True
-    Locate_link.short_description = 'Chain'
+    Chain_link.allow_tags = True
+    Chain_link.short_description = 'Chain'
     
     def Email_link(self):
+        """Display email link based on status.
+        
+        If PKI_ENABLE_EMAIL or certificate isn't active a disabled (b/w) icon is displayed.
+        If no email address is set in the certificate a icon with exclamation mark is displayed.
+        Otherwise the normal icon is returned.
+        """
+        
         if not PKI_ENABLE_EMAIL:
             result  = '<center>%s</center>' % self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Enable setting PKI_ENABLE_EMAIL")
         elif not self.active:
@@ -184,6 +212,11 @@ class CertificateBase(models.Model):
     Email_link.short_description = 'Email'
     
     def Download_link(self):
+        """Return a download icon.
+        
+        Based on object status => clickable icon or just a b/w image
+        """
+        
         if self.active:
             type = "cert"
             
@@ -198,6 +231,11 @@ class CertificateBase(models.Model):
     Download_link.short_description = 'Download'
     
     def Parent(self):
+        """Return parent name.
+        
+        Returns parent's name when parent != None or self-signed
+        """
+        
         if self.parent:
             return self.parent.common_name
         else:
@@ -208,7 +246,7 @@ class CertificateBase(models.Model):
 ##------------------------------------------------------------------##
 
 class CertificateAuthority(CertificateBase):
-    '''CA specification'''
+    """Certificate Authority model"""
     
     ##---------------------------------##
     ## Model definition
@@ -233,17 +271,21 @@ class CertificateAuthority(CertificateBase):
         verbose_name_plural = 'Certificate Authorities'
         permissions         = ( ( "can_download_ca", "Can download", ), )
     
+    def __unicode__(self):
+        return self.name
+    
     ##---------------------------------##
     ## Redefined functions
     ##---------------------------------##
     
     def save(self, force_insert=False, force_update=False):
+        """Save the CertificateAuthority object"""
         
         if self.pk:
             ### existing CA
             if self.action in ('update', 'revoke', 'renew'):
                 
-                action = OpensslActions('ca', self)
+                action = OpensslActions(self)
                 prev   = CertificateAuthority.objects.get(pk=self.pk)
                 
                 if self.action == 'update':
@@ -356,7 +398,7 @@ class CertificateAuthority(CertificateBase):
             self.rebuild_ca_metadata(modify=True, task='append')
             
             ## Generate keys and certificates
-            action = OpensslActions('ca', self)
+            action = OpensslActions(self)
             action.generate_key()
             
             if not self.parent:
@@ -412,6 +454,7 @@ class CertificateAuthority(CertificateBase):
         super(CertificateAuthority, self).save()
     
     def delete(self, passphrase):
+        """Delete the CertificateAuthority object"""
         
         logger.info( "Certificate %s is going to be deleted" % self.name )
         
@@ -443,7 +486,7 @@ class CertificateAuthority(CertificateBase):
         
         ## Remoke first ca in the chain
         if revoke_required:
-            c_action = OpensslActions('ca', CertificateAuthority.objects.get(pk=self.pk))
+            c_action = OpensslActions(CertificateAuthority.objects.get(pk=self.pk))
             c_action.revoke_certificate(passphrase)
             c_action.generate_crl(ca=self.parent.name, pf=passphrase)
         
@@ -458,9 +501,7 @@ class CertificateAuthority(CertificateBase):
     ##---------------------------------##
     
     def rebuild_ca_metadata(self, modify, task):
-        '''Wrapper around refresh_pki_metadata. Following the DRY principle'''
-        
-        logger.info("Rebuilding CA store")
+        """Wrapper around refresh_pki_metadata"""
         
         if modify:
             if task == 'append':
@@ -482,9 +523,6 @@ class CertificateAuthority(CertificateBase):
     ## View functions
     ##---------------------------------##
     
-    def __unicode__(self):
-        return self.name
-    
     def Tree_link(self):
         
         if PKI_ENABLE_GRAPHVIZ:
@@ -494,14 +532,13 @@ class CertificateAuthority(CertificateBase):
     
     Tree_link.allow_tags = True
     Tree_link.short_description = 'Tree'
-
-    
+  
 ##------------------------------------------------------------------##
 ## Certificate class
 ##------------------------------------------------------------------##
 
 class Certificate(CertificateBase):
-    '''CA specification'''
+    """Certificate model"""
     
     common_name       = models.CharField(max_length=64)
     name              = models.CharField(max_length=64, help_text="Only change the suggestion if you really know what you're doing")
@@ -521,17 +558,20 @@ class Certificate(CertificateBase):
         permissions         = ( ( "can_download", "Can download certificate", ), )
         unique_together     = ( ( "name", "parent" ), ("common_name", "parent"), )
     
+    def __unicode__(self):
+        return self.name
+    
     ##---------------------------------##
     ## Redefined functions
     ##---------------------------------##
     
     def save(self):
+        """Save the Certificate object"""
         
         if self.pk:
-            
             if self.action in ('update', 'revoke', 'renew'):
                 
-                action = OpensslActions('cert', self)
+                action = OpensslActions(self)
                 prev   = Certificate.objects.get(pk=self.pk)
                 
                 if self.action == 'update':
@@ -621,7 +661,7 @@ class Certificate(CertificateBase):
             logger.info( "***** { New certificate generation: %s } *****" % self.name )
             
             ## Generate key and certificate
-            action = OpensslActions('cert', self)
+            action = OpensslActions(self)
             
             action.generate_key()
             action.generate_csr()
@@ -661,25 +701,18 @@ class Certificate(CertificateBase):
             super(Certificate, self).save()
     
     def delete(self, passphrase):
-        
-        logger.info( "Certificate %s is going to be deleted" % self.name )
+        """Delete the Certificate object"""
         
         ## Remoke first ca in the chain
-        c_action = OpensslActions('cert', Certificate.objects.get(pk=self.pk))
+        c_action = OpensslActions(Certificate.objects.get(pk=self.pk))
         c_action.revoke_certificate(passphrase)
         c_action.generate_crl(ca=self.parent.name, pf=passphrase)
         
         ## Time for some rm action
-        a = OpensslActions('cert', self)
+        a = OpensslActions(self)
         a.remove_complete_certificate()
         
         ## Call the "real" delete function
         super(Certificate, self).delete()
 
-    ##---------------------------------##
-    ## View functions
-    ##---------------------------------##
-    
-    def __unicode__(self):
-        return self.name
     

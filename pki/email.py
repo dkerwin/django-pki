@@ -1,3 +1,6 @@
+import os
+import logging
+
 from pki.settings import PKI_ENABLE_EMAIL
 
 if PKI_ENABLE_EMAIL is True:
@@ -7,12 +10,10 @@ if PKI_ENABLE_EMAIL is True:
     except ImportError, e:
         raise Exception( "Library import failed. Disable PKI_ENABLE_EMAIL or install/update the missing Python lib: %s" % e )
 
-from pki.models import Certificate, CertificateAuthority
-from pki.helper import files_for_object, subject_for_object, build_zip_for_object
-
 from django.shortcuts import get_object_or_404
 
-import logging, os
+from pki.models import Certificate, CertificateAuthority
+from pki.helper import files_for_object, subject_for_object, build_zip_for_object
 
 logger = logging.getLogger("pki")
 
@@ -21,8 +22,11 @@ logger = logging.getLogger("pki")
 ##------------------------------------------------------------------##
 
 def SendCertificateData(obj, request):
-    """Verify that the given object has all the flags set, create a zipfile and mail it to the
-       email address from the certificate"""
+    """Send the zipped certificate data as email.
+    
+    Verify that the given object has all the flags set, create a zipfile and mail it to the
+    email address from the certificate.
+    """
     
     ## Check that email flag is set in the DB
     if obj.email:

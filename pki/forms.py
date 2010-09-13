@@ -11,7 +11,7 @@ import re
 ##------------------------------------------------------------------##
 
 class CertificateAuthorityForm(forms.ModelForm):
-    '''Validation class for CertificateAuthority form'''
+    """Validation class for CertificateAuthority form"""
     
     passphrase        = forms.CharField(widget=forms.PasswordInput)
     parent_passphrase = forms.CharField(widget=forms.PasswordInput, required=False)
@@ -20,7 +20,7 @@ class CertificateAuthorityForm(forms.ModelForm):
         model = CertificateAuthority
     
     def clean(self):
-        '''Verify crucial fields'''
+        """Verify crucial fields"""
         
         cleaned_data = self.cleaned_data
         
@@ -81,7 +81,7 @@ class CertificateAuthorityForm(forms.ModelForm):
         return cleaned_data
 
 class CertificateForm(forms.ModelForm):
-    '''Validation class for Certificate form'''
+    """Validation class for Certificate form"""
     
     passphrase        = forms.CharField(widget=forms.PasswordInput, required=False)
     parent_passphrase = forms.CharField(widget=forms.PasswordInput, required=False)
@@ -91,7 +91,7 @@ class CertificateForm(forms.ModelForm):
         model = Certificate
     
     def clean(self):
-        '''Verify crucial fields'''
+        """Verify crucial fields"""
         
         cleaned_data = self.cleaned_data
         
@@ -100,6 +100,10 @@ class CertificateForm(forms.ModelForm):
         pf = cleaned_data.get('passphrase')
         p_pf = cleaned_data.get('parent_passphrase')
         subjaltname = cleaned_data.get('subjaltname')
+        pkcs12_passphrase = cleaned_data.get('pkcs12_passphrase')
+        pkcs12_encoded = cleaned_data.get('pkcs12_encoded')
+        
+        print "P12: %s %s" % (pkcs12_passphrase, pkcs12_encoded)
         
         enc_p_pf = None
         
@@ -113,6 +117,10 @@ class CertificateForm(forms.ModelForm):
             ## Verify passphrase length
             if action == 'create' and pf and len(pf) < 8:
                 self._errors['passphrase'] = ErrorList(['Passphrase has to be at least 8 characters long'])
+            
+            ## Verify that pkcs12 passphrase isn't empty when encoding is requested
+            if pkcs12_encoded and len(pkcs12_passphrase) < 8:
+                self._errors['pkcs12_passphrase'] = ErrorList(['PKCS12 passphrase has to be at least 8 characters long'])
             
             ## Take care that parent is active when action is revoke
             if action == 'renew':
@@ -151,7 +159,6 @@ class CertificateForm(forms.ModelForm):
                     else:
                         self._errors['subjaltname'] = ErrorList(['Invalid subjAltName key supplied: "%s" (supported are %s)' % (key, ', '.join(allowed.keys()))])
         elif action == 'revoke':
-            
             if parent:
                 ca = CertificateAuthority.objects.get(name='%s' % parent)
                 if p_pf: enc_p_pf = md5_constructor(p_pf).hexdigest()
@@ -159,6 +166,10 @@ class CertificateForm(forms.ModelForm):
                 ## Check parent passphrase
                 if ca.passphrase != enc_p_pf:
                     self._errors['parent_passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA %s' % parent])
+        elif action == 'update':
+            ## Verify that pkcs12 passphrase isn't empty when encoding is requested
+            if pkcs12_encoded and len(pkcs12_passphrase) < 8:
+                self._errors['pkcs12_passphrase'] = ErrorList(['PKCS12 passphrase has to be at least 8 characters long'])
         
         return cleaned_data
 
@@ -171,7 +182,7 @@ class CaPassphraseForm(forms.Form):
     ca_id      = forms.CharField(widget=forms.HiddenInput)
     
     def clean(self):
-        '''Verify crucial fields'''
+        """Verify crucial fields"""
         
         cleaned_data = self.cleaned_data
         passphrase   = cleaned_data.get('passphrase')

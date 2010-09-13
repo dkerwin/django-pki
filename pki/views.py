@@ -1,3 +1,6 @@
+import os
+import logging
+
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponse, Http404, HttpResponseRedirect, HttpResponseBadRequest
@@ -7,12 +10,9 @@ from django.template import RequestContext
 from pki.settings import PKI_LOG, MEDIA_URL, PKI_ENABLE_GRAPHVIZ, PKI_ENABLE_EMAIL
 from pki.models import CertificateAuthority, Certificate
 from pki.forms import CaPassphraseForm
-from pki.graphviz import ObjectLocation, ObjectTree
+from pki.graphviz import ObjectChain, ObjectTree
 from pki.email import SendCertificateData
 from pki.helper import files_for_object, chain_recursion, build_delete_item, generate_temp_file, build_zip_for_object
-
-import os
-import logging
 
 logger = logging.getLogger("pki")
 
@@ -22,7 +22,10 @@ logger = logging.getLogger("pki")
 
 @login_required
 def pki_download(request, type, id):
-    '''Download PKI data'''
+    """Download PKI data.
+    
+    Type (ca/cert) and ID are used to determine the object to download.
+    """
     
     if type == "ca":
         c = get_object_or_404(CertificateAuthority, pk=id)
@@ -53,13 +56,16 @@ def pki_download(request, type, id):
 ## Graphviz views
 ##------------------------------------------------------------------##
 
-def pki_locate(request, type, id):
-    """Create PNG using graphviz and return it to the user"""
+@login_required
+def pki_chain(request, type, id):
+    """Display the CA chain as PNG.
+    
+    Requires PKI_ENABLE_GRAPHVIZ set to true. Type (ca/cert) and ID are used to determine the object.
+    Create object chain PNG using graphviz and return it to the user.
+    """
     
     if PKI_ENABLE_GRAPHVIZ is not True:
         raise Exception( "Locate view is inoperable unless PKI_ENABLE_GRAPHVIZ is enabled" )
-    
-    obj = None
     
     if type == "ca":
         obj = get_object_or_404(CertificateAuthority, pk=id)
@@ -68,7 +74,7 @@ def pki_locate(request, type, id):
     
     png = generate_temp_file()
 
-    ObjectLocation(obj, png)
+    ObjectChain(obj, png)
     
     try:
         if os.path.exists(png):
@@ -84,13 +90,16 @@ def pki_locate(request, type, id):
     response = HttpResponse(x, mimetype='image/png')
     return response
 
+@login_required
 def pki_tree(request, id):
-    """Create PNG using graphviz and return it to user"""
+    """Display the CA tree as PNG.
+    
+    Requires PKI_ENABLE_GRAPHVIZ set to true. Only works for Certificate Authorities.
+    All object related to the CA obj are fetched and displayed in a Graphviz tree.
+    """
     
     if PKI_ENABLE_GRAPHVIZ is not True:
         raise Exception( "Tree view is inoperable unless PKI_ENABLE_GRAPHVIZ is enabled!" )
-    
-    obj = None
     
     obj = get_object_or_404(CertificateAuthority, pk=id)
     png = generate_temp_file()
@@ -115,8 +124,13 @@ def pki_tree(request, id):
 ## Email views
 ##------------------------------------------------------------------##
 
+@login_required
 def pki_email(request, type, id):
-    """Send mail if object has email set"""
+    """Send email with certificate data attached.
+    
+    Requires PKI_ENABLE_EMAIL set to true. Type (ca/cert) and ID are used to determine the object.
+    Build ZIP, send email and return to changelist.
+    """
     
     if PKI_ENABLE_EMAIL is not True:
         raise Exception( "Email sending is inoperable unless PKI_ENABLE_EMAIL is enabled!" )
@@ -131,7 +145,7 @@ def pki_email(request, type, id):
     if obj.email:
         SendCertificateData(obj, request)
     
-    request.user.message_set.create(message='Email to"%s" was sent successfully.' % obj.email)
+    request.user.message_set.create(message='Email to "%s" was sent successfully.' % obj.email)
     return HttpResponseRedirect(back)
 
 ##------------------------------------------------------------------##
@@ -140,7 +154,7 @@ def pki_email(request, type, id):
 
 @login_required
 def admin_delete(request, model, id):
-    '''Overwite the default admin delete view'''
+    """Overwite the default admin delete view"""
     
     deleted_objects    = []
     parent_object_name = CertificateAuthority._meta.verbose_name
@@ -200,6 +214,7 @@ def admin_delete(request, model, id):
 
 @login_required
 def show_exception(request):
+    """Render error page and fill it with the PKI_LOG content"""
     
     f = open(PKI_LOG, 'r')
     log = f.readlines()

@@ -1,31 +1,37 @@
-import pki.models
-from pki.settings import PKI_DIR, MEDIA_URL
-
-from django.utils.safestring import mark_safe
-
 import os
-import tempfile, string, random
+import tempfile
+import string
+import random
 import zipfile
 import logging
 
+from django.utils.safestring import mark_safe
+
+from pki.settings import PKI_DIR, MEDIA_URL
+import pki.models
+
 logger = logging.getLogger("pki")
 
-## Get the files associated with a object
 def files_for_object(obj):
+    """Return files associated to object.
     
-    if ( isinstance( obj, pki.models.CertificateAuthority) ):
+    Return dict containing all files associated to object. Dict contains
+    chain, crl, pem, csr, der, pkcs12 and key
+    """
+    
+    if isinstance( obj, pki.models.CertificateAuthority):
         chain   = c_name = obj.name
         ca_dir  = os.path.join(PKI_DIR, obj.name)
         key_loc = os.path.join(ca_dir, 'private')
-    elif ( isinstance( obj, pki.models.Certificate) ):
+    elif isinstance( obj, pki.models.Certificate):
         chain   = obj.parent.name
         c_name  = obj.name
         ca_dir  = os.path.join(PKI_DIR, obj.parent.name)
         key_loc = os.path.join(ca_dir, 'certs')
     else:
-        raise Exception( "Given object is no known type!" )
+        raise Exception( "Given object type is unknown!" )
     
-    c_map = { 'chain' : { 'path': os.path.join(ca_dir, '%s-chain.cert.pem' % chain),
+    files = { 'chain' : { 'path': os.path.join(ca_dir, '%s-chain.cert.pem' % chain),
                           'name': '%s-chain.cert.pem' % chain,
                         },
               'crl'   : { 'path': os.path.join(ca_dir, 'crl', '%s.crl.pem' % c_name),
@@ -48,11 +54,13 @@ def files_for_object(obj):
                         },
             }
     
-    return c_map
+    return files
 
-## Get the subject of a object
 def subject_for_object(obj):
-    '''Return a subject string based on given object'''
+    """Return a subject string.
+    
+    A OpenSSL compatible subject string is returned.
+    """
     
     subj = '/CN=%s/C=%s/ST=%s/localityName=%s/O=%s' % ( obj.common_name,
                                                         obj.country,
@@ -69,8 +77,8 @@ def subject_for_object(obj):
     
     return subj
 
-## Helper function for recusion
 def chain_recursion(r_id, store, id_dict):
+    """Helper function for recusion"""
     
     i = pki.models.CertificateAuthority.objects.get(pk=r_id)
     
@@ -97,8 +105,8 @@ def chain_recursion(r_id, store, id_dict):
             chain_recursion(ca.pk, helper, id_dict)
         store.append(helper)
 
-## Helper function for ul delete tree
 def build_delete_item(obj):
+    """Build div tag for delete details"""
     
     parent = 'None'
     if obj.parent is not None:
@@ -106,7 +114,6 @@ def build_delete_item(obj):
     
     return "<ul><li>Serial: %s</li><li>Subject: %s</li><li>Parent: %s</li><li>Description: %s</li><li>Created: %s</li><li>Expiry date: %s</li></ul>" % ( obj.serial, subject_for_object(obj), parent, obj.description, obj.created, obj.expiry_date)
 
-## Generate a temp file
 def generate_temp_file():
     """Generate a filename in the systems temp directory"""
     
@@ -117,9 +124,11 @@ def generate_temp_file():
     
     return f
 
-## Build zip from given file
 def build_zip_for_object(obj, request):
-    """Build zip with filed ob object. request is required to check permissions"""
+    """Build zip with filed ob object.
+    
+    request is required to check permissions
+    """
     
     try:
         ## Create the ZIP archive
@@ -154,3 +163,4 @@ def build_zip_for_object(obj, request):
         raise Exception( e )
     
     return zip_f
+

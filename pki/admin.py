@@ -1,11 +1,11 @@
-from pki.models import CertificateAuthority, Certificate
-from pki.forms import ReadOnlyAdminFields, CertificateAuthorityForm, CertificateForm
-from pki.settings import PKI_DIR, PKI_LOG, PKI_LOGLEVEL, JQUERY_URL
+import os
 
 from django.contrib import admin
 from django.utils.safestring import mark_safe
 
-import os
+from pki.models import CertificateAuthority, Certificate
+from pki.forms import ReadOnlyAdminFields, CertificateAuthorityForm, CertificateForm
+from pki.settings import PKI_DIR, PKI_LOG, PKI_LOGLEVEL, JQUERY_URL
 
 ##------------------------------------------------------------------##
 ## Create PKI_DIR if it's missing
@@ -45,8 +45,9 @@ logger.addHandler(l_hdlr)
 ##---------------------------------##
 
 class Certificate_Authority_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
+    """CertificateAuthority admin definition"""
     form               = CertificateAuthorityForm
-    list_display       = ( 'id', 'common_name', 'serial', 'active_center', 'Locate_link', 'Tree_link', 'Parent',
+    list_display       = ( 'id', 'common_name', 'serial', 'active_center', 'Chain_link', 'Tree_link', 'Parent',
                            'Expiry_date', 'Description', 'type', 'revoked', 'Download_link', 'Email_link', )
     list_display_links = ( 'common_name', )
     save_on_top        = True
@@ -72,7 +73,10 @@ class Certificate_Authority_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
         js = ( JQUERY_URL, 'pki/ca_admin.js', )
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        '''Skip CAs that dont have subcas_allowed set''' 
+        """Filter foreign key parent field.
+        
+        Skip CAs that dont have subcas_allowed set or are not active
+        """
         
         if db_field.name == "parent":
             kwargs["queryset"] = CertificateAuthority.objects.filter(subcas_allowed=True, active=True)
@@ -83,8 +87,9 @@ class Certificate_Authority_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
 admin.site.register(CertificateAuthority, Certificate_Authority_Admin)
 
 class Certificate_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
+    """CertificateAuthority admin definition"""
     form               = CertificateForm
-    list_display       = ( 'id', 'common_name', 'serial', 'active_center', 'Locate_link', 'Parent',
+    list_display       = ( 'id', 'common_name', 'serial', 'active_center', 'Chain_link', 'Parent',
                            'Expiry_date', 'Description', 'created', 'revoked', 'Download_link', 'Email_link' )
     list_display_links = ( 'common_name', )
     save_on_top        = True
@@ -110,7 +115,10 @@ class Certificate_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
         js = ( JQUERY_URL, 'pki/cert_admin.js', )
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        '''Skip CAs that have subcas_allowed set''' 
+        """Filter foreign key parent field.
+        
+        Skip CAs that dont have subcas_allowed set or are not active
+        """
         
         if db_field.name == "parent":
             kwargs["queryset"] = CertificateAuthority.objects.filter(subcas_allowed=False, active=True)
