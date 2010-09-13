@@ -118,6 +118,7 @@ Add the following variables to your projects settings.py to set custom values:
  * `PKI_DEFAULT_COUNTRY` - Default=DE: The preselected country (as 2-letter code) selected when adding certificates (http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
  * `PKI_ENABLE_GRAPHVIZ` - Default=False: Enable graphviz support (see requirements)
  * `PKI_GRAPHVIZ_DIRECTION` - Default=LR: Graph tree direction (LR=left-to-right, TD=top-down)
+ * `PKI_ENABLE_EMAIL` - Default=False: Email delivery to certificate's email address
 
 Additionally, you can add your own logging destinations. This is an example for syslog:
 
