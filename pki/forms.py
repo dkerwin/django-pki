@@ -142,9 +142,9 @@ class CertificateForm(forms.ModelForm):
             
             ## Verify subjAltName
             if subjaltname and len(subjaltname) > 0:
-                allowed = { 'email': '^copy|\w+\@[\w\.]+\.\w+$',
-                            'IP'   : '^[\d\.\:]+$',
-                            'DNS'  : '^[a-zA-Z0-9\-\.]+$',
+                allowed = { 'email': '^copy|[\w\-\.]+\@[\w\-\.]+\.\w{2,4}$',
+                            'IP'   : '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$',
+                            'DNS'  : '^[a-zA-Z0-9\-\.\*]+$',
                           }
                 items = subjaltname.split(',')
                 

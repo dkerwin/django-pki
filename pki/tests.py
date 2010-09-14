@@ -1,14 +1,19 @@
 import unittest
-import datetime, os, sys
+import datetime
+import os
+import sys
+
+from django.core.mail import get_connection
 
 ##-----------------------------------------##
 ## <MonkeyPatching: ugly but necessary>
 ##-----------------------------------------##
-from pki.settings import PKI_DIR
+from pki.settings import PKI_DIR, PKI_ENABLE_EMAIL
 PKI_DIR = os.path.join( PKI_DIR, '../TEST_PKI')
 
 from pki.models  import CertificateAuthority
 from pki import openssl
+from pki.helper import *
 
 openssl.PKI_DIR = PKI_DIR
 openssl.PKI_OPENSSL_CONF = os.path.join(PKI_DIR, 'openssl.conf')
@@ -54,9 +59,9 @@ class CertificateAuthorityTestCase(unittest.TestCase):
         
         
         openssl.refresh_pki_metadata([self.rca, self.ica, self.sca])
-        self.rca_action = openssl.OpensslActions('ca', self.rca)
-        self.ica_action = openssl.OpensslActions('ca', self.ica)
-        self.sca_action = openssl.OpensslActions('ca', self.sca)
+        self.rca_action = openssl.OpensslActions(self.rca)
+        self.ica_action = openssl.OpensslActions(self.ica)
+        self.sca_action = openssl.OpensslActions(self.sca)
     
     def test_001_OpensslExec(self):
         self.assertTrue(self.rca_action.exec_openssl(['version'], None))
@@ -82,7 +87,7 @@ class CertificateAuthorityTestCase(unittest.TestCase):
         self.assertFalse(os.path.exists(self.rca_action.der))
     
     def test_007_SubjectBuild(self):
-        self.assertEqual(self.rca_action.build_subject(), '/CN=%s/C=%s/ST=%s/localityName=%s/O=%s/organizationalUnitName=%s/emailAddress=%s' % \
+        self.assertEqual(subject_for_object(self.rca), '/CN=%s/C=%s/ST=%s/localityName=%s/O=%s/organizationalUnitName=%s/emailAddress=%s' % \
                                                          ( self.rca.common_name, self.rca.country, self.rca.state,
                                                            self.rca.locality, self.rca.organization, self.rca.OU, self.rca.email ))
     
@@ -119,3 +124,14 @@ class CertificateAuthorityTestCase(unittest.TestCase):
         self.ica.serial = CertificateAuthority.objects.get(name=self.ica.name).serial
         self.assertTrue(self.ica_action.get_revoke_status_from_cert())
     
+    def test_017_FilesForObject(self):
+        self.assertEqual(type(files_for_object(self.rca)), type(dict()))
+    
+class EmailDeliveryTestCase(unittest.TestCase):
+    
+    def test_101_CheckSmtpConnection(self):
+        if PKI_ENABLE_EMAIL:
+            self.assertTrue(get_connection(backend="django.core.mail.backends.smtp.EmailBackend").open())
+        else:
+            self.assertTrue(True)
+
