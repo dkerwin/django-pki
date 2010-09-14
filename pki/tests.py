@@ -4,6 +4,8 @@ import os
 import sys
 
 from django.core.mail import get_connection
+from django.test.client import Client
+from django.test import TestCase
 
 ##-----------------------------------------##
 ## <MonkeyPatching: ugly but necessary>
@@ -30,6 +32,10 @@ l_hdlr = logging.FileHandler(os.path.join(PKI_DIR, 'pki.log'))
 l_hdlr.setFormatter(logging.Formatter("%(asctime)s %(levelname)s - %(module)s.%(funcName)s > %(message)s"))
 logger.addHandler(l_hdlr)
 logger.setLevel(logging.DEBUG)
+
+##-----------------------------------------##
+## Create admin user
+##-----------------------------------------##
 
 class CertificateAuthorityTestCase(unittest.TestCase):
     '''Testcase for a self-signed RootCA. Any affected function and the complete process (save+remove) are tested''' 
@@ -129,9 +135,24 @@ class CertificateAuthorityTestCase(unittest.TestCase):
     
 class EmailDeliveryTestCase(unittest.TestCase):
     
+    def setUp(self): pass
+    
     def test_101_CheckSmtpConnection(self):
         if PKI_ENABLE_EMAIL:
             self.assertTrue(get_connection(backend="django.core.mail.backends.smtp.EmailBackend").open())
         else:
             self.assertTrue(True)
 
+class HttpClientTestCase(TestCase):
+    fixtures = ["test_users.json", ]
+    
+    def setUp(self):
+        self.c = Client()
+    
+    def test_201_DownloadWithoutLogin(self):
+        r = self.c.get('/admin/pki/download/ca/1')
+        self.assertEqual(r.status_code, 404)
+    
+    def test_209_AdminLogin(self):
+        self.assertTrue(self.c.login(username="pki_user_1", password="admin"))
+    

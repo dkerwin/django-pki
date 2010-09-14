@@ -225,4 +225,4 @@ def show_exception(request):
     log = f.readlines()
     f.close()
     
-    return render_to_response('pki/error.html', {'log': log})
+    return render_to_response('500.html', {'log': log})
