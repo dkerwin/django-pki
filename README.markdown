@@ -24,10 +24,11 @@ Dependencies
 ------------
 
   * Python (tested on 2.5 and 2.6)
-  * Django framework (>=1.1.1 is recommended)
+  * Django framework (>=1.2 is recommended)
   * Openssl
   * Optional Jquery library (djago-pki already shipped with built-in jquery-1.3.2)
   * pygraphviz + Graphviz (Tree viewer and object locator will not work without)
+  * zipfile Python library
 
 Support
 -------
@@ -160,7 +161,7 @@ Email support
 djngo-pki supports certificate delivery via email. All certificates that contain a valid email address can be sent to that address from the changelist screen.
 Please add `PKI_ENABLE_EMAIL` and the required parameters for your email setup to your projects settings.py.
 
-May be a combination of `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_PORT`, `EMAIL_SUBJECT_PREFIX`, `EMAIL_USE_TLS`, `DEFAULT_FROM_EMAIL`.
+May be a combination of `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_PORT`, `EMAIL_SUBJECT_PREFIX`, `EMAIL_USE_TLS` and `DEFAULT_FROM_EMAIL`.
 Refer to [Django settings reference](http://docs.djangoproject.com/en/1.2/ref/settings/) for details.
 
 Icons used in django-pki

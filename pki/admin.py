@@ -47,7 +47,7 @@ logger.addHandler(l_hdlr)
 class Certificate_Authority_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
     """CertificateAuthority admin definition"""
     form               = CertificateAuthorityForm
-    list_display       = ( 'id', 'common_name', 'serial', 'active_center', 'Chain_link', 'Tree_link', 'Parent',
+    list_display       = ( 'id', 'common_name', 'Serial_align_right', 'active_center', 'Chain_link', 'Tree_link', 'Parent_link',
                            'Expiry_date', 'Description', 'type', 'revoked', 'Download_link', 'Email_link', )
     list_display_links = ( 'common_name', )
     save_on_top        = True
@@ -89,7 +89,7 @@ admin.site.register(CertificateAuthority, Certificate_Authority_Admin)
 class Certificate_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
     """CertificateAuthority admin definition"""
     form               = CertificateForm
-    list_display       = ( 'id', 'common_name', 'serial', 'active_center', 'Chain_link', 'Parent',
+    list_display       = ( 'id', 'common_name', 'Serial_align_right', 'active_center', 'Chain_link', 'Parent_link',
                            'Expiry_date', 'Description', 'created', 'revoked', 'Download_link', 'Email_link' )
     list_display_links = ( 'common_name', )
     save_on_top        = True

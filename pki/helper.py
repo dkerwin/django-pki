@@ -127,7 +127,7 @@ def generate_temp_file():
 def build_zip_for_object(obj, request):
     """Build zip with filed ob object.
     
-    request is required to check permissions
+    request is required to check permissions. Zip file path is returned.
     """
     
     try:

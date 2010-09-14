@@ -128,6 +128,15 @@ class CertificateBase(models.Model):
     active_center.short_description = 'Active'
     active_center.admin_order_field = 'active'
     
+    def Serial_align_right(self):
+        """Make serial in changelist right justified"""
+        
+        return '<div style="text-align:right;">%s</div>' % self.serial
+    
+    Serial_align_right.allow_tags = True
+    Serial_align_right.short_description = 'Serial'
+    Serial_align_right.admin_order_field = 'serial'
+    
     def Description(self):
         """Limit description for changelist.
         
@@ -230,16 +239,19 @@ class CertificateBase(models.Model):
     Download_link.allow_tags = True
     Download_link.short_description = 'Download'
     
-    def Parent(self):
+    def Parent_link(self):
         """Return parent name.
         
         Returns parent's name when parent != None or self-signed
         """
         
         if self.parent:
-            return self.parent.common_name
+            return '<a href="../certificateauthority/%d/" style="font-weight: bold;">%s</a>' % (self.parent.pk, self.parent.common_name)
         else:
             return "self-signed"
+    
+    Parent_link.allow_tags = True
+    Parent_link.short_description = 'Parent'
     
 ##------------------------------------------------------------------##
 ## Certificate authority class

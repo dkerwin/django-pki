@@ -45,8 +45,12 @@ def SendCertificateData(obj, request):
             raise Exception( e )
         
         ## Build email obj and send it out
+        parent_name = 'self-signed'
+        if obj.parent:
+            parent_name = obj.parent.common_name
+        
         subj_msg = subject_for_object(obj)
-        body_msg = "Certificate data sent by django-pki:\n\n  * subject: %s\n  * parent: %s\n" % (subj_msg, obj.parent.name)
+        body_msg = "Certificate data sent by django-pki:\n\n  * subject: %s\n  * parent: %s\n" % (subj_msg, parent_name)
         
         email = EmailMessage( to=["daniel@linuxaddicted.de", ], subject="Certificate data for \"%s\"" % subj_msg, body=body_msg,  )
         email.attach( 'PKI_DATA_%s.zip' % obj.name, x, 'application/zip' )

@@ -35,6 +35,9 @@ def pki_download(request, type, id):
         logger.error( "Unsupported type %s requested!" % type )
         return HttpResponseBadRequest()
     
+    if not c.active:
+        raise Http404
+    
     zip = build_zip_for_object(c, request)
     
     ## open and read the file if it exists
@@ -137,13 +140,15 @@ def pki_email(request, type, id):
     
     if type == "ca":
         obj  = get_object_or_404(CertificateAuthority, pk=id)
-        back = request.META['HTTP_REFERER']
     elif type == "cert":
         obj = get_object_or_404(Certificate, pk=id)
-        back = request.META['HTTP_REFERER']
     
-    if obj.email:
+    back = request.META.get('HTTP_REFERER', None) or '/'
+    
+    if obj.email and obj.active:
         SendCertificateData(obj, request)
+    else:
+        raise Http404
     
     request.user.message_set.create(message='Email to "%s" was sent successfully.' % obj.email)
     return HttpResponseRedirect(back)

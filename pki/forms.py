@@ -103,8 +103,6 @@ class CertificateForm(forms.ModelForm):
         pkcs12_passphrase = cleaned_data.get('pkcs12_passphrase')
         pkcs12_encoded = cleaned_data.get('pkcs12_encoded')
         
-        print "P12: %s %s" % (pkcs12_passphrase, pkcs12_encoded)
-        
         enc_p_pf = None
         
         if action in ('create', 'renew'):
@@ -149,15 +147,18 @@ class CertificateForm(forms.ModelForm):
                 items = subjaltname.split(',')
                 
                 for i in items:
-                    kv  = i.split(':')
-                    key = kv[0].lstrip().rstrip()
-                    val = kv[1].lstrip().rstrip()
-                    
-                    if key in allowed:
-                        if not re.match( allowed[key], val ):
-                            self._errors['subjaltname'] = ErrorList(['Invalid subjAltName value supplied: \"%s\"' % i])
+                    if not re.match( '^\s*(email|IP|DNS)\s*:\s*.+$', i):
+                        self._errors['subjaltname'] = ErrorList(['Item "%s" doesn\'t match specification' % i])
                     else:
-                        self._errors['subjaltname'] = ErrorList(['Invalid subjAltName key supplied: "%s" (supported are %s)' % (key, ', '.join(allowed.keys()))])
+                        kv  = i.split(':')
+                        key = kv[0].lstrip().rstrip()
+                        val = kv[1].lstrip().rstrip()
+                        
+                        if key in allowed:
+                            if not re.match( allowed[key], val ):
+                                self._errors['subjaltname'] = ErrorList(['Invalid subjAltName value supplied: \"%s\"' % i])
+                        else:
+                            self._errors['subjaltname'] = ErrorList(['Invalid subjAltName key supplied: "%s" (supported are %s)' % (key, ', '.join(allowed.keys()))])
         elif action == 'revoke':
             if parent:
                 ca = CertificateAuthority.objects.get(name='%s' % parent)
