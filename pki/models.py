@@ -186,7 +186,7 @@ class CertificateBase(models.Model):
             type = "ca"
         
         if PKI_ENABLE_GRAPHVIZ:
-            return '<center><a href="%s/pki/locate/%s/%d" target="_blank">%s</a></center>' % (PKI_BASE_URL, type, self.pk, self.get_pki_icon_html('chain.png', "Show chain", "Show object chain"))
+            return '<center><a href="%s/pki/chain/%s/%d" target="_blank">%s</a></center>' % (PKI_BASE_URL, type, self.pk, self.get_pki_icon_html('chain.png', "Show chain", "Show object chain"))
         else:
             return '<center>%s</center>' % self.get_pki_icon_html("chain.png", "Show chain", "Enable setting PKI_ENABLE_GRAPHVIZ")
     

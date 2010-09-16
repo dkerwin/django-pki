@@ -68,7 +68,7 @@ def pki_chain(request, type, id):
     """
     
     if PKI_ENABLE_GRAPHVIZ is not True:
-        raise Exception( "Locate view is inoperable unless PKI_ENABLE_GRAPHVIZ is enabled" )
+        raise Exception( "Chain view is inoperable unless PKI_ENABLE_GRAPHVIZ is enabled" )
     
     if type == "ca":
         obj = get_object_or_404(CertificateAuthority, pk=id)

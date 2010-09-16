@@ -7,6 +7,8 @@ from django.core.mail import get_connection
 from django.test.client import Client
 from django.test import TestCase
 
+from windmill.authoring import djangotest 
+
 ##-----------------------------------------##
 ## <MonkeyPatching: ugly but necessary>
 ##-----------------------------------------##
@@ -149,10 +151,26 @@ class HttpClientTestCase(TestCase):
     def setUp(self):
         self.c = Client()
     
+    def test_201_AddCertificateAuthority(self):
+        self.c.login(username="pki_user_1", password="admin")
+        r = self.c.post('/admin/pki/certificateauthority/add/', { 'common_name': 'Root CA', 'name': 'Root_CA', 'description': "unit test", \
+                                                             'country': 'DE', 'state': 'Bavaria', 'locality': 'Munich', 'organization': 'Bozo Clown Inc.', \
+                                                             'OU': 'IT', 'email': 'a@b.com', 'valid_days': 1000, 'key_length': 1024, 'expiry_date': '', \
+                                                             'created': '', 'revoked': '', 'active': '', 'serial': '', 'ca_chain': '', \
+                                                             'pem_encoded': True, 'der_encoded': False, 'parent': '', 'passphrase': '1234567890', \
+                                                             'subcas_allowed': True
+                                                           })
+        
+        self.failUnlessEqual(r.status_code, 200)
+    
     def test_201_DownloadWithoutLogin(self):
         r = self.c.get('/admin/pki/download/ca/1')
         self.assertEqual(r.status_code, 404)
     
     def test_209_AdminLogin(self):
         self.assertTrue(self.c.login(username="pki_user_1", password="admin"))
-    
+
+class TestProjectWindmillTest(djangotest.WindmillDjangoUnitTest):
+    fixtures = ["test_users.json"]
+    test_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'windmilltests')
+    browser  = 'firefox'
