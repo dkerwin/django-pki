@@ -1,3 +1,27 @@
+0.10.4
+======
+88fe64f - tests.py -> tests/
+05450ab - Renamed URL /locate/ID ro /chain/ID. Updated jquery to 1.4.2. Initial set of windmill tests
+97fc416 - Remove fixed email address and use certificaes one
+8fa66db - Fix middleware bug regarding RegexURLResolver import. Client unit tests. Created 404.html and 500.html (replaces error.html)
+7805e19 - Change recommended Django version to 1.2 and add zipfile depency. Serial alignment set to right in changelist. Fix self-signed CA email delivery. Fix subjAltName issu
+2d1c944 - Fix issue 4 (subjAltName regex). Fix unittest errors and testcase for email delivery
+9a83f5f - Renamed ObjectLocation to ObjectChain. Force PKCS12 passphrase. Better docstrings. Removed unused OpensslCaManagement class
+4e1ab70 - PKI_ENABLE_EMAIL parameter description
+92d1f6c - Shared zip creation (download and email). Download as zip replaces single item download. Removed item type from download url
+c9f65ff - Fix issue 3. Email integration, code deduplication, cleanup, new icons
+755bcd4 - Initial email integration, changed ca chain disply
+4474251 - Fix issue 2 (Tree deduplication); More unit tests
+4552881 - Rewriting unit tests for CAs
+11f8317 - Removal of unused images and templates
+a5df143 - Make pygraphviz really optional
+aac84d4 - Merge remote branch 'max/master'
+52ace6f - Fix pygraphviz problems with versions <1.0. All parameters must be strings even if they are integers
+fd78bd2 - Added optional graphviz dependency to the ebuild
+db97eb4 - Added missing PYTHON_MODNAME to ebuild (this also enables byte-compiling)
+6960de8 - Added templatetags to packages (now distutils build target should work correctly)
+d7278ab - Fixes in setup.py to create valid packages
+
 0.10.3
 ======
 31dd0c1 - Version update to 0.10.3
