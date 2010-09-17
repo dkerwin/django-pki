@@ -284,7 +284,7 @@ class CertificateAuthority(CertificateBase):
         permissions         = ( ( "can_download_ca", "Can download", ), )
     
     def __unicode__(self):
-        return self.name
+        return self.common_name
     
     ##---------------------------------##
     ## Redefined functions
@@ -571,7 +571,7 @@ class Certificate(CertificateBase):
         unique_together     = ( ( "name", "parent" ), ("common_name", "parent"), )
     
     def __unicode__(self):
-        return self.name
+        return self.common_name
     
     ##---------------------------------##
     ## Redefined functions
