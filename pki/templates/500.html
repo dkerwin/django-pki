@@ -1,5 +1,8 @@
-<html>
-    <head>
+{% extends "admin/base_site.html" %}
+
+{% block title %}Ooooooops! Something went wrong{% endblock %}
+
+{% block extrahead %}
         <style type="text/css">
             <!--
             div.scroll {
@@ -12,11 +15,18 @@
             }
             -->
         </style> 
-    </head>
+{% endblock %}
+
+{% block content %}
 
     <body onload="document.getElementById('logs').scrollTop = document.getElementById('logs').scrollHeight">
         <h1>Ooooooops! Something went wrong</h1>
+	<p />
         <div class="scroll" id="logs"><pre>{% for i in log %}{{ i }}{% endfor %}</pre></div>
-        <p /><button onclick="javascript:history.go(-1)">Go back to admin interface</button>
+        <p /><p />
+	<button onclick="javascript:history.go(-1)">Go back to admin interface</button>
     </body>
-</html>
+
+
+{% endblock %}
+

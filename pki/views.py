@@ -1,19 +1,18 @@
-from django.contrib.auth.decorators import login_required, permission_required
+import os
+import logging
+
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponse, Http404, HttpResponseRedirect, HttpResponseBadRequest
 from django.utils.safestring import mark_safe
 from django.template import RequestContext
-from django.core.exceptions import PermissionDenied
 
-from pki.settings import PKI_DIR, PKI_LOG, MEDIA_URL, PKI_ENABLE_GRAPHVIZ
+from pki.settings import PKI_LOG, MEDIA_URL, PKI_ENABLE_GRAPHVIZ, PKI_ENABLE_EMAIL
 from pki.models import CertificateAuthority, Certificate
-from pki.openssl import OpensslActions
 from pki.forms import CaPassphraseForm
-from pki.graphviz import ObjectLocation, ObjectTree
-
-import os, sys
-import logging
-import tempfile
+from pki.graphviz import ObjectChain, ObjectTree
+from pki.email import SendCertificateData
+from pki.helper import files_for_object, chain_recursion, build_delete_item, generate_temp_file, build_zip_for_object
 
 logger = logging.getLogger("pki")
 
@@ -22,101 +21,63 @@ logger = logging.getLogger("pki")
 ##------------------------------------------------------------------##
 
 @login_required
-def pki_download(request, type, id, item):
-    '''Download PKI data'''
+def pki_download(request, type, id):
+    """Download PKI data.
     
-    logger.info( "Download of %s" % item )
-    
-    category = None
+    Type (ca/cert) and ID are used to determine the object to download.
+    """
     
     if type == "ca":
-        c       = CertificateAuthority.objects.get(pk=id)
-        chain   = c.name
-        c_name  = c.name
-        ca_dir  = os.path.join(PKI_DIR, c.name)
-        key_loc = os.path.join(ca_dir, 'private')
+        c = get_object_or_404(CertificateAuthority, pk=id)
     elif type == "cert":
-        c       = Certificate.objects.get(pk=id)
-        chain   = c.parent.name
-        c_name  = c.name
-        ca_dir  = os.path.join(PKI_DIR, c.parent.name)
-        key_loc = os.path.join(ca_dir, 'certs')
+        c = get_object_or_404(Certificate, pk=id)
     else:
         logger.error( "Unsupported type %s requested!" % type )
         return HttpResponseBadRequest()
     
-    pki_data = { 'public' : { 'chain' : { 'local': os.path.join(ca_dir, '%s-chain.cert.pem' % chain),
-                                          'name' : '%s-chain.cert.pem' % chain,
-                                        },
-                              'crl'   : { 'local': os.path.join(ca_dir, 'crl', '%s.crl.pem' % c_name),
-                                          'name' : '%s.crl.pem' % c_name,
-                                        },
-                              'pem'   : { 'local': os.path.join(ca_dir, 'certs', '%s.cert.pem' % c_name),
-                                          'name' : '%s.cert.pem' % c_name,
-                                        },
-                              'csr'   : { 'local': os.path.join(ca_dir, 'certs', '%s.csr.pem' % c_name),
-                                          'name' : '%s.csr.pem' % c_name,
-                                        },
-                              'der'   : { 'local': os.path.join(ca_dir, 'certs', '%s.cert.der' % c_name),
-                                          'name' : '%s.cert.der' % c_name,
-                                        },
-                              'pkcs12': { 'local': os.path.join(ca_dir, 'certs', '%s.cert.p12' % c_name),
-                                          'name' : '%s.cert.p12' % c_name,
-                                        },
-                            },
-                 'private': { 'key'   : { 'local': os.path.join(ca_dir, key_loc, '%s.key.pem' % c_name),
-                                          'name' : '%s.key.pem' % c_name,
-                                        },
-                            },
-               }
-    
-    if item in pki_data['private']:
-        logger.debug( "Private item requested. Checking permissions" )
-        category = 'private'
-        
-        if not request.user.has_perm('pki.can_download_%s' % type):
-            logger.error( "Permission denied: Not allowed to download %s/%s" % (type, item) )
-            raise PermissionDenied
-        else:
-            logger.debug( "Access granted. User is allowed to download %s/%s" % (type, item) )
-    elif item in pki_data['public']:
-        logger.debug( "Public item requested. No permissions to verify" )
-        category = 'public'
-    else:
-        logger.error( "Item %s not found in valid download categories!" % item )
+    if not c.active:
         raise Http404
     
+    zip = build_zip_for_object(c, request)
+    
     ## open and read the file if it exists
-    if os.path.exists(pki_data[category][item]['local']):
-        f = open(pki_data[category][item]['local'], 'r')
+    if os.path.exists(zip):
+        f = open(zip)
         x = f.readlines()
         f.close()
         
         ## return the HTTP response
         response = HttpResponse(x, mimetype='application/force-download')
-        response['Content-Disposition'] = 'attachment; filename="%s"' % pki_data[category][item]['name']
+        response['Content-Disposition'] = 'attachment; filename="PKI_DATA_%s.zip"' % c.name
         
         return response
     else:
-        logger.error( "File not found: %s" % pki_data[category][item]['local'] )
+        logger.error( "File not found: %s" % zip )
         raise Http404
 
-def pki_locate(request, type, id):
-    """Create PNG using graphviz and return it to the user"""
+##------------------------------------------------------------------##
+## Graphviz views
+##------------------------------------------------------------------##
+
+@login_required
+def pki_chain(request, type, id):
+    """Display the CA chain as PNG.
+    
+    Requires PKI_ENABLE_GRAPHVIZ set to true. Type (ca/cert) and ID are used to determine the object.
+    Create object chain PNG using graphviz and return it to the user.
+    """
     
     if PKI_ENABLE_GRAPHVIZ is not True:
-        raise Exception( "Locate view is inoperable unless PKI_ENABLE_GRAPHVIZ is enabled" )
-    
-    obj = None
+        raise Exception( "Chain view is inoperable unless PKI_ENABLE_GRAPHVIZ is enabled" )
     
     if type == "ca":
         obj = get_object_or_404(CertificateAuthority, pk=id)
     elif type == "cert":
         obj = get_object_or_404(Certificate, pk=id)
     
-    png = os.path.join(tempfile.gettempdir(), "%s_%s_%s" % (request.user, request.session.session_key, id))
+    png = generate_temp_file()
 
-    ObjectLocation(obj, png)
+    ObjectChain(obj, png)
     
     try:
         if os.path.exists(png):
@@ -132,16 +93,19 @@ def pki_locate(request, type, id):
     response = HttpResponse(x, mimetype='image/png')
     return response
 
+@login_required
 def pki_tree(request, id):
-    """Create PNG using graphviz and return it to user"""
+    """Display the CA tree as PNG.
+    
+    Requires PKI_ENABLE_GRAPHVIZ set to true. Only works for Certificate Authorities.
+    All object related to the CA obj are fetched and displayed in a Graphviz tree.
+    """
     
     if PKI_ENABLE_GRAPHVIZ is not True:
         raise Exception( "Tree view is inoperable unless PKI_ENABLE_GRAPHVIZ is enabled!" )
     
-    obj = None
-    
     obj = get_object_or_404(CertificateAuthority, pk=id)
-    png = os.path.join(tempfile.gettempdir(), "%s_%s_%s" % (request.user, request.session.session_key, id))
+    png = generate_temp_file()
     
     ObjectTree(obj, png)
     
@@ -159,53 +123,43 @@ def pki_tree(request, id):
     response = HttpResponse(x, mimetype='image/png')
     return response
 
+##------------------------------------------------------------------##
+## Email views
+##------------------------------------------------------------------##
+
+@login_required
+def pki_email(request, type, id):
+    """Send email with certificate data attached.
+    
+    Requires PKI_ENABLE_EMAIL set to true. Type (ca/cert) and ID are used to determine the object.
+    Build ZIP, send email and return to changelist.
+    """
+    
+    if PKI_ENABLE_EMAIL is not True:
+        raise Exception( "Email sending is inoperable unless PKI_ENABLE_EMAIL is enabled!" )
+    
+    if type == "ca":
+        obj  = get_object_or_404(CertificateAuthority, pk=id)
+    elif type == "cert":
+        obj = get_object_or_404(Certificate, pk=id)
+    
+    back = request.META.get('HTTP_REFERER', None) or '/'
+    
+    if obj.email and obj.active:
+        SendCertificateData(obj, request)
+    else:
+        raise Http404
+    
+    request.user.message_set.create(message='Email to "%s" was sent successfully.' % obj.email)
+    return HttpResponseRedirect(back)
 
 ##------------------------------------------------------------------##
 ## Admin views
 ##------------------------------------------------------------------##
 
-## Helper function for recusion
-def chain_recursion(r_id, store, id_dict):
-    
-    i = CertificateAuthority.objects.get(pk=r_id)
-    
-    div_content = build_delete_item(i, 'ca')
-    store.append( mark_safe('Certificate Authority: <a href="../../%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div class="details">%s</div>' % (i.pk, i.name, MEDIA_URL, div_content)) )
-    
-    id_dict['ca'].append(i.pk)
-    
-    ## Search for child certificates
-    child_certs = Certificate.objects.filter(parent=r_id)
-    if child_certs:
-        helper = []
-        for cert in child_certs:
-            div_content = build_delete_item(cert, 'cert')
-            helper.append( mark_safe('Certificate: <a href="../../../certificate/%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div class="details">%s</div>' % (cert.pk, cert.name, MEDIA_URL, div_content)) )
-            id_dict['cert'].append(cert.pk)
-        store.append(helper)
-    
-    ## Search for related CA's
-    child_cas = CertificateAuthority.objects.filter(parent=r_id)
-    if child_cas:
-        helper = []
-        for ca in child_cas:
-            chain_recursion(ca.pk, helper, id_dict)
-        store.append(helper)
-
-## Helper function for ul delete tree
-def build_delete_item(i, type):
-    
-    o = OpensslActions( type, i )
-    
-    parent = 'None'
-    if i.parent is not None:
-        parent = i.parent.name
-    
-    return "<ul><li>Serial: %s</li><li>Subject: %s</li><li>Parent: %s</li><li>Description: %s</li><li>Created: %s</li><li>Expiry date: %s</li></ul>" % ( i.serial, o.build_subject(), parent, i.description, i.created, i.expiry_date)
-
 @login_required
 def admin_delete(request, model, id):
-    '''Overwite the default admin delete view'''
+    """Overwite the default admin delete view"""
     
     deleted_objects    = []
     parent_object_name = CertificateAuthority._meta.verbose_name
@@ -235,7 +189,7 @@ def admin_delete(request, model, id):
         except:
             raise Http404
         
-        div_content = build_delete_item(item, 'cert')
+        div_content = build_delete_item(item)
         deleted_objects.append( mark_safe('Certificate: <a href="../../../certificate/%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div class="details">%s</div>' % (item.pk, item.name, MEDIA_URL, div_content)) )
         
         ## Fill the required data for delete_confirmation.html template
@@ -265,9 +219,10 @@ def admin_delete(request, model, id):
 
 @login_required
 def show_exception(request):
+    """Render error page and fill it with the PKI_LOG content"""
     
     f = open(PKI_LOG, 'r')
     log = f.readlines()
     f.close()
     
-    return render_to_response('pki/error.html', {'log': log})
+    return render_to_response('500.html', {'log': log})

@@ -1,4 +1,5 @@
 *.pyc
+*.kpf
 dist/
 build/
 MANIFEST

@@ -1,5 +1,6 @@
 from django import forms
 from django.forms.util import ErrorList
+from django.utils.safestring import mark_safe
 
 from pki.models import *
 from openssl import md5_constructor
@@ -10,7 +11,7 @@ import re
 ##------------------------------------------------------------------##
 
 class CertificateAuthorityForm(forms.ModelForm):
-    '''Validation class for CertificateAuthority form'''
+    """Validation class for CertificateAuthority form"""
     
     passphrase        = forms.CharField(widget=forms.PasswordInput)
     parent_passphrase = forms.CharField(widget=forms.PasswordInput, required=False)
@@ -19,7 +20,7 @@ class CertificateAuthorityForm(forms.ModelForm):
         model = CertificateAuthority
     
     def clean(self):
-        '''Verify crucial fields'''
+        """Verify crucial fields"""
         
         cleaned_data = self.cleaned_data
         
@@ -80,7 +81,7 @@ class CertificateAuthorityForm(forms.ModelForm):
         return cleaned_data
 
 class CertificateForm(forms.ModelForm):
-    '''Validation class for Certificate form'''
+    """Validation class for Certificate form"""
     
     passphrase        = forms.CharField(widget=forms.PasswordInput, required=False)
     parent_passphrase = forms.CharField(widget=forms.PasswordInput, required=False)
@@ -90,7 +91,7 @@ class CertificateForm(forms.ModelForm):
         model = Certificate
     
     def clean(self):
-        '''Verify crucial fields'''
+        """Verify crucial fields"""
         
         cleaned_data = self.cleaned_data
         
@@ -99,6 +100,8 @@ class CertificateForm(forms.ModelForm):
         pf = cleaned_data.get('passphrase')
         p_pf = cleaned_data.get('parent_passphrase')
         subjaltname = cleaned_data.get('subjaltname')
+        pkcs12_passphrase = cleaned_data.get('pkcs12_passphrase')
+        pkcs12_encoded = cleaned_data.get('pkcs12_encoded')
         
         enc_p_pf = None
         
@@ -112,6 +115,10 @@ class CertificateForm(forms.ModelForm):
             ## Verify passphrase length
             if action == 'create' and pf and len(pf) < 8:
                 self._errors['passphrase'] = ErrorList(['Passphrase has to be at least 8 characters long'])
+            
+            ## Verify that pkcs12 passphrase isn't empty when encoding is requested
+            if pkcs12_encoded and len(pkcs12_passphrase) < 8:
+                self._errors['pkcs12_passphrase'] = ErrorList(['PKCS12 passphrase has to be at least 8 characters long'])
             
             ## Take care that parent is active when action is revoke
             if action == 'renew':
@@ -133,24 +140,26 @@ class CertificateForm(forms.ModelForm):
             
             ## Verify subjAltName
             if subjaltname and len(subjaltname) > 0:
-                allowed = { 'email': '^copy|\w+\@[\w\.]+\.\w+$',
-                            'IP'   : '^[\d\.\:]+$',
-                            'DNS'  : '^[a-zA-Z0-9\-\.]+$',
+                allowed = { 'email': '^copy|[\w\-\.]+\@[\w\-\.]+\.\w{2,4}$',
+                            'IP'   : '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$',
+                            'DNS'  : '^[a-zA-Z0-9\-\.\*]+$',
                           }
                 items = subjaltname.split(',')
                 
                 for i in items:
-                    kv  = i.split(':')
-                    key = kv[0].lstrip().rstrip()
-                    val = kv[1].lstrip().rstrip()
-                    
-                    if key in allowed:
-                        if not re.match( allowed[key], val ):
-                            self._errors['subjaltname'] = ErrorList(['Invalid subjAltName value supplied: \"%s\"' % i])
+                    if not re.match( '^\s*(email|IP|DNS)\s*:\s*.+$', i):
+                        self._errors['subjaltname'] = ErrorList(['Item "%s" doesn\'t match specification' % i])
                     else:
-                        self._errors['subjaltname'] = ErrorList(['Invalid subjAltName key supplied: "%s" (supported are %s)' % (key, ', '.join(allowed.keys()))])
+                        kv  = i.split(':')
+                        key = kv[0].lstrip().rstrip()
+                        val = kv[1].lstrip().rstrip()
+                        
+                        if key in allowed:
+                            if not re.match( allowed[key], val ):
+                                self._errors['subjaltname'] = ErrorList(['Invalid subjAltName value supplied: \"%s\"' % i])
+                        else:
+                            self._errors['subjaltname'] = ErrorList(['Invalid subjAltName key supplied: "%s" (supported are %s)' % (key, ', '.join(allowed.keys()))])
         elif action == 'revoke':
-            
             if parent:
                 ca = CertificateAuthority.objects.get(name='%s' % parent)
                 if p_pf: enc_p_pf = md5_constructor(p_pf).hexdigest()
@@ -158,6 +167,10 @@ class CertificateForm(forms.ModelForm):
                 ## Check parent passphrase
                 if ca.passphrase != enc_p_pf:
                     self._errors['parent_passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA %s' % parent])
+        elif action == 'update':
+            ## Verify that pkcs12 passphrase isn't empty when encoding is requested
+            if pkcs12_encoded and len(pkcs12_passphrase) < 8:
+                self._errors['pkcs12_passphrase'] = ErrorList(['PKCS12 passphrase has to be at least 8 characters long'])
         
         return cleaned_data
 
@@ -170,7 +183,7 @@ class CaPassphraseForm(forms.Form):
     ca_id      = forms.CharField(widget=forms.HiddenInput)
     
     def clean(self):
-        '''Verify crucial fields'''
+        """Verify crucial fields"""
         
         cleaned_data = self.cleaned_data
         passphrase   = cleaned_data.get('passphrase')
@@ -195,13 +208,13 @@ class ReadOnlyWidget(forms.Widget):
     def __init__(self, original_value, display_value):
         self.original_value = original_value
         self.display_value = display_value
-
+        
         super(ReadOnlyWidget, self).__init__()
-
+    
     def render(self, name, value, attrs=None):
         if self.display_value is not None:
-            return unicode(self.display_value)
-        return unicode(self.original_value)
+            return mark_safe(unicode(self.display_value))
+        return mark_safe(unicode(self.original_value))
 
     def value_from_datadict(self, data, files, name):
         return self.original_value
