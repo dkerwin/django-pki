@@ -323,7 +323,7 @@ class OpensslActions():
             extension = ""
         
         command = 'ca -config %s -name %s -batch %s -in %s -out %s -days %d %s -passin env:%s' % \
-                  ( PKI_OPENSSL_CONF, self.i.parent, self.ext, self.csr, self.crt, self.i.valid_days, extension, self.env_pw)
+                  ( PKI_OPENSSL_CONF, self.i.parent.name, self.ext, self.csr, self.crt, self.i.valid_days, extension, self.env_pw)
         self.exec_openssl(command.split(), env_vars={ self.env_pw: str(self.i.parent_passphrase), "S_A_N": self.i.subjaltname, })
         
         ## Get the just created serial
@@ -347,21 +347,8 @@ class OpensslActions():
             logger.info( "Skipping revoke as it already happened" )
             return True
         
-        command = 'ca -config %s -name %s -batch -revoke %s -passin env:%s' % (PKI_OPENSSL_CONF, self.i.parent, self.crt, self.env_pw)
+        command = 'ca -config %s -name %s -batch -revoke %s -passin env:%s' % (PKI_OPENSSL_CONF, self.i.parent.name, self.crt, self.env_pw)
         self.exec_openssl(command.split(), env_vars={ self.env_pw: str(ppf) })
-    
-    def renew_certificate(self):
-        """Renew/Reissue a given certificate.
-        
-        This requires the CSR to be available.
-        """
-        
-        logger.info( 'Renewing certificate %s' % self.i.name )
-        
-        if os.path.exists(self.csr):
-            self.sign_csr()
-        else:
-            raise Exception( "Failed to renew certificate %s! CSR is missing!" % self.i.name )
     
     def generate_crl(self, ca=None, pf=None):
         """CRL (Certificate Revocation List) generation.

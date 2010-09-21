@@ -290,28 +290,30 @@ class CertificateAuthority(CertificateBase):
     ## Redefined functions
     ##---------------------------------##
     
-    def save(self, force_insert=False, force_update=False):
+    def save(self, *args, **kwargs):
         """Save the CertificateAuthority object"""
         
         if self.pk:
-            ### existing CA
+            ## existing CA
             if self.action in ('update', 'revoke', 'renew'):
                 
                 action = OpensslActions(self)
                 prev   = CertificateAuthority.objects.get(pk=self.pk)
                 
-                if self.action == 'update':
+                ## Update description. This is always allowed
+                prev.description = self.description
+                
+                ## Create or remove DER certificate. Doesn't hurt to do this anyway
+                if self.der_encoded:
+                    action.generate_der_encoded()
+                else:
+                    action.remove_der_encoded()
+                
+                prev.der_encoded = self.der_encoded
                     
-                    ## Create or remove DER certificate
-                    if self.der_encoded:
-                        action.generate_der_encoded()
-                    else:
-                        action.remove_der_encoded()
-                    
-                    prev.description = self.description
-                    prev.der_encoded = self.der_encoded
-                    
-                elif self.action == 'revoke':
+                if self.action == 'revoke':
+                    if not self.parent:
+                        raise Exception( "You cannot revoke a self-signed certificate! No parent => No revoke" )
                     
                     ## DB-revoke all related certs
                     garbage = []
@@ -328,16 +330,16 @@ class CertificateAuthority(CertificateBase):
                         x.pkcs12_encoded = False
                         x.revoked        = datetime.datetime.now()
                         
-                        super(Certificate, x).save()
+                        super(Certificate, x).save(*args, **kwargs)
                     
                     for i in id_dict['ca']:
                         x = CertificateAuthority.objects.get(pk=i)
-                        x.active       = False
-                        x.der_encoded  = False
-                        x.pem_encoded  = False
-                        x.revoked      = datetime.datetime.now()
+                        x.active      = False
+                        x.der_encoded = False
+                        x.pem_encoded = False
+                        x.revoked     = datetime.datetime.now()
                         
-                        super(CertificateAuthority, x).save()
+                        super(CertificateAuthority, x).save(*args, **kwargs)
                     
                     ## Revoke and generate CRL
                     action.revoke_certificate(self.parent_passphrase)
@@ -348,10 +350,9 @@ class CertificateAuthority(CertificateBase):
                     prev.active            = False
                     prev.der_encoded       = False
                     prev.pem_encoded       = False
-                    prev.revoked = datetime.datetime.now()
+                    prev.revoked           = datetime.datetime.now()
                     
                 elif self.action == 'renew':
-                    
                     ## Revoke if certificate is active
                     if self.parent and not action.get_revoke_status_from_cert():
                         action.revoke_certificate(self.parent_passphrase)
@@ -365,7 +366,8 @@ class CertificateAuthority(CertificateBase):
                         action.generate_self_signed_cert()
                         action.generate_crl(self.name, self.passphrase)
                     else:
-                        action.renew_certificate()
+                        action.generate_csr()
+                        action.sign_csr()
                         action.generate_crl(self.parent.name, self.parent_passphrase)
                     
                     action.update_ca_chain_file()
@@ -383,16 +385,14 @@ class CertificateAuthority(CertificateBase):
                     prev.revoked           = None
                     
                     ## Get the new serial
-                    prev.serial     = action.get_serial_from_cert()
-                    #prev.passphrase = md5_constructor(self.passphrase).hexdigest()
+                    prev.serial = action.get_serial_from_cert()
                 
                 ## Save the data
                 self = prev
                 self.action = 'update'
                 
-                super(CertificateAuthority, self).save()
+                super(CertificateAuthority, self).save(*args, **kwargs)
             else:
-                
                 raise Exception( 'Invalid action %s supplied' % self.action )
         else:
             ## Set creation data
@@ -463,9 +463,9 @@ class CertificateAuthority(CertificateBase):
             self.parent_passphrase = None
             
         ## Save the data
-        super(CertificateAuthority, self).save()
+        super(CertificateAuthority, self).save(*args, **kwargs)
     
-    def delete(self, passphrase):
+    def delete(self, passphrase, *args, **kwargs):
         """Delete the CertificateAuthority object"""
         
         logger.info( "Certificate %s is going to be deleted" % self.name )
@@ -506,7 +506,7 @@ class CertificateAuthority(CertificateBase):
         self.rebuild_ca_metadata(modify=True, task='exclude')
         
         ## Call the "real" delete function
-        super(CertificateAuthority, self).delete()
+        super(CertificateAuthority, self).delete(*args, **kwargs)
     
     ##---------------------------------##
     ## Helper functions
@@ -577,7 +577,7 @@ class Certificate(CertificateBase):
     ## Redefined functions
     ##---------------------------------##
     
-    def save(self):
+    def save(self, *args, **kwargs):
         """Save the Certificate object"""
         
         if self.pk:
@@ -586,36 +586,35 @@ class Certificate(CertificateBase):
                 action = OpensslActions(self)
                 prev   = Certificate.objects.get(pk=self.pk)
                 
-                if self.action == 'update':
-                    
-                    ## Create or remove DER certificate
-                    if self.der_encoded:
-                        action.generate_der_encoded()
+                ## Update description. This is always allowed
+                prev.description = self.description
+                
+                ## Create or remove DER certificate
+                if self.der_encoded:
+                    action.generate_der_encoded()
+                else:
+                    action.remove_der_encoded()
+                
+                prev.der_encoded    = self.der_encoded
+                
+                ## Create or remove PKCS12 certificate
+                if self.pkcs12_encoded:
+                    if prev.pkcs12_encoded and prev.pkcs12_passphrase == self.pkcs12_passphrase:
+                        logger.debug( 'PKCS12 passphrase is unchanged. Nothing to do' )
                     else:
-                        action.remove_der_encoded()
-                    
-                    ## Create or remove PKCS12 certificate
-                    if self.pkcs12_encoded:
-                        if prev.pkcs12_encoded and prev.pkcs12_passphrase == self.pkcs12_passphrase:
-                            logger.debug( 'PKCS12 passphrase is unchanged. Nothing to do' )
-                        else:
-                            action.generate_pkcs12_encoded()
-                    else:
-                        action.remove_pkcs12_encoded()
-                        self.pkcs12_passphrase = None
-                        prev.pkcs12_passphrase = None
-                    
-                    if self.pkcs12_passphrase:
-                        prev.pkcs12_passphrase = md5_constructor(self.pkcs12_passphrase).hexdigest()
-                    else:
-                        prev.pkcs12_passphrase = None
-                    
-                    prev.description    = self.description
-                    prev.der_encoded    = self.der_encoded
-                    prev.pkcs12_encoded = self.pkcs12_encoded
-                    prev.pem_encoded    = True
-                    
-                elif self.action == 'revoke':
+                        action.generate_pkcs12_encoded()
+                else:
+                    action.remove_pkcs12_encoded()
+                    self.pkcs12_passphrase = prev.pkcs12_passphrase = None
+                
+                if self.pkcs12_passphrase:
+                    prev.pkcs12_passphrase = md5_constructor(self.pkcs12_passphrase).hexdigest()
+                else:
+                    prev.pkcs12_passphrase = None
+                
+                prev.pkcs12_encoded = self.pkcs12_encoded
+                
+                if self.action == 'revoke':
                     
                     ## Revoke and generate CRL
                     action.revoke_certificate(self.parent_passphrase)
@@ -627,7 +626,7 @@ class Certificate(CertificateBase):
                     prev.der_encoded       = False
                     prev.pem_encoded       = False
                     prev.pkcs12_encoded    = False
-                    prev.revoked = datetime.datetime.now()
+                    prev.revoked           = datetime.datetime.now()
                     
                 elif self.action == 'renew':
                     
@@ -636,12 +635,13 @@ class Certificate(CertificateBase):
                         action.revoke_certificate(self.parent_passphrase)
                     
                     ## Renew and update CRL
-                    action.renew_certificate()
+                    action.generate_csr()
+                    action.sign_csr()
                     action.generate_crl(self.parent.name, self.parent_passphrase)
                     
                     ## Modify fields
-                    prev.created = datetime.datetime.now()
-                    delta = datetime.timedelta(self.valid_days)
+                    prev.created     = datetime.datetime.now()
+                    delta            = datetime.timedelta(self.valid_days)
                     prev.expiry_date = datetime.datetime.now() + delta
                     
                     prev.parent_passphrase = None
@@ -650,17 +650,16 @@ class Certificate(CertificateBase):
                     prev.der_encoded       = self.der_encoded
                     prev.pkcs12_encoded    = self.pkcs12_encoded
                     prev.revoked           = None
-                    prev.valid_days = self.valid_days
+                    prev.valid_days        = self.valid_days
                     
                     ## Get the new serial
-                    prev.serial     = action.get_serial_from_cert()
-                    #prev.passphrase = md5_constructor(self.passphrase).hexdigest()
+                    prev.serial = action.get_serial_from_cert()
                 
                 ## Save the data
                 self = prev
                 self.action = 'update'
                 
-                super(Certificate, self).save()
+                super(Certificate, self).save(*args, **kwargs)
         else:
             ## Set creation data
             self.created = datetime.datetime.now()
@@ -710,9 +709,9 @@ class Certificate(CertificateBase):
             self.parent_passphrase = None
             
             ## Save the data
-            super(Certificate, self).save()
+            super(Certificate, self).save(*args, **kwargs)
     
-    def delete(self, passphrase):
+    def delete(self, passphrase, *args, **kwargs):
         """Delete the Certificate object"""
         
         ## Remoke first ca in the chain
@@ -725,6 +724,6 @@ class Certificate(CertificateBase):
         a.remove_complete_certificate()
         
         ## Call the "real" delete function
-        super(Certificate, self).delete()
+        super(Certificate, self).delete(*args, **kwargs)
 
     

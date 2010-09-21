@@ -30,6 +30,7 @@ class CertificateAuthorityForm(forms.ModelForm):
         enc_p_pf = None
 
         if action in ('create', 'renew'):
+            
             ## Check if name contains invalid chars
             name = cleaned_data.get('name')
             
@@ -44,17 +45,17 @@ class CertificateAuthorityForm(forms.ModelForm):
             if action == 'renew':
                 ca = CertificateAuthority.objects.get(name='%s' % name)
                 
+                ## Prevent renewal when parent is disabled
                 if ca.parent is not None and ca.parent.active is not True:
                     self._errors['action'] = ErrorList(['Cannot renew CA certificate when parent "%s" isn\'t active!' % ca.parent.name])
                     return cleaned_data
                 
-                ## Self-signed renew. compare passphrase
-                if ca.parent is None:
-                    if not pf or ca.passphrase != md5_constructor(pf).hexdigest():
-                        self._errors['passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA "%s"' % name])
+                ## Compare passphrase
+                if not pf or ca.passphrase != md5_constructor(pf).hexdigest():
+                    self._errors['passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA "%s"' % cleaned_data.get('common_name')])
             
             if parent:                
-                ca = CertificateAuthority.objects.get(name='%s' % parent)
+                ca = CertificateAuthority.objects.get(name='%s' % parent.name)
                 p_pf = cleaned_data.get('parent_passphrase')
                 if p_pf: enc_p_pf = md5_constructor(p_pf).hexdigest()
                 
@@ -69,12 +70,12 @@ class CertificateAuthorityForm(forms.ModelForm):
         elif action == 'revoke':
             
             if parent:
-                ca = CertificateAuthority.objects.get(name='%s' % parent)
+                ca = CertificateAuthority.objects.get(name='%s' % parent.name)
                 enc_p_pf = md5_constructor(cleaned_data.get('parent_passphrase')).hexdigest()
                 
                 ## Check parent passphrase
                 if ca.passphrase != enc_p_pf:
-                    self._errors['parent_passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA %s' % parent])
+                    self._errors['parent_passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA "%s"' % parent])
             else:
                 self._errors['action'] = ErrorList(['You cannot revoke a self-signed root certificate as this would break the whole chain!'])
         
@@ -125,16 +126,16 @@ class CertificateForm(forms.ModelForm):
                 cert = Certificate.objects.get(name='%s' % name)
                 
                 if cert.parent is not None and cert.parent.active is not True:
-                    self._errors['action'] = ErrorList(['Cannot renew certificate when parent CA "%s" isn\'t active!' % cert.parent.name])
+                    self._errors['action'] = ErrorList(['Cannot renew certificate when parent CA "%s" isn\'t active!' % cert.parent])
                     return cleaned_data
             
             if parent:
-                ca = CertificateAuthority.objects.get(name='%s' % parent)
+                ca = CertificateAuthority.objects.get(name='%s' % parent.name)
                 if p_pf: enc_p_pf = md5_constructor(p_pf).hexdigest()
                 
                 ## Check parent passphrase
                 if ca.passphrase != enc_p_pf:
-                    self._errors['parent_passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA %s' % parent])
+                    self._errors['parent_passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA "%s"' % parent])
             else:
                 self._errors['parent'] = ErrorList(['You cannot renew a certificate while the parent is not active. Renew requires the intial parent to be active'])
             
@@ -161,12 +162,12 @@ class CertificateForm(forms.ModelForm):
                             self._errors['subjaltname'] = ErrorList(['Invalid subjAltName key supplied: "%s" (supported are %s)' % (key, ', '.join(allowed.keys()))])
         elif action == 'revoke':
             if parent:
-                ca = CertificateAuthority.objects.get(name='%s' % parent)
+                ca = CertificateAuthority.objects.get(name='%s' % parent.name)
                 if p_pf: enc_p_pf = md5_constructor(p_pf).hexdigest()
                 
                 ## Check parent passphrase
                 if ca.passphrase != enc_p_pf:
-                    self._errors['parent_passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA %s' % parent])
+                    self._errors['parent_passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA "%s"' % parent])
         elif action == 'update':
             ## Verify that pkcs12 passphrase isn't empty when encoding is requested
             if pkcs12_encoded and len(pkcs12_passphrase) < 8:
@@ -194,7 +195,7 @@ class CaPassphraseForm(forms.Form):
             ca           = CertificateAuthority.objects.get(pk=ca_id)
             
             if ca.passphrase != e_passphrase:
-                self._errors["passphrase"] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA %s' % ca.name])
+                self._errors["passphrase"] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA "%s"' % ca])
         else:
             self._errors["passphrase"] = ErrorList(['Passphrase is missing!'])
         

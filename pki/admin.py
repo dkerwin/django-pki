@@ -70,7 +70,7 @@ class Certificate_Authority_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
                          )
     
     class Media:
-        js = ( JQUERY_URL, 'pki/ca_admin.js', )
+        js = ( JQUERY_URL, 'pki/pki_admin.js', )
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         """Filter foreign key parent field.
@@ -112,7 +112,7 @@ class Certificate_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
                          )
     
     class Media:
-        js = ( JQUERY_URL, 'pki/cert_admin.js', )
+        js = ( JQUERY_URL, 'pki/pki_admin.js', )
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         """Filter foreign key parent field.
