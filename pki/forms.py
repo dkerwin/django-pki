@@ -14,6 +14,8 @@ class CertificateAuthorityForm(forms.ModelForm):
     """Validation class for CertificateAuthority form"""
     
     passphrase        = forms.CharField(widget=forms.PasswordInput)
+    passphrase_verify = forms.CharField(widget=forms.PasswordInput, required=False)
+    
     parent_passphrase = forms.CharField(widget=forms.PasswordInput, required=False)
     
     class Meta:
@@ -27,6 +29,7 @@ class CertificateAuthorityForm(forms.ModelForm):
         action = cleaned_data.get('action')
         parent = cleaned_data.get('parent')
         pf = cleaned_data.get('passphrase')
+        pf_v = cleaned_data.get('passphrase_verify')
         enc_p_pf = None
 
         if action in ('create', 'renew'):
@@ -38,8 +41,12 @@ class CertificateAuthorityForm(forms.ModelForm):
                 self._errors['name'] = ErrorList(['Name may only contain characters in range a-Z0-9_-.'])
             
             ## Verify passphrase length
-            if action == 'create' and pf and len(pf) < 8:
-                self._errors['passphrase'] = ErrorList(['Passphrase has to be at least 8 characters long'])
+            if action == 'create':
+                if pf and len(pf) < 8:
+                    self._errors['passphrase'] = ErrorList(['Passphrase has to be at least 8 characters long'])
+                
+                if not pf_v or pf != pf_v:
+                    self.errors['passphrase_verify'] = ErrorList(['Passphrase mismtach detected'])
             
             ## Take care that parent is active when action is revoke
             if action == 'renew':
@@ -85,8 +92,12 @@ class CertificateForm(forms.ModelForm):
     """Validation class for Certificate form"""
     
     passphrase        = forms.CharField(widget=forms.PasswordInput, required=False)
+    passphrase_verify = forms.CharField(widget=forms.PasswordInput, required=False)
+    
     parent_passphrase = forms.CharField(widget=forms.PasswordInput, required=False)
+    
     pkcs12_passphrase = forms.CharField(widget=forms.PasswordInput, required=False)
+    pkcs12_passphrase_verify = forms.CharField(widget=forms.PasswordInput, required=False)
     
     class Meta:
         model = Certificate
@@ -99,6 +110,7 @@ class CertificateForm(forms.ModelForm):
         action = cleaned_data.get('action')
         parent = cleaned_data.get('parent')
         pf = cleaned_data.get('passphrase')
+        pf_v = cleaned_data.get('passphrase_verify')
         p_pf = cleaned_data.get('parent_passphrase')
         subjaltname = cleaned_data.get('subjaltname')
         pkcs12_passphrase = cleaned_data.get('pkcs12_passphrase')
@@ -114,8 +126,12 @@ class CertificateForm(forms.ModelForm):
                 self._errors['name'] = ErrorList(['Name may only contain characters in range a-Z0-9'])
             
             ## Verify passphrase length
-            if action == 'create' and pf and len(pf) < 8:
-                self._errors['passphrase'] = ErrorList(['Passphrase has to be at least 8 characters long'])
+            if action == 'create':
+                if pf and len(pf) < 8:
+                    self._errors['passphrase'] = ErrorList(['Passphrase has to be at least 8 characters long'])
+                
+                if not pf_v or pf != pf_v:
+                    self.errors['passphrase_verify'] = ErrorList(['Passphrase mismtach detected'])
             
             ## Verify that pkcs12 passphrase isn't empty when encoding is requested
             if pkcs12_encoded and len(pkcs12_passphrase) < 8:

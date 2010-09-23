@@ -58,15 +58,24 @@ class Certificate_Authority_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
     date_hierarchy     = 'created'
     readonly           = ( 'expiry_date', 'key', 'cert', 'serial', 'ca_chain', )
     exclude            = ( 'pf_encrypted', 'pem_encoded', )
-    fieldsets          = ( ( 'Define action',    { 'fields': ( 'action', ) }, ),
-                           ( 'Documentation',    { 'fields': ( 'description', ) } ), 
+    fieldsets          = ( ( 'Define action',    { 'fields': ( 'action', ), }, ),
+                           ( 'Documentation',    { 'fields': ( 'description', ),
+                                                   'classes': [ 'wide', ],
+                                                 },
+                           ), 
                            ( 'Certificate',      { 'fields': ( 'common_name', 'name', 'country', 'state', 'locality', 'organization', 'OU',
-                                                               'email', 'key_length', 'valid_days', 'passphrase', 'serial', 'expiry_date',
-                                                             )
-                                                 }
+                                                               'email', 'key_length', 'valid_days', 'passphrase', 'passphrase_verify',
+                                                               'serial', 'expiry_date',
+                                                             ),
+                                                   'classes': [ 'wide', ],
+                                                 },
                            ),
-                           ( 'Encoding options', { 'fields': ( 'der_encoded', ), } ),
-                           ( 'CA setup',         { 'fields': ( 'subcas_allowed', 'ca_chain', 'parent', 'type', 'parent_passphrase', 'policy', ), } ),
+                           ( 'Encoding options', { 'fields': ( 'der_encoded', ), },
+                           ),
+                           ( 'CA setup',         { 'fields': ( 'subcas_allowed', 'ca_chain', 'parent', 'type', 'parent_passphrase', 'policy', ),
+                                                   'classes': [ 'wide', ],
+                                                 },
+                           ),
                          )
     
     class Media:
@@ -101,14 +110,25 @@ class Certificate_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
     readonly           = ( 'created', 'expiry_date', 'key', 'cert', 'serial', 'ca_chain', )
     exclude            = ( 'pf_encrypted', )
     fieldsets          = ( ( 'Define action',   { 'fields': ( 'action', ) } ),
-                           ( 'Documentation',   { 'fields': ( 'description', ) } ), 
+                           ( 'Documentation',   { 'fields': ( 'description', ),
+                                                  'classes': [ 'wide', ],
+                                                },
+                           ), 
                            ( 'Certificate',     { 'fields': ( 'common_name', 'name', 'country', 'state', 'locality', 'organization', 'OU',
-                                                              'email', 'subjaltname', 'key_length', 'cert_extension', 'valid_days', 'passphrase', 'serial', 'expiry_date',
+                                                              'email', 'subjaltname', 'key_length', 'cert_extension', 'valid_days', 'passphrase',
+                                                              'passphrase_verify', 'serial', 'expiry_date',
                                                             ),
-                                                }
+                                                  'classes': [ 'wide', ],
+                                                },
                            ),
-                           ( 'Encoding options', { 'fields': ( 'der_encoded', 'pkcs12_encoded', 'pkcs12_passphrase', ), } ),
-                           ( 'CA setup',         { 'fields': ( 'ca_chain', 'parent', 'parent_passphrase', ), } ),
+                           ( 'Encoding options', { 'fields': ( 'der_encoded', 'pkcs12_encoded', 'pkcs12_passphrase', 'pkcs12_passphrase_verify', ),
+                                                   'classes': [ 'wide', ],
+                                                 },
+                           ),
+                           ( 'CA setup',         { 'fields': ( 'ca_chain', 'parent', 'parent_passphrase', ),
+                                                   'classes': [ 'wide', ],
+                                                 },
+                           ),
                          )
     
     class Media:

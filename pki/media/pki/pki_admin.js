@@ -1,5 +1,13 @@
 $(document).ready( function() {
     
+    
+    // PKCS#12 passphrase verify if checkbox is found
+    if ( $("input[id=id_pkcs12_encoded]") ) {
+        
+        $('#id_pkcs12_passphrase').bind("change keyup focus", { 'a': '#id_pkcs12_passphrase', 'b': '#id_pkcs12_passphrase_verify' }, onPfChange);
+        $('#id_pkcs12_passphrase_verify').bind("change keyup focus", { 'a': '#id_pkcs12_passphrase', 'b': '#id_pkcs12_passphrase_verify' }, onPfChange);
+    }
+    
     // Determine action => add | change
     if ( window.__pki_add__ != 'True' ) {
         
@@ -16,7 +24,7 @@ $(document).ready( function() {
                             }
                             
                             // Remove disabled attribute
-                            $('#certificateauthority_form :input:not(:submit), #certificate_form :input:not(_submit)').each( function( i, el ) {
+                            $('#certificateauthority_form :input:not(:submit), #certificate_form :input:not(:submit)').each( function( i, el ) {
                                             $(el).removeAttr("disabled");
                             });
         });
@@ -27,11 +35,18 @@ $(document).ready( function() {
         $("input[id=id_action_2]").attr("disabled", "disabled");
         $("input[id=id_action_3]").attr("disabled", "disabled");
         
+        // Make id_passphrase_verify as required as id_passphrase
+        $("label[for=id_passphrase_verify]").addClass($("label[for=id_passphrase]").attr("class"));
+        
         onParentChange();
         onCnChange();
         
         $("#id_parent").change(onParentChange);
         $('#id_common_name').bind("change keyup", onCnChange);
+        
+        // Passphrase verify
+        $('#id_passphrase').bind("change keyup focus", { 'a': '#id_passphrase', 'b': '#id_passphrase_verify' }, onPfChange);
+        $('#id_passphrase_verify').bind("change keyup focus", { 'a': '#id_passphrase', 'b': '#id_passphrase_verify' }, onPfChange);        
     }
 });
 
@@ -47,7 +62,7 @@ function onActionChange() {
     }
     
     var enabled_fields = new Array();
-    var inputs  = $('#certificateauthority_form :input:not(:submit), #certificate_form :input:not(_submit)');
+    var inputs  = $('#certificateauthority_form :input:not(:submit), #certificate_form :input:not(:submit)');
     
     // Always enable description and encoding options
     enabled_fields['id_description'] = 1;
@@ -77,7 +92,7 @@ function onActionChange() {
         // Set class required on parent_passphrase
         $("label[for=id_parent_passphrase]").addClass('required');
         
-        // Add id_parent_passphrese to enabled_fields
+        // Add id_parent_passphrase to enabled_fields
         enabled_fields['id_parent_passphrase'] = 1;
         
         // Set BG color for der_encoded to default
@@ -93,6 +108,7 @@ function onActionChange() {
         
         // Wipe passphrase field
         $("input[id=id_passphrase]").val('');
+        $("input[id=id_passphrase_verify]").val('');
         
         // Set class required on parent_passphrase
         $("label[for=id_parent_passphrase]").addClass('required');
@@ -193,7 +209,7 @@ function onCnChange() {
         
         if ( $("#no_valid_name").length > 0 ) {
             
-            $("#no_valid_name").remove()
+            $("#no_valid_name").remove();
         };
     }
     else {
@@ -202,6 +218,52 @@ function onCnChange() {
         $("#id_name").val('');
     }
     return true;
+}
+
+function onPfChange(event) {
+    
+    var pf_1 = $(event.data.a).val();
+    var pf_2 = $(event.data.b).val();
+    
+    var element_1 = $(event.data.a);
+    var element_2 = $(event.data.b);
+    
+    var span_id   = 'pf_match_' + event.data.b.replace(/#/, '');
+    var span_id_h = '#' + span_id;
+    
+    if ( pf_1.length > 0 || pf_2.length > 0 ) {
+        
+        if ( pf_1 != pf_2 ) {
+            
+            element_2.css('background-color', '#f15959');
+            element_1.css('background-color', '#ffffff');
+            
+            if ( $(span_id_h).length > 0 ) {
+                
+                $(span_id_h).remove();
+            }
+            
+            element_2.after('<span style="margin-left: 10px;" id="' + span_id + '"><img src="' + window.__admin_media_prefix__ + 'img/admin/icon-no.gif" />&nbsp;Mismatch</span>');
+        }
+        else {
+            
+            element_1.css('background-color', '#d8fbd8');
+            element_2.css('background-color', '#d8fbd8');
+            
+            if ( $(span_id_h).length > 0 ) {
+                
+                $(span_id_h).remove();
+            }
+            
+            element_2.after('<span style="margin-left: 10px;" id="' + span_id + '"><img src="' + window.__admin_media_prefix__ + 'img/admin/icon-yes.gif" />&nbsp;Match</span>');
+        }
+    }
+    else {
+        
+        $(span_id_h).remove();
+        element_1.css('background-color', '#ffffff');
+        element_2.css('background-color', '#ffffff');
+    }
 }
 
 function strFilter(string) {

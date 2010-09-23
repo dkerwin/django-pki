@@ -16,7 +16,11 @@ logger = getLogger("pki")
 
 KEY_LENGTH = ( (1024, '1024'), (2048, '2048'), (4096, '4096'), )
 POLICY     = ( ('policy_match', 'policy_match'), ('policy_anything', 'policy_anything'), )
-ACTIONS    = ( ('create', 'create'), ('update', 'update'), ('revoke', 'revoke'), ('renew', 'renew'), )
+ACTIONS    = ( ('create', 'Create a new certificate'),
+               ('update', 'Update description and export options'),
+               ('revoke', 'Revoke certificate. May break chain'),
+               ('renew',  'Renew CSR but name, CN and key stay the same. Doesn\'t break chains'),
+             )
 CA_TYPES   = ( ('RootCA', 'self-signed (RootCA)'), ('SubCA', 'SubCA'), )
 EXTENSIONS = ( ('v3_server_cert', 'V3 Server'), ('v3_client_cert', 'V3 Client' ), )
 COUNTRY    = ( ('AD', 'AD'),('AE', 'AE'),('AF', 'AF'),('AG', 'AG'),('AI', 'AI'),('AL', 'AL'),('AM', 'AM'),
@@ -80,12 +84,8 @@ class CertificateBase(models.Model):
     serial       = models.CharField(max_length=64, blank=True, null=True)
     ca_chain     = models.CharField(max_length=200, blank=True, null=True)
     pem_encoded  = models.BooleanField(default=False)
-    der_encoded  = models.BooleanField(default=False, verbose_name="Create DER encoded certificate (additional)")
-    action       = models.CharField(max_length=32, choices=ACTIONS, default='create', help_text="create: Create (CA) certificate<br /> \
-                                    update: Change description and export options<br /> \
-                                    revoke: Revoke (CA) certificate. May break whole chain<br /> \
-                                    renew: Re-sign csr. Key is unchanged. Chain stays valid<br /><br /> \
-                                    Yellow fields can/have to be modified!")
+    der_encoded  = models.BooleanField(default=False, verbose_name="DER encoding")
+    action       = models.CharField(max_length=32, choices=ACTIONS, default='create', help_text="Yellow fields can/have to be modified!")
     
     class Meta:
         abstract = True
@@ -384,6 +384,12 @@ class CertificateAuthority(CertificateBase):
                     prev.der_encoded       = self.der_encoded
                     prev.revoked           = None
                     
+                    ## Make sure possibly updated fields are saved to DB
+                    prev.country      = self.country
+                    prev.locality     = self.locality
+                    prev.organization = self.organization
+                    prev.email        = self.email
+                    
                     ## Get the new serial
                     prev.serial = action.get_serial_from_cert()
                 
@@ -452,7 +458,7 @@ class CertificateAuthority(CertificateBase):
                 if chain_str == '':
                     chain_str += '%s' % i
                 else:
-                    chain_str += ' &rarr; %s' % i
+                    chain_str += '&nbsp;&rarr;&nbsp;%s' % i
             
             self.ca_chain = chain_str
             
@@ -558,8 +564,8 @@ class Certificate(CertificateBase):
     passphrase        = models.CharField(max_length=255, null=True, blank=True)
     pf_encrypted      = models.NullBooleanField()
     parent_passphrase = models.CharField(max_length=255, blank=True, null=True)
-    pkcs12_encoded    = models.BooleanField(default=False, verbose_name="Create #PKCS12 encoded certificate (additional)")
-    pkcs12_passphrase = models.CharField(max_length=255, verbose_name="#PKCS12 passphrase", blank=True, null=True)
+    pkcs12_encoded    = models.BooleanField(default=False, verbose_name="PKCS#12 encoding")
+    pkcs12_passphrase = models.CharField(max_length=255, verbose_name="PKCS#12 passphrase", blank=True, null=True)
     cert_extension    = models.CharField(max_length=64, choices=EXTENSIONS, verbose_name="Purpose")
     subjaltname       = models.CharField(max_length=255, blank=True, null=True, verbose_name="SubjectAltName", \
                                          help_text='Comma seperated list of alt names. Valid are DNS:www.xyz.com, IP:1.2.3.4 and email:a@b.com in any \
@@ -651,6 +657,12 @@ class Certificate(CertificateBase):
                     prev.pkcs12_encoded    = self.pkcs12_encoded
                     prev.revoked           = None
                     prev.valid_days        = self.valid_days
+                    
+                    ## Make sure possibly updated fields are saved to DB
+                    prev.country      = self.country
+                    prev.locality     = self.locality
+                    prev.organization = self.organization
+                    prev.email        = self.email
                     
                     ## Get the new serial
                     prev.serial = action.get_serial_from_cert()
