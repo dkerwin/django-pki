@@ -84,6 +84,7 @@ function onActionChange() {
             
             enabled_fields['id_pkcs12_encoded'] = 1;
             enabled_fields['id_pkcs12_passphrase'] = 1;
+            enabled_fields['id_pkcs12_passphrase_verify'] = 1;
             $("input[id=id_pkcs12_encoded]").parent().parent().css('background-color', '#fffcaa');
         }
     }
@@ -136,6 +137,7 @@ function onActionChange() {
             
             enabled_fields['id_pkcs12_encoded'] = 1;
             enabled_fields['id_pkcs12_passphrase'] = 1;
+            enabled_fields['id_pkcs12_passphrase_verify'] = 1;
             $("input[id=id_pkcs12_encoded]").parent().parent().css('background-color', '#fffcaa');
         }
     }

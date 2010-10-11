@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.utils.safestring import mark_safe
 
 from pki.models import CertificateAuthority, Certificate
-from pki.forms import ReadOnlyAdminFields, CertificateAuthorityForm, CertificateForm
+from pki.forms import CertificateAuthorityForm, CertificateForm
 from pki.settings import PKI_DIR, PKI_LOG, PKI_LOGLEVEL, JQUERY_URL
 
 ##------------------------------------------------------------------##
@@ -44,7 +44,7 @@ logger.addHandler(l_hdlr)
 ## Interface setup
 ##---------------------------------##
 
-class Certificate_Authority_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
+class Certificate_Authority_Admin(admin.ModelAdmin):
     """CertificateAuthority admin definition"""
     form               = CertificateAuthorityForm
     list_display       = ( 'id', 'common_name', 'Serial_align_right', 'active_center', 'Chain_link', 'Tree_link', 'Parent_link',
@@ -56,16 +56,16 @@ class Certificate_Authority_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
     radio_fields       = { "action": admin.VERTICAL }
     search_fields      = [ 'name', 'common_name', 'description' ]
     date_hierarchy     = 'created'
-    readonly           = ( 'expiry_date', 'key', 'cert', 'serial', 'ca_chain', )
+    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'serial', 'ca_chain', )
     exclude            = ( 'pf_encrypted', 'pem_encoded', )
-    fieldsets          = ( ( 'Define action',    { 'fields': ( 'action', ), }, ),
+    fieldsets          = ( ( 'Define action',    { 'fields': ( 'action', ), 'classes': [ 'wide', ], }, ),
                            ( 'Documentation',    { 'fields': ( 'description', ),
                                                    'classes': [ 'wide', ],
                                                  },
                            ), 
                            ( 'Certificate',      { 'fields': ( 'common_name', 'name', 'country', 'state', 'locality', 'organization', 'OU',
                                                                'email', 'key_length', 'valid_days', 'passphrase', 'passphrase_verify',
-                                                               'serial', 'expiry_date',
+                                                               'serial', 'Creation_date', 'Expiry_date',
                                                              ),
                                                    'classes': [ 'wide', ],
                                                  },
@@ -95,11 +95,11 @@ class Certificate_Authority_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
 
 admin.site.register(CertificateAuthority, Certificate_Authority_Admin)
 
-class Certificate_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
+class Certificate_Admin(admin.ModelAdmin):
     """CertificateAuthority admin definition"""
     form               = CertificateForm
     list_display       = ( 'id', 'common_name', 'Serial_align_right', 'active_center', 'Chain_link', 'Parent_link',
-                           'Expiry_date', 'Description', 'created', 'revoked', 'Download_link', 'Email_link' )
+                           'Expiry_date', 'Description', 'Creation_date', 'revoked', 'Download_link', 'Email_link' )
     list_display_links = ( 'common_name', )
     save_on_top        = True
     actions            = []
@@ -107,7 +107,7 @@ class Certificate_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
     list_filter        = ( 'parent', 'active', )
     search_fields      = [ 'name', 'description' ]
     date_hierarchy     = 'created'
-    readonly           = ( 'created', 'expiry_date', 'key', 'cert', 'serial', 'ca_chain', )
+    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'serial', 'ca_chain', )
     exclude            = ( 'pf_encrypted', )
     fieldsets          = ( ( 'Define action',   { 'fields': ( 'action', ) } ),
                            ( 'Documentation',   { 'fields': ( 'description', ),
@@ -116,7 +116,7 @@ class Certificate_Admin(ReadOnlyAdminFields, admin.ModelAdmin):
                            ), 
                            ( 'Certificate',     { 'fields': ( 'common_name', 'name', 'country', 'state', 'locality', 'organization', 'OU',
                                                               'email', 'subjaltname', 'key_length', 'cert_extension', 'valid_days', 'passphrase',
-                                                              'passphrase_verify', 'serial', 'expiry_date',
+                                                              'passphrase_verify', 'serial', 'Expiry_date', 'Creation_date',
                                                             ),
                                                   'classes': [ 'wide', ],
                                                 },

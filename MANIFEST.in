@@ -1,5 +1,5 @@
 recursive-include pki *
-recursive-include apache *
+recursive-include wsgi *
 recursive-include gentoo *
 include AUTHORS
 include COPYING

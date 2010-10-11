@@ -152,6 +152,11 @@ class CertificateBase(models.Model):
     Description.allow_tags = True
     Description.admin_order_field = 'description'
     
+    def Creation_date(self):
+        """Return creation date in custom format"""
+        
+        return self.created.strftime("%Y-%m-%d %H:%M:%S")
+    
     def Expiry_date(self):
         """Return expiry date with days left.
         

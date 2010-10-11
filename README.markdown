@@ -140,7 +140,7 @@ this, place handler initialization code to urls.py or somewhere else in your pro
 WSGI setup example
 ------------------
 
-You can find a example wsgi script in `apache/django.wsgi`.
+You can find a example wsgi script in `wsgi/django.wsgi`.
 
 Graphviz support
 ----------------

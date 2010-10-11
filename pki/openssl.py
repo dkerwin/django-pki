@@ -414,7 +414,11 @@ class OpensslActions():
         
         x = output.rstrip("\n").split('=')
         
-        return x[1]
+        if (len(x[1]) > 2):
+            sl = re.findall('[a-fA-F0-9]{2}', x[1].lower())
+            return ':'.join(sl)
+        
+        return x[1].lower()
     
     def get_hash_from_cert(self):
         """Extract hash from certificate.
