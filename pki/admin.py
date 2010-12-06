@@ -56,13 +56,17 @@ class Certificate_Authority_Admin(admin.ModelAdmin):
     radio_fields       = { "action": admin.VERTICAL }
     search_fields      = [ 'name', 'common_name', 'description' ]
     date_hierarchy     = 'created'
-    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'serial', 'ca_chain', )
+    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'serial', 'Chain', 'Certificate_Dump', )
     exclude            = ( 'pf_encrypted', 'pem_encoded', )
-    fieldsets          = ( ( 'Define action',    { 'fields': ( 'action', ), 'classes': [ 'wide', ], }, ),
+    fieldsets          = ( ( 'Define action',    { 'fields': ( 'action', ), }, ),
                            ( 'Documentation',    { 'fields': ( 'description', ),
                                                    'classes': [ 'wide', ],
                                                  },
-                           ), 
+                           ),
+                           ( 'Certificate Dump', { 'fields': ( 'Certificate_Dump', ),
+                                                   'classes': [ 'collapse', 'wide', ],
+                                                 },
+                           ),
                            ( 'Certificate',      { 'fields': ( 'common_name', 'name', 'country', 'state', 'locality', 'organization', 'OU',
                                                                'email', 'key_length', 'valid_days', 'passphrase', 'passphrase_verify',
                                                                'serial', 'Creation_date', 'Expiry_date',
@@ -72,7 +76,7 @@ class Certificate_Authority_Admin(admin.ModelAdmin):
                            ),
                            ( 'Encoding options', { 'fields': ( 'der_encoded', ), },
                            ),
-                           ( 'CA setup',         { 'fields': ( 'subcas_allowed', 'ca_chain', 'parent', 'type', 'parent_passphrase', 'policy', ),
+                           ( 'CA setup',         { 'fields': ( 'subcas_allowed', 'Chain', 'parent', 'type', 'parent_passphrase', 'policy', ),
                                                    'classes': [ 'wide', ],
                                                  },
                            ),
@@ -107,13 +111,17 @@ class Certificate_Admin(admin.ModelAdmin):
     list_filter        = ( 'parent', 'active', )
     search_fields      = [ 'name', 'description' ]
     date_hierarchy     = 'created'
-    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'serial', 'ca_chain', )
+    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'serial', 'Chain', 'Certificate_Dump', )
     exclude            = ( 'pf_encrypted', )
     fieldsets          = ( ( 'Define action',   { 'fields': ( 'action', ) } ),
                            ( 'Documentation',   { 'fields': ( 'description', ),
                                                   'classes': [ 'wide', ],
                                                 },
-                           ), 
+                           ),
+                           ( 'Certificate Dump', { 'fields': ( 'Certificate_Dump', ),
+                                                   'classes': [ 'collapse', 'wide', ],
+                                                 },
+                           ),
                            ( 'Certificate',     { 'fields': ( 'common_name', 'name', 'country', 'state', 'locality', 'organization', 'OU',
                                                               'email', 'subjaltname', 'key_length', 'cert_extension', 'valid_days', 'passphrase',
                                                               'passphrase_verify', 'serial', 'Expiry_date', 'Creation_date',
@@ -125,7 +133,7 @@ class Certificate_Admin(admin.ModelAdmin):
                                                    'classes': [ 'wide', ],
                                                  },
                            ),
-                           ( 'CA setup',         { 'fields': ( 'ca_chain', 'parent', 'parent_passphrase', ),
+                           ( 'CA setup',         { 'fields': ( 'Chain', 'parent', 'parent_passphrase', ),
                                                    'classes': [ 'wide', ],
                                                  },
                            ),

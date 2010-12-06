@@ -16,7 +16,6 @@ class CertificateAuthorityForm(forms.ModelForm):
     passphrase        = forms.CharField(widget=forms.PasswordInput)
     passphrase_verify = forms.CharField(widget=forms.PasswordInput, required=False)
     parent_passphrase = forms.CharField(widget=forms.PasswordInput, required=False)
-    created           = forms.DateField(widget=forms.DateField, required=False)
     
     class Meta:
         model = CertificateAuthority
@@ -130,7 +129,7 @@ class CertificateForm(forms.ModelForm):
                 if pf and len(pf) < 8:
                     self._errors['passphrase'] = ErrorList(['Passphrase has to be at least 8 characters long'])
                 
-                if not pf_v or pf != pf_v:
+                if (pf and not pf_v) or pf != pf_v:
                     self.errors['passphrase_verify'] = ErrorList(['Passphrase mismtach detected'])
             
             ## Verify that pkcs12 passphrase isn't empty when encoding is requested
@@ -152,8 +151,6 @@ class CertificateForm(forms.ModelForm):
                 ## Check parent passphrase
                 if ca.passphrase != enc_p_pf:
                     self._errors['parent_passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA "%s"' % parent])
-            else:
-                self._errors['parent'] = ErrorList(['You cannot renew a certificate while the parent is not active. Renew requires the intial parent to be active'])
             
             ## Verify subjAltName
             if subjaltname and len(subjaltname) > 0:

@@ -178,6 +178,14 @@ class CertificateBase(models.Model):
     Expiry_date.allow_tags = True
     Expiry_date.admin_order_field = 'expiry_date'
     
+    def Chain(self):
+        """Display chain with working arrows"""
+        
+        return self.ca_chain
+    
+    Chain.allow_tags = True
+    Chain.short_description = "CA Chain"
+    
     def Chain_link(self):
         """Display chain link.
         
@@ -257,6 +265,18 @@ class CertificateBase(models.Model):
     
     Parent_link.allow_tags = True
     Parent_link.short_description = 'Parent'
+    
+    def Certificate_Dump(self):
+        """Dump of the certificate"""
+        
+        if self.pk:
+            a = OpensslActions(self)
+            return "<textarea style=\"width: 700px; height: 500px;\">%s</textarea>" % a.dump_certificate()
+        else:
+            return "Nothing to display"
+    
+    Certificate_Dump.allow_tags = True
+    Certificate_Dump.short_description = "Certificate dump"
     
 ##------------------------------------------------------------------##
 ## Certificate authority class
@@ -565,7 +585,7 @@ class Certificate(CertificateBase):
     
     common_name       = models.CharField(max_length=64)
     name              = models.CharField(max_length=64, help_text="Only change the suggestion if you really know what you're doing")
-    parent            = models.ForeignKey('CertificateAuthority', blank=True, null=True, help_text='Leave blank to only generate a KEY and CSR')
+    parent            = models.ForeignKey('CertificateAuthority', blank=True, null=True, help_text='Leave blank to generate self-signed certificate')
     passphrase        = models.CharField(max_length=255, null=True, blank=True)
     pf_encrypted      = models.NullBooleanField()
     parent_passphrase = models.CharField(max_length=255, blank=True, null=True)
@@ -625,7 +645,7 @@ class Certificate(CertificateBase):
                 
                 prev.pkcs12_encoded = self.pkcs12_encoded
                 
-                if self.action == 'revoke':
+                if self.action == 'revoke' and self.parent:
                     
                     ## Revoke and generate CRL
                     action.revoke_certificate(self.parent_passphrase)
@@ -642,13 +662,16 @@ class Certificate(CertificateBase):
                 elif self.action == 'renew':
                     
                     ## Revoke if certificate is active
-                    if not action.get_revoke_status_from_cert():
+                    if self.parent and not action.get_revoke_status_from_cert():
                         action.revoke_certificate(self.parent_passphrase)
                     
                     ## Renew and update CRL
-                    action.generate_csr()
-                    action.sign_csr()
-                    action.generate_crl(self.parent.name, self.parent_passphrase)
+                    if self.parent == None:
+                        action.generate_self_signed_cert()
+                    else:
+                        action.generate_csr()
+                        action.sign_csr()
+                        action.generate_crl(self.parent.name, self.parent_passphrase)
                     
                     ## Modify fields
                     prev.created     = datetime.datetime.now()
@@ -690,17 +713,20 @@ class Certificate(CertificateBase):
             
             ## Generate key and certificate
             action = OpensslActions(self)
-            
             action.generate_key()
-            action.generate_csr()
-            action.sign_csr()
+            
+            if self.parent:
+                action.generate_csr()
+                action.sign_csr()
+                self.ca_chain = self.parent.ca_chain
+                if self.ca_chain == 'self-signed':
+                    self.ca_chain = self.parent.name
+            else:
+                action.generate_self_signed_cert()
+                self.ca_chain = "self-signed"
             
             ## Get the serial from certificate
             self.serial = action.get_serial_from_cert()
-            
-            self.ca_chain = self.parent.ca_chain
-            if self.ca_chain == 'self-signed':
-                self.ca_chain = self.parent.name
             
             self.pem_encoded = True
             

@@ -155,13 +155,22 @@ class OpensslActions():
         if isinstance(instance, pki.models.CertificateAuthority):
             ca_dir      = os.path.join(PKI_DIR, self.i.name)
             self.key    = os.path.join(ca_dir, 'private', '%s.key.pem' % self.i.name)
-            self.ext    = ''
             self.pkcs12 = False
             self.i.subjaltname = ''
         elif isinstance(instance, pki.models.Certificate):
-            ca_dir      = os.path.join(PKI_DIR, self.i.parent.name)
+            if self.i.parent:
+                ca_dir = os.path.join(PKI_DIR, self.i.parent.name)
+            else:
+                ca_dir = os.path.join(PKI_DIR, "_SELF_SIGNED_CERTIFICATES")
+                if not os.path.exists(ca_dir):
+                    try:
+                        os.mkdir(ca_dir, 0755)
+                        os.mkdir(os.path.join(ca_dir, "certs"))
+                    except OSError, e:
+                        logger.exception("Failed to create directories for self-signed certificates %s" % ca_dir)
+                        raise
+
             self.key    = os.path.join(ca_dir, 'certs', '%s.key.pem' % self.i.name)
-            self.ext    = '-extensions v3_cert'
             self.pkcs12 = os.path.join(ca_dir, 'certs', '%s.cert.p12' % self.i.name)
             
             if not self.i.subjaltname:
@@ -227,8 +236,13 @@ class OpensslActions():
         
         logger.info( 'Generating self-signed root certificate' )
         
+        try:
+            extension = self.i.cert_extension
+        except:
+            extension = "v3_ca"
+        
         command = ['req', '-config', PKI_OPENSSL_CONF, '-verbose', '-batch', '-new', '-x509', '-subj', self.subj, '-days', str(self.i.valid_days), \
-                   '-extensions', 'v3_ca', '-key', self.key, '-out', self.crt, '-passin', 'env:%s' % self.env_pw]
+                   '-extensions', extension, '-key', self.key, '-out', self.crt, '-passin', 'env:%s' % self.env_pw]
         
         try:
             if PKI_SELF_SIGNED_SERIAL and int(PKI_SELF_SIGNED_SERIAL) > 0:
@@ -237,7 +251,7 @@ class OpensslActions():
             logger.error( "Not setting inital serial number to %s. Fallback to random number" % PKI_SELF_SIGNED_SERIAL )
             logger.error( e )
         
-        self.exec_openssl( command, env_vars={ self.env_pw: str(self.i.passphrase), })
+        self.exec_openssl( command, env_vars={ self.env_pw: str(self.i.passphrase), "S_A_N": self.i.subjaltname, })
     
     def generate_csr(self):
         """CSR (Certificate Signing Request) generation"""
@@ -322,8 +336,8 @@ class OpensslActions():
         except:
             extension = ""
         
-        command = 'ca -config %s -name %s -batch %s -in %s -out %s -days %d %s -passin env:%s' % \
-                  ( PKI_OPENSSL_CONF, self.i.parent.name, self.ext, self.csr, self.crt, self.i.valid_days, extension, self.env_pw)
+        command = 'ca -config %s -name %s -batch -in %s -out %s -days %d %s -passin env:%s' % \
+                  ( PKI_OPENSSL_CONF, self.i.parent.name, self.csr, self.crt, self.i.valid_days, extension, self.env_pw)
         self.exec_openssl(command.split(), env_vars={ self.env_pw: str(self.i.parent_passphrase), "S_A_N": self.i.subjaltname, })
         
         ## Get the just created serial
@@ -451,3 +465,11 @@ class OpensslActions():
                     return True
         
         return False
+    
+    def dump_certificate(self):
+        """Dump a certificate"""
+        
+        command = "x509 -in %s -noout -text" % self.crt
+        output  = self.exec_openssl(command.split())
+        
+        return "%s" % output

@@ -1,5 +1,6 @@
 *.pyc
 *.kpf
+*.komodoproject
 dist/
 build/
 MANIFEST
