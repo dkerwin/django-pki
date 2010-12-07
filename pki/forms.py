@@ -1,6 +1,7 @@
 from django import forms
 from django.forms.util import ErrorList
 from django.utils.safestring import mark_safe
+from django.shortcuts import get_object_or_404
 
 from pki.models import *
 from openssl import md5_constructor
@@ -194,7 +195,7 @@ class CertificateForm(forms.ModelForm):
 
 class CaPassphraseForm(forms.Form):
     passphrase = forms.CharField(max_length=100, widget=forms.PasswordInput)
-    ca_id      = forms.CharField(widget=forms.HiddenInput)
+    ca_id      = forms.CharField(widget=forms.HiddenInput, required=True)
     
     def clean(self):
         """Verify crucial fields"""
@@ -211,5 +212,31 @@ class CaPassphraseForm(forms.Form):
                 self._errors["passphrase"] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA "%s"' % ca])
         else:
             self._errors["passphrase"] = ErrorList(['Passphrase is missing!'])
+        
+        return cleaned_data
+
+class CertPassphraseForm(forms.Form):
+    """Special form to handle the deletion of self-signen non CA certificates"""
+    
+    passphrase = forms.CharField(max_length=100, widget=forms.PasswordInput, required=False)
+    cert_id    = forms.CharField(widget=forms.HiddenInput)
+    
+    def clean(self):
+        """Field verify"""
+        
+        cleaned_data = self.cleaned_data
+        passphrase   = cleaned_data.get('passphrase')
+        cert_id      = cleaned_data.get('cert_id')
+        
+        item = get_object_or_404(Certificate, pk=cert_id)
+        
+        if passphrase:
+            e_passphrase = md5_constructor(cleaned_data.get('passphrase')).hexdigest()
+            
+            if item.passphrase != e_passphrase:
+                self._errors["passphrase"] = ErrorList(['Passphrase is wrong. Enter correct passphrase for self-signed certificate "%s"' % item.name])
+        else:
+            if item.passphrase and item.passphrase != '':
+                self._errors["passphrase"] = ErrorList(['Passphrase is missing!'])
         
         return cleaned_data

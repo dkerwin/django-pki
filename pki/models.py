@@ -757,13 +757,13 @@ class Certificate(CertificateBase):
     def delete(self, passphrase, *args, **kwargs):
         """Delete the Certificate object"""
         
-        ## Remoke first ca in the chain
-        c_action = OpensslActions(Certificate.objects.get(pk=self.pk))
-        c_action.revoke_certificate(passphrase)
-        c_action.generate_crl(ca=self.parent.name, pf=passphrase)
-        
         ## Time for some rm action
         a = OpensslActions(self)
+        
+        if self.parent:
+            a.revoke_certificate(passphrase)
+            a.generate_crl(ca=self.parent.name, pf=passphrase)
+        
         a.remove_complete_certificate()
         
         ## Call the "real" delete function
