@@ -83,8 +83,8 @@ class Certificate_Authority_Admin(admin.ModelAdmin):
                          )
     
     class Media:
-        js  = ( JQUERY_URL, 'pki/pki_admin.js', )
-        css = { 'screen': ( 'pki/pki.css', ), }
+        js  = ( JQUERY_URL, 'pki/js/pki_admin.js', )
+        css = { 'screen': ( 'pki/css/pki.css', ), }
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         """Filter foreign key parent field.
@@ -141,8 +141,8 @@ class Certificate_Admin(admin.ModelAdmin):
                          )
     
     class Media:
-        js = ( JQUERY_URL, 'pki/pki_admin.js', )
-        css = { 'screen': ( 'pki/pki.css', ), }
+        js = ( JQUERY_URL, 'pki/js/pki_admin.js', )
+        css = { 'screen': ( 'pki/css/pki.css', ), }
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         """Filter foreign key parent field.
