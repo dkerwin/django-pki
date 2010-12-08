@@ -173,14 +173,14 @@ def admin_delete(request, model, id):
         ## Fill the required data for delete_confirmation.html template
         opts               = CertificateAuthority._meta
         object             = item.name
-        initial_ca_id      = False
+        initial_id      = False
         
         ## Set the CA to verify the passphrase against
         if item.parent_id:
             initial_ca_id = item.parent_id
             auth_object   = CertificateAuthority.objects.get(pk=item.parent_id).name
         else:
-            initial_ca_id = item.pk
+            initial_id = item.pk
             auth_object   = item.name
     elif model == 'certificate':
         ## Fetch the certificate data
@@ -203,7 +203,7 @@ def admin_delete(request, model, id):
         ## Fill the required data for delete_confirmation.html template
         opts               = Certificate._meta
         object             = item.name
-        initial_ca_id      = initial_id
+        initial_id      = initial_id
         
         ## Set the CA to verify the passphrase against
         auth_object = authentication_obj

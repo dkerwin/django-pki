@@ -102,18 +102,23 @@ class CertificateBase(models.Model):
         """
         
         if state is True:
-            return '<center><img src="%simg/admin/icon-yes.gif" alt="True" /></center>' % ADMIN_MEDIA_PREFIX
+            return '<img class="centered" src="%simg/admin/icon-yes.gif" alt="True">' % ADMIN_MEDIA_PREFIX
         else:
-            return '<center><img src="%simg/admin/icon-no.gif" alt="False" /></center>'  % ADMIN_MEDIA_PREFIX
+            return '<img class="centered" src="%simg/admin/icon-no.gif" alt="False" />'  % ADMIN_MEDIA_PREFIX
     
-    def get_pki_icon_html(self, img, alt="", title=""):
+    def get_pki_icon_html(self, img, alt="", title="", css="centered"):
         """Return HTML for given image.
         
         Can add optional alt and title parameters.
         """
         
+        if css:
+            css_class = 'class=%s' % css
+        else:
+            css_class = ''
+        
         img_path = os.path.join(PKI_BASE_URL, MEDIA_URL, 'pki/img', img)
-        return '<img src="%s" alt="%s" title="%s"/>' % (img_path, alt, title)
+        return '<img %s src="%s" alt="%s" title="%s"/>' % (css_class, img_path, alt, title)
     
     ##------------------------------------------------------------------##
     ## Changelist list_display functions
@@ -131,7 +136,7 @@ class CertificateBase(models.Model):
     def Serial_align_right(self):
         """Make serial in changelist right justified"""
         
-        return '<div style="text-align:right;">%s</div>' % self.serial
+        return '<div class="serial_align_right">%s</div>' % self.serial
     
     Serial_align_right.allow_tags = True
     Serial_align_right.short_description = 'Serial'
@@ -169,9 +174,9 @@ class CertificateBase(models.Model):
         diff = self.expiry_date - now
         
         if diff.days < 30 and diff.days >= 0:
-            return '<font color="#f19d09"><strong>%s (%sd)</strong></font>' % (self.expiry_date, diff.days)
+            return '<div class="almost_expired">%s (%sd)</div>' % (self.expiry_date, diff.days)
         elif diff.days < 0:
-            return '<font color="red"><strong>%s (EXPIRED)</strong></font>' % self.expiry_date
+            return '<div class="expired">%s (EXPIRED)</div>' % self.expiry_date
         else:
             return '%s (%sd)' % (self.expiry_date, diff.days)
     
@@ -199,7 +204,7 @@ class CertificateBase(models.Model):
             type = "ca"
         
         if PKI_ENABLE_GRAPHVIZ:
-            return '<center><a href="%s/pki/chain/%s/%d" target="_blank">%s</a></center>' % (PKI_BASE_URL, type, self.pk, self.get_pki_icon_html('chain.png', "Show chain", "Show object chain"))
+            return '<a href="%s/pki/chain/%s/%d" target="_blank">%s</a>' % (PKI_BASE_URL, type, self.pk, self.get_pki_icon_html('chain.png', "Show chain", "Show object chain"))
         else:
             return '<center>%s</center>' % self.get_pki_icon_html("chain.png", "Show chain", "Enable setting PKI_ENABLE_GRAPHVIZ")
     
@@ -245,7 +250,7 @@ class CertificateBase(models.Model):
             if self.__class__.__name__ == "CertificateAuthority": type = "ca"
             
             return '<center><a href="%s/pki/download/%s/%d/">%s ZIP</href></center></center>' % (PKI_BASE_URL, type, self.pk, \
-                                                                                                 self.get_pki_icon_html("drive-download.png", "Download", "Download certificate data"))
+                                                                                                 self.get_pki_icon_html("drive-download.png", "Download", "Download certificate data", css=None))
         else:
             return '<center>%s <font color="grey">ZIP</font></center>' % self.get_pki_icon_html("drive-download_bw.png", "Download", "Cannot download because certificate is revoked")
     
@@ -259,12 +264,13 @@ class CertificateBase(models.Model):
         """
         
         if self.parent:
-            return '<a href="../certificateauthority/%d/" style="font-weight: bold;">%s</a>' % (self.parent.pk, self.parent.common_name)
+            return '<a href="../certificateauthority/%d/">%s</a>' % (self.parent.pk, self.parent.common_name)
         else:
-            return "self-signed"
+            return '<a href="../%s/%d/">self-signed</a>' % (self.__class__.__name__.lower(), self.pk)
     
     Parent_link.allow_tags = True
     Parent_link.short_description = 'Parent'
+    Parent_link.admin_order_field = 'parent'
     
     def Certificate_Dump(self):
         """Dump of the certificate"""
@@ -529,9 +535,9 @@ class CertificateAuthority(CertificateBase):
         
         ## Remoke first ca in the chain
         if revoke_required:
-            c_action = OpensslActions(CertificateAuthority.objects.get(pk=self.pk))
-            c_action.revoke_certificate(passphrase)
-            c_action.generate_crl(ca=self.parent.name, pf=passphrase)
+            a = OpensslActions(CertificateAuthority.objects.get(pk=self.pk))
+            a.revoke_certificate(passphrase)
+            a.generate_crl(ca=self.parent.name, pf=passphrase)
         
         ## Rebuild the ca metadata
         self.rebuild_ca_metadata(modify=True, task='exclude')

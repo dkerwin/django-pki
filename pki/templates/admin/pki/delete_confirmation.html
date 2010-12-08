@@ -1,18 +1,16 @@
 {% extends "admin/delete_confirmation.html" %}
 {% load i18n %}
+{% load pkinav %}
 
 {% block extrahead %}
-<script language="javascript">var MEDIA_URL = "{{ MEDIA_URL }}";</script>
-<script type="text/javascript" src="{{ MEDIA_URL }}pki/jquery-1.3.2.min.js"></script> 
+<script type="text/javascript">var MEDIA_URL = "{{ MEDIA_URL }}";</script>
+<script type="text/javascript" src="{{ MEDIA_URL }}pki/jquery-1.4.2.min.js"></script> 
 <script type="text/javascript" src="{{ MEDIA_URL }}pki/delete_detail.js"></script>
+<link href="/static/pki/pki.css" type="text/css" media="screen" rel="stylesheet" /> 
+{% endblock %}
 
-<style type="text/css">
-
-div.details { margin: 5px 5px 5px 20px; }
-div.details ul { position: absoulte; display: inline-block; padding:5px 50px 5px 5px; background-color: #ffffff; border: 1px dotted #91bfe6; list-style-type: none; width: auto; }
-div.details li { list-style-type: none; }
-
-</style>
+{% block nav-global %}
+    {% pkinav %}
 {% endblock %}
 
 {% block content %}
