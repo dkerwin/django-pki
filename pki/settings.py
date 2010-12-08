@@ -20,7 +20,7 @@ PKI_OPENSSL_CONF = getattr(settings, 'PKI_OPENSSL_CONF', os.path.join(PKI_DIR, '
 PKI_OPENSSL_TEMPLATE = getattr(settings, 'PKI_OPENSSL_TEMPLATE', 'pki/openssl.conf.in')
 
 # jquery url (defaults to pki/jquery-1.3.2.min.js)
-JQUERY_URL = getattr(settings, 'JQUERY_URL', 'pki/jquery-1.4.2.min.js')
+JQUERY_URL = getattr(settings, 'JQUERY_URL', 'pki/js/jquery-1.4.2.min.js')
 
 # logging (TODO: syslog, handlers and formatters)
 PKI_LOG = getattr(settings, 'PKI_LOG', os.path.join(PKI_DIR, 'pki.log'))
