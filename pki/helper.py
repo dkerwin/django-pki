@@ -24,9 +24,14 @@ def files_for_object(obj):
         ca_dir  = os.path.join(PKI_DIR, obj.name)
         key_loc = os.path.join(ca_dir, 'private')
     elif isinstance( obj, pki.models.Certificate):
-        chain   = obj.parent.name
+        if obj.parent:
+            chain  = obj.parent.name
+            ca_dir = os.path.join(PKI_DIR, obj.parent.name)
+        else:
+            chain  = obj.name
+            ca_dir = os.path.join(PKI_DIR, '_SELF_SIGNED_CERTIFICATES')
+        
         c_name  = obj.name
-        ca_dir  = os.path.join(PKI_DIR, obj.parent.name)
         key_loc = os.path.join(ca_dir, 'certs')
     else:
         raise Exception( "Given object type is unknown!" )
@@ -146,7 +151,9 @@ def build_zip_for_object(obj, request):
             c_zip.write( files['key']['path'], files['key']['name'] )
         
         c_zip.write( files['pem']['path'], files['pem']['name'] )
-        c_zip.write( files['chain']['path'], files['chain']['name'])
+        
+        if obj.parent:
+            c_zip.write( files['chain']['path'], files['chain']['name'])
         
         try:
             if obj.pkcs12_encoded:
