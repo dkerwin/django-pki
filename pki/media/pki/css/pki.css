@@ -17,3 +17,9 @@ div.expired { color: red; font-weight: bold; }
 div.details { margin: 5px 5px 5px 20px; }
 div.details ul { display: inline-block; padding:5px 50px 5px 5px; background-color: #ffffff; border: 1px dotted #91bfe6; list-style-type: none; width: auto; }
 div.details li { list-style-type: none; }
+
+/* Textarea */
+#certdump { width: 700px; height: 500px; }
+
+/* Footer */
+#footer { text-align: center; font-style: italic; font-size: 10px; margin-bottom: 20px; }

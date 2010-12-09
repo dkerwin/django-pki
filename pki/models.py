@@ -249,10 +249,10 @@ class CertificateBase(models.Model):
             
             if self.__class__.__name__ == "CertificateAuthority": type = "ca"
             
-            return '<center><a href="%spki/download/%s/%d/">%s ZIP</href></center></center>' % (PKI_BASE_URL, type, self.pk, \
+            return '<center><a href="%spki/download/%s/%d/">%s ZIP</href></center>' % (PKI_BASE_URL, type, self.pk, \
                                                                                                  self.get_pki_icon_html("drive-download.png", "Download", "Download certificate data", css=None))
         else:
-            return '<center>%s <font color="grey">ZIP</font></center>' % self.get_pki_icon_html("drive-download_bw.png", "Download", "Cannot download because certificate is revoked")
+            return '<center>%s<font color="grey">ZIP</font></center>' % self.get_pki_icon_html("drive-download_bw.png", "Download", "Cannot download because certificate is revoked")
     
     Download_link.allow_tags = True
     Download_link.short_description = 'Download'
@@ -277,7 +277,7 @@ class CertificateBase(models.Model):
         
         if self.pk:
             a = OpensslActions(self)
-            return "<textarea style=\"width: 700px; height: 500px;\">%s</textarea>" % a.dump_certificate()
+            return "<textarea id=\"certdump\">%s</textarea>" % a.dump_certificate()
         else:
             return "Nothing to display"
     

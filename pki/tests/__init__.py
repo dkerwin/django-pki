@@ -9,24 +9,15 @@ from django.test import TestCase
 
 from windmill.authoring import djangotest 
 
-##-----------------------------------------##
-## <MonkeyPatching: ugly but necessary>
-##-----------------------------------------##
-from pki.settings import PKI_DIR, PKI_ENABLE_EMAIL
-PKI_DIR = os.path.join( PKI_DIR, '../TEST_PKI')
-
-from pki.models  import CertificateAuthority
+from pki.models import CertificateAuthority
 from pki import openssl
 from pki.helper import *
 
-openssl.PKI_DIR = PKI_DIR
-openssl.PKI_OPENSSL_CONF = os.path.join(PKI_DIR, 'openssl.conf')
-##-----------------------------------------##
-## </MonkeyPatching>
-##-----------------------------------------##
-
 ## Logging to STDOUT on level ERROR
 import logging
+
+if not os.path.exists(PKI_DIR):
+    os.mkdir(PKI_DIR, 0700)
 
 logger = logging.getLogger("pki")
 
@@ -170,7 +161,7 @@ class HttpClientTestCase(TestCase):
     def test_209_AdminLogin(self):
         self.assertTrue(self.c.login(username="pki_user_1", password="admin"))
 
-class TestProjectWindmillTest(djangotest.WindmillDjangoUnitTest):
-    fixtures = ["test_users.json"]
-    test_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'windmilltests')
-    browser  = 'firefox'
+#class TestProjectWindmillTest(djangotest.WindmillDjangoUnitTest):
+#    fixtures = ["test_users.json"]
+#    test_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'windmilltests')
+#    browser  = 'firefox'
