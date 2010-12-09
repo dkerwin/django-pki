@@ -5,8 +5,6 @@ from django.conf import settings
 from logging import getLogger
 from django.core.urlresolvers import RegexURLResolver 
 
-from pki.settings import PKI_BASE_URL
-
 import sys
 
 logger = getLogger("pki")

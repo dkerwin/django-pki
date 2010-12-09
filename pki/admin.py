@@ -48,7 +48,7 @@ class Certificate_Authority_Admin(admin.ModelAdmin):
     """CertificateAuthority admin definition"""
     form               = CertificateAuthorityForm
     list_display       = ( 'id', 'common_name', 'Serial_align_right', 'active_center', 'Chain_link', 'Tree_link', 'Parent_link',
-                           'Expiry_date', 'Description', 'type', 'revoked', 'Download_link', 'Email_link', )
+                           'Expiry_date', 'Description', 'Creation_date', 'revoked', 'Download_link', 'Email_link', )
     list_display_links = ( 'common_name', )
     save_on_top        = True
     actions            = []
@@ -83,7 +83,7 @@ class Certificate_Authority_Admin(admin.ModelAdmin):
                          )
     
     class Media:
-        js  = ( JQUERY_URL, 'pki/js/pki_admin.js', )
+        js  = ( JQUERY_URL, 'pki/js/pki_admin.min.js', )
         css = { 'screen': ( 'pki/css/pki.css', ), }
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -141,7 +141,7 @@ class Certificate_Admin(admin.ModelAdmin):
                          )
     
     class Media:
-        js = ( JQUERY_URL, 'pki/js/pki_admin.js', )
+        js = ( JQUERY_URL, 'pki/js/pki_admin.min.js', )
         css = { 'screen': ( 'pki/css/pki.css', ), }
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):

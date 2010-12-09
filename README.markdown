@@ -113,8 +113,7 @@ Add the following variables to your projects settings.py to set custom values:
  * `PKI_OPENSSL_TEMPLATE` - Default=pki/openssl.conf.in: openssl configuration template
  * `PKI_LOG` - Default=PKI_DIR/pki.log: absolute path for log file
  * `PKI_LOGLEVEL` - Default=info: logging level
- * `JQUERY_URL` - Default=pki/jquery-1.3.2.min.js: jquery url
- * `PKI_BASE_URL` - Default="": Base URL of your deployment (http://xyz.com/django/tools/ => /django/tools)
+ * `JQUERY_URL` - Default=pki/jquery-1.4.2.min.js: jquery url
  * `PKI_SELF_SIGNED_SERIAL` - Default=0x0: The serial of self-signed CA certificates. Set to 0 or 0x0 to get a random serial number (0xabc = HEX; 123 = DEC)
  * `PKI_DEFAULT_COUNTRY` - Default=DE: The preselected country (as 2-letter code) selected when adding certificates (http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
  * `PKI_ENABLE_GRAPHVIZ` - Default=False: Enable graphviz support (see requirements)
