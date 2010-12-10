@@ -274,7 +274,7 @@ class OpensslActions():
         Passphrase is required as empty passwords not work in batch mode.
         """
         
-        command = 'pkcs12 -export -nokeys -in %s -inkey %s -out %s -passout env:%s' % (self.crt, self.key, self.pkcs12, self.env_pw)
+        command = 'pkcs12 -export -in %s -inkey %s -out %s -passout env:%s' % (self.crt, self.key, self.pkcs12, self.env_pw)
         self.exec_openssl(command.split(), env_vars={ self.env_pw: str(self.i.pkcs12_passphrase) })
     
     def remove_pkcs12_encoded(self):
