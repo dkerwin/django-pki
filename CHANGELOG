@@ -1,3 +1,8 @@
+0.10.5
+======
+575fb80 - switch version to 0.10.5
+5c92813 - Include key in pkcs12 archives. Fixes webserver auth
+
 0.10.4
 ======
 88fe64f - tests.py -> tests/
@@ -101,5 +106,4 @@ f7f6fd2 - Combined download view for ca and cert using public and private items;
 c54cf75 - Use MEDIA_URL in all files; Changed details div; Removed id from div
 b3f63a9 - More detailed delete view
 3dabee5 - Initial commit (SVN rev 46)
-
 
