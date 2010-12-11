@@ -48,7 +48,7 @@ class Certificate_Authority_Admin(admin.ModelAdmin):
     """CertificateAuthority admin definition"""
     form               = CertificateAuthorityForm
     list_display       = ( 'id', 'common_name', 'Serial_align_right', 'active_center', 'Chain_link', 'Tree_link', 'Parent_link',
-                           'Expiry_date', 'Description', 'Creation_date', 'revoked', 'Download_link', 'Email_link', )
+                           'Expiry_date', 'Description', 'Creation_date', 'revoked', 'Child_certs', 'Download_link', 'Email_link', )
     list_display_links = ( 'common_name', )
     save_on_top        = True
     actions            = []

@@ -4,6 +4,7 @@ from logging import getLogger
 from shutil import rmtree
 
 from django.db import models
+from django.core import urlresolvers
 
 from pki.openssl import OpensslActions, md5_constructor, refresh_pki_metadata
 from pki.settings import ADMIN_MEDIA_PREFIX, MEDIA_URL, PKI_BASE_URL, PKI_DEFAULT_COUNTRY, PKI_ENABLE_GRAPHVIZ, PKI_ENABLE_EMAIL
@@ -162,6 +163,8 @@ class CertificateBase(models.Model):
         
         return self.created.strftime("%Y-%m-%d %H:%M:%S")
     
+    Creation_date.admin_order_field = 'created'
+    
     def Expiry_date(self):
         """Return expiry date with days left.
         
@@ -206,7 +209,7 @@ class CertificateBase(models.Model):
         if PKI_ENABLE_GRAPHVIZ:
             return '<a href="%spki/chain/%s/%d" target="_blank">%s</a>' % (PKI_BASE_URL, type, self.pk, self.get_pki_icon_html('chain.png', "Show chain", "Show object chain"))
         else:
-            return '<center>%s</center>' % self.get_pki_icon_html("chain.png", "Show chain", "Enable setting PKI_ENABLE_GRAPHVIZ")
+            return self.get_pki_icon_html("chain.png", "Show chain", "Enable setting PKI_ENABLE_GRAPHVIZ")
     
     Chain_link.allow_tags = True
     Chain_link.short_description = 'Chain'
@@ -220,9 +223,9 @@ class CertificateBase(models.Model):
         """
         
         if not PKI_ENABLE_EMAIL:
-            result  = '<center>%s</center>' % self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Enable setting PKI_ENABLE_EMAIL")
+            result  = self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Enable setting PKI_ENABLE_EMAIL")
         elif not self.active:
-            result  = '<center>%s</center>' % self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Certificate is revoked. Disabled")
+            result  = self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Certificate is revoked. Disabled")
         else:
             type = "cert"
             
@@ -231,12 +234,12 @@ class CertificateBase(models.Model):
             if self.email:
                 result  = '<center><a href="%spki/email/%s/%d">%s</a></center>' % (PKI_BASE_URL, type, self.pk, self.get_pki_icon_html("mail--arrow.png", "Send email", "Send cert to specified email"))
             else:
-                result  = '<center>%s</center>' % self.get_pki_icon_html("mail--exclamation.png", "Send email", "Certificate has no email set. Disabled")
+                result  = self.get_pki_icon_html("mail--exclamation.png", "Send email", "Certificate has no email set. Disabled")
         
         return result
     
     Email_link.allow_tags = True
-    Email_link.short_description = 'Email'
+    Email_link.short_description = 'Delivery'
     
     def Download_link(self):
         """Return a download icon.
@@ -249,10 +252,10 @@ class CertificateBase(models.Model):
             
             if self.__class__.__name__ == "CertificateAuthority": type = "ca"
             
-            return '<center><a href="%spki/download/%s/%d/">%s ZIP</href></center>' % (PKI_BASE_URL, type, self.pk, \
+            return '<center><a href="%spki/download/%s/%d/">%s</href></center>' % (PKI_BASE_URL, type, self.pk, \
                                                                                                  self.get_pki_icon_html("drive-download.png", "Download", "Download certificate data", css=None))
         else:
-            return '<center>%s<font color="grey">ZIP</font></center>' % self.get_pki_icon_html("drive-download_bw.png", "Download", "Cannot download because certificate is revoked")
+            return self.get_pki_icon_html("drive-download_bw.png", "Download", "Cannot download because certificate is revoked")
     
     Download_link.allow_tags = True
     Download_link.short_description = 'Download'
@@ -581,7 +584,19 @@ class CertificateAuthority(CertificateBase):
     
     Tree_link.allow_tags = True
     Tree_link.short_description = 'Tree'
-  
+    
+    def Child_certs(self):
+        """Show associated client certificates"""
+        
+        if self.subcas_allowed:
+            return self.get_pki_icon_html("blue-document-tree_bw.png", "No children", "No children")
+        else:
+            return "<a href=\"%s\" target=\"_blank\">%s</a>" % ('?'.join([urlresolvers.reverse('admin:pki_certificate_changelist'), 'parent__id__exact=%d' % self.pk]), \
+                                                                self.get_pki_icon_html("blue-document-tree.png", "Show child certificates", "Show child certificates"))
+    
+    Child_certs.allow_tags = True
+    Child_certs.short_description = "Children"
+    
 ##------------------------------------------------------------------##
 ## Certificate class
 ##------------------------------------------------------------------##
