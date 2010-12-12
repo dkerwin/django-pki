@@ -232,7 +232,7 @@ class CertificateBase(models.Model):
             if self.__class__.__name__ == "CertificateAuthority": type = "ca"
             
             if self.email:
-                result  = '<center><a href="%spki/email/%s/%d">%s</a></center>' % (PKI_BASE_URL, type, self.pk, self.get_pki_icon_html("mail--arrow.png", "Send email", "Send cert to specified email"))
+                result  = '<a href="%spki/email/%s/%d">%s</a>' % (PKI_BASE_URL, type, self.pk, self.get_pki_icon_html("mail--arrow.png", "Send email", "Send cert to specified email"))
             else:
                 result  = self.get_pki_icon_html("mail--exclamation.png", "Send email", "Certificate has no email set. Disabled")
         
@@ -252,8 +252,8 @@ class CertificateBase(models.Model):
             
             if self.__class__.__name__ == "CertificateAuthority": type = "ca"
             
-            return '<center><a href="%spki/download/%s/%d/">%s</href></center>' % (PKI_BASE_URL, type, self.pk, \
-                                                                                                 self.get_pki_icon_html("drive-download.png", "Download", "Download certificate data", css=None))
+            return '<a href="%spki/download/%s/%d/">%s</href>' % (PKI_BASE_URL, type, self.pk, \
+                                                                  self.get_pki_icon_html("drive-download.png", "Download", "Download certificate data"))
         else:
             return self.get_pki_icon_html("drive-download_bw.png", "Download", "Cannot download because certificate is revoked")
     
@@ -578,9 +578,9 @@ class CertificateAuthority(CertificateBase):
     def Tree_link(self):
         
         if PKI_ENABLE_GRAPHVIZ:
-            return '<center><a href="%spki/tree/%d" target="_blank"><img src="%s/pki/img/tree.png" height="13px" width="13px" alt="Tree" title="Show full CA tree"/></a></center>' % (PKI_BASE_URL, self.pk, os.path.join(PKI_BASE_URL, MEDIA_URL))
+            return '<a href="%spki/tree/%d" target="_blank">%s</a>' % (PKI_BASE_URL, self.pk, self.get_pki_icon_html("tree.png", "Show full CA tree", "Show full CA tree"))
         else:
-            return '<center><img src="%spki/img/tree_disabled.png" alt="Tree" title="Enable setting PKI_ENABLE_GRAPHVIZ"/></center>' % os.path.join(PKI_BASE_URL, MEDIA_URL)
+            return self.get_pki_icon_html("tree_disabled.png", "Enable setting PKI_ENABLE_GRAPHVIZ", "Enable setting PKI_ENABLE_GRAPHVIZ")
     
     Tree_link.allow_tags = True
     Tree_link.short_description = 'Tree'
