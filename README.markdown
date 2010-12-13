@@ -68,7 +68,7 @@ Add exception handler:
 
 Add following lines to urlpatterns (make sure `pki.urls` is specified before `admin.site.urls`):
 
-    (r'^', include('pki.urls')),
+    (r'^', include('pki.urls', 'pki')),
     (r'^admin/', include(admin.site.urls)),
 
 If you want to serve static files with `./manage.py runserver` in DEBUG mode, add following code. Do not use this in production!

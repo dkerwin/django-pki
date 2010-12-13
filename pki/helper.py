@@ -6,6 +6,7 @@ import zipfile
 import logging
 
 from django.utils.safestring import mark_safe
+from django.core import urlresolvers
 
 from pki.settings import PKI_DIR, MEDIA_URL
 import pki.models
@@ -88,7 +89,8 @@ def chain_recursion(r_id, store, id_dict):
     i = pki.models.CertificateAuthority.objects.get(pk=r_id)
     
     div_content = build_delete_item(i)
-    store.append( mark_safe('Certificate Authority: <a href="../../%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div class="details">%s</div>' % (i.pk, i.name, MEDIA_URL, div_content)) )
+    store.append( mark_safe('Certificate Authority: <a href="%s">%s</a> <img src="%spki/img/plus.png" class="switch" /><div class="details">%s</div>' % \
+                            (urlresolvers.reverse('admin:pki_certificateauthority_change', args=(i.pk,)), i.name, MEDIA_URL, div_content)) )
     
     id_dict['ca'].append(i.pk)
     
@@ -98,7 +100,8 @@ def chain_recursion(r_id, store, id_dict):
         helper = []
         for cert in child_certs:
             div_content = build_delete_item(cert)
-            helper.append( mark_safe('Certificate: <a href="../../../certificate/%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div class="details">%s</div>' % (cert.pk, cert.name, MEDIA_URL, div_content)) )
+            helper.append( mark_safe('Certificate: <a href="%s">%s</a> <img src="%spki/img/plus.png" class="switch" /><div class="details">%s</div>' % \
+                                     (urlresolvers.reverse('admin:pki_certificate_change', args=(cert.pk,)), cert.name, MEDIA_URL, div_content)) )
             id_dict['cert'].append(cert.pk)
         store.append(helper)
     

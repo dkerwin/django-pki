@@ -202,7 +202,8 @@ class CertificateBase(models.Model):
         """
         
         if PKI_ENABLE_GRAPHVIZ:
-            return '<a href="%spki/chain/%s/%d" target="_blank">%s</a>' % (PKI_BASE_URL, self.__class__.__name__.lower(), self.pk, self.get_pki_icon_html('chain.png', "Show chain", "Show object chain"))
+            return '<a href="%s" target="_blank">%s</a>' % (urlresolvers.reverse('pki:chain', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
+                                            self.get_pki_icon_html('chain.png', "Show chain", "Show object chain"))
         else:
             return self.get_pki_icon_html("chain.png", "Show chain", "Enable setting PKI_ENABLE_GRAPHVIZ")
     
@@ -218,16 +219,15 @@ class CertificateBase(models.Model):
         """
         
         if not PKI_ENABLE_EMAIL:
-            result  = self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Enable setting PKI_ENABLE_EMAIL")
+            return self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Enable setting PKI_ENABLE_EMAIL")
         elif not self.active:
-            result  = self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Certificate is revoked. Disabled")
+            return self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Certificate is revoked. Disabled")
         else:
             if self.email:
-                result  = '<a href="%spki/email/%s/%d">%s</a>' % (PKI_BASE_URL, self.__class__.__name__.lower(), self.pk, self.get_pki_icon_html("mail--arrow.png", "Send email", "Send cert to specified email"))
+                return '<a href="%s">%s</a>' % (urlresolvers.reverse('pki:email', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
+                                                self.get_pki_icon_html("mail--arrow.png", "Send email", "Send cert to specified email"))
             else:
-                result  = self.get_pki_icon_html("mail--exclamation.png", "Send email", "Certificate has no email set. Disabled")
-        
-        return result
+                return self.get_pki_icon_html("mail--exclamation.png", "Send email", "Certificate has no email set. Disabled")
     
     Email_link.allow_tags = True
     Email_link.short_description = 'Delivery'
@@ -239,8 +239,8 @@ class CertificateBase(models.Model):
         """
         
         if self.active:
-            return '<a href="%spki/download/%s/%d/">%s</href>' % (PKI_BASE_URL, self.__class__.__name__.lower(), self.pk, \
-                                                                  self.get_pki_icon_html("drive-download.png", "Download", "Download certificate data"))
+            return '<a href="%s">%s</a>' % (urlresolvers.reverse('pki:download', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
+                                            self.get_pki_icon_html("drive-download.png", "Download", "Download certificate data"))
         else:
             return self.get_pki_icon_html("drive-download_bw.png", "Download", "Cannot download because certificate is revoked")
     
@@ -254,9 +254,9 @@ class CertificateBase(models.Model):
         """
         
         if self.parent:
-            return '<a href="../certificateauthority/%d/">%s</a>' % (self.parent.pk, self.parent.common_name)
+            return '<a href="%s">%s</a>' % (urlresolvers.reverse('admin:pki_certificateauthority_change', args=(self.parent.pk,)), self.parent.common_name)
         else:
-            return '<a href="../%s/%d/">self-signed</a>' % (self.__class__.__name__.lower(), self.pk)
+            return '<a href="%s">self-signed</a>' % (urlresolvers.reverse('admin:pki_%s_change' % self.__class__.__name__.lower(), args=(self.pk,)))
     
     Parent_link.allow_tags = True
     Parent_link.short_description = 'Parent'
@@ -565,7 +565,8 @@ class CertificateAuthority(CertificateBase):
     def Tree_link(self):
         
         if PKI_ENABLE_GRAPHVIZ:
-            return '<a href="%spki/tree/%d" target="_blank">%s</a>' % (PKI_BASE_URL, self.pk, self.get_pki_icon_html("tree.png", "Show full CA tree", "Show full CA tree"))
+            return '<a href="%s" target="_blank">%s</a>' % (urlresolvers.reverse('pki:chain', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
+                                            self.get_pki_icon_html("tree.png", "Show full CA tree", "Show full CA tree"))
         else:
             return self.get_pki_icon_html("tree_disabled.png", "Enable setting PKI_ENABLE_GRAPHVIZ", "Enable setting PKI_ENABLE_GRAPHVIZ")
     

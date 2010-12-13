@@ -6,6 +6,7 @@ from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponse, Http404, HttpResponseRedirect, HttpResponseBadRequest
 from django.utils.safestring import mark_safe
 from django.template import RequestContext
+from django.core import urlresolvers
 
 from pki.settings import PKI_LOG, MEDIA_URL, PKI_ENABLE_GRAPHVIZ, PKI_ENABLE_EMAIL
 from pki.models import CertificateAuthority, Certificate
@@ -198,7 +199,8 @@ def admin_delete(request, model, id):
             authentication_obj = item.parent.name
         
         div_content = build_delete_item(item)
-        deleted_objects.append( mark_safe('Certificate: <a href="../../../certificate/%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div class="details">%s</div>' % (item.pk, item.name, MEDIA_URL, div_content)) )
+        deleted_objects.append( mark_safe('Certificate: <a href="%s">%s</a> <img src="%spki/img/plus.png" class="switch" /><div class="details">%s</div>' % \
+                                          (urlresolvers.reverse('admin:pki_certificate_change', args=(item.pk,)), item.name, MEDIA_URL, div_content)) )
         
         ## Fill the required data for delete_confirmation.html template
         opts               = Certificate._meta
