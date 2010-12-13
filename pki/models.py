@@ -201,13 +201,8 @@ class CertificateBase(models.Model):
         a b/w chain icon without link is displayed.
         """
         
-        type = "cert"
-        
-        if self.__class__.__name__ == "CertificateAuthority":
-            type = "ca"
-        
         if PKI_ENABLE_GRAPHVIZ:
-            return '<a href="%spki/chain/%s/%d" target="_blank">%s</a>' % (PKI_BASE_URL, type, self.pk, self.get_pki_icon_html('chain.png', "Show chain", "Show object chain"))
+            return '<a href="%spki/chain/%s/%d" target="_blank">%s</a>' % (PKI_BASE_URL, self.__class__.__name__.lower(), self.pk, self.get_pki_icon_html('chain.png', "Show chain", "Show object chain"))
         else:
             return self.get_pki_icon_html("chain.png", "Show chain", "Enable setting PKI_ENABLE_GRAPHVIZ")
     
@@ -227,12 +222,8 @@ class CertificateBase(models.Model):
         elif not self.active:
             result  = self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Certificate is revoked. Disabled")
         else:
-            type = "cert"
-            
-            if self.__class__.__name__ == "CertificateAuthority": type = "ca"
-            
             if self.email:
-                result  = '<a href="%spki/email/%s/%d">%s</a>' % (PKI_BASE_URL, type, self.pk, self.get_pki_icon_html("mail--arrow.png", "Send email", "Send cert to specified email"))
+                result  = '<a href="%spki/email/%s/%d">%s</a>' % (PKI_BASE_URL, self.__class__.__name__.lower(), self.pk, self.get_pki_icon_html("mail--arrow.png", "Send email", "Send cert to specified email"))
             else:
                 result  = self.get_pki_icon_html("mail--exclamation.png", "Send email", "Certificate has no email set. Disabled")
         
@@ -248,11 +239,7 @@ class CertificateBase(models.Model):
         """
         
         if self.active:
-            type = "cert"
-            
-            if self.__class__.__name__ == "CertificateAuthority": type = "ca"
-            
-            return '<a href="%spki/download/%s/%d/">%s</href>' % (PKI_BASE_URL, type, self.pk, \
+            return '<a href="%spki/download/%s/%d/">%s</href>' % (PKI_BASE_URL, self.__class__.__name__.lower(), self.pk, \
                                                                   self.get_pki_icon_html("drive-download.png", "Download", "Download certificate data"))
         else:
             return self.get_pki_icon_html("drive-download_bw.png", "Download", "Cannot download because certificate is revoked")

@@ -9,7 +9,7 @@
             height: 500px;
             width: 90%;
             overflow: auto;
-            border: 1px dotted #666;
+            border: 1px solid #666;
             background-color: #EEEEEE;
             padding: 8px;
             }
@@ -24,7 +24,7 @@
 	<p />
         <div class="scroll" id="logs"><pre>{% for i in log %}{{ i }}{% endfor %}</pre></div>
         <p /><p />
-	<button onclick="javascript:history.go(-1)">Go back to admin interface</button>
+	<button onclick="javascript:location.href={% url admin:index %}">Go back to admin interface</button>
     </body>
 
 

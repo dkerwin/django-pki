@@ -21,15 +21,15 @@ logger = logging.getLogger("pki")
 ##------------------------------------------------------------------##
 
 @login_required
-def pki_download(request, type, id):
+def pki_download(request, model, id):
     """Download PKI data.
     
     Type (ca/cert) and ID are used to determine the object to download.
     """
     
-    if type == "ca":
+    if model == "certificateauthority":
         c = get_object_or_404(CertificateAuthority, pk=id)
-    elif type == "cert":
+    elif model == "certificate":
         c = get_object_or_404(Certificate, pk=id)
     else:
         logger.error( "Unsupported type %s requested!" % type )
@@ -60,7 +60,7 @@ def pki_download(request, type, id):
 ##------------------------------------------------------------------##
 
 @login_required
-def pki_chain(request, type, id):
+def pki_chain(request, model, id):
     """Display the CA chain as PNG.
     
     Requires PKI_ENABLE_GRAPHVIZ set to true. Type (ca/cert) and ID are used to determine the object.
@@ -70,9 +70,9 @@ def pki_chain(request, type, id):
     if PKI_ENABLE_GRAPHVIZ is not True:
         raise Exception( "Chain view is inoperable unless PKI_ENABLE_GRAPHVIZ is enabled" )
     
-    if type == "ca":
+    if model == "certificateauthority":
         obj = get_object_or_404(CertificateAuthority, pk=id)
-    elif type == "cert":
+    elif model == "certificate":
         obj = get_object_or_404(Certificate, pk=id)
     
     png = generate_temp_file()
@@ -128,7 +128,7 @@ def pki_tree(request, id):
 ##------------------------------------------------------------------##
 
 @login_required
-def pki_email(request, type, id):
+def pki_email(request, model, id):
     """Send email with certificate data attached.
     
     Requires PKI_ENABLE_EMAIL set to true. Type (ca/cert) and ID are used to determine the object.
@@ -138,9 +138,9 @@ def pki_email(request, type, id):
     if PKI_ENABLE_EMAIL is not True:
         raise Exception( "Email sending is inoperable unless PKI_ENABLE_EMAIL is enabled!" )
     
-    if type == "ca":
+    if model == "certificateauthority":
         obj  = get_object_or_404(CertificateAuthority, pk=id)
-    elif type == "cert":
+    elif model == "certificate":
         obj = get_object_or_404(Certificate, pk=id)
     
     back = request.META.get('HTTP_REFERER', None) or '/'
