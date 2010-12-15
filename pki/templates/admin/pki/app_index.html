@@ -1,0 +1,11 @@
+{% extends "admin/app_index.html" %}
+{% load pkinav %}
+{% load media_url %}
+
+{% block extrahead %}
+<link href="{% media_url %}pki/css/pki.css" type="text/css" media="screen" rel="stylesheet" /> 
+{% endblock %}
+
+{% block nav-global %}
+    {% pkinav %}
+{% endblock %}

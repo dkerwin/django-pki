@@ -4,7 +4,11 @@ from django.utils.safestring import mark_safe
 from django.shortcuts import get_object_or_404
 
 from pki.models import *
+from pki.settings import PKI_DIR
+
 from openssl import md5_constructor
+
+import os
 import re
 
 ##------------------------------------------------------------------##
@@ -47,6 +51,10 @@ class CertificateAuthorityForm(forms.ModelForm):
                 
                 if not pf_v or pf != pf_v:
                     self.errors['passphrase_verify'] = ErrorList(['Passphrase mismtach detected'])
+                
+                ## Verify that we're not creating a certificate that already exists
+                if os.path.exists(os.path.join(PKI_DIR, name)):
+                    self._errors['name'] = ErrorList(['Name "%s" is already in use!' % name])
             
             ## Take care that parent is active when action is revoke
             if action == 'renew':
@@ -73,9 +81,7 @@ class CertificateAuthorityForm(forms.ModelForm):
                 ## Check parent passphrase if not RootCA
                 if ca.passphrase != enc_p_pf:
                     self._errors['parent_passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA "%s"' % parent])
-        
         elif action == 'revoke':
-            
             if parent:
                 ca = CertificateAuthority.objects.get(name='%s' % parent.name)
                 enc_p_pf = md5_constructor(cleaned_data.get('parent_passphrase')).hexdigest()
@@ -132,6 +138,10 @@ class CertificateForm(forms.ModelForm):
                 
                 if (pf and not pf_v) or pf != pf_v:
                     self.errors['passphrase_verify'] = ErrorList(['Passphrase mismtach detected'])
+                
+                ## Verify that we're not creating a certificate that already exists
+                if os.path.exists(os.path.join(PKI_DIR, parent.name, 'certs', '%s.key.pem' % name)):
+                    self._errors['name'] = ErrorList(['Name "%s" is already in use!' % name])
             
             ## Verify that pkcs12 passphrase isn't empty when encoding is requested
             if pkcs12_encoded and len(pkcs12_passphrase) < 8:

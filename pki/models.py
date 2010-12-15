@@ -566,7 +566,7 @@ class CertificateAuthority(CertificateBase):
         
         if PKI_ENABLE_GRAPHVIZ:
             return '<a href="%s" target="_blank">%s</a>' % (urlresolvers.reverse('pki:chain', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
-                                            self.get_pki_icon_html("tree.png", "Show full CA tree", "Show full CA tree"))
+                                                            self.get_pki_icon_html("tree.png", "Show full CA tree", "Show full CA tree"))
         else:
             return self.get_pki_icon_html("tree_disabled.png", "Enable setting PKI_ENABLE_GRAPHVIZ", "Enable setting PKI_ENABLE_GRAPHVIZ")
     

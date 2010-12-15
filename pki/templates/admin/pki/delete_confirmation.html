@@ -1,12 +1,13 @@
 {% extends "admin/delete_confirmation.html" %}
 {% load i18n %}
 {% load pkinav %}
+{% load media_url %}
 
 {% block extrahead %}
-<script type="text/javascript">var MEDIA_URL = "{{ MEDIA_URL }}";</script>
-<script type="text/javascript" src="{{ MEDIA_URL }}pki/js/jquery-1.4.2.min.js"></script> 
-<script type="text/javascript" src="{{ MEDIA_URL }}pki/js/delete_detail.min.js"></script>
-<link href="{{ MEDIA_URL }}pki/css/pki.css" type="text/css" media="screen" rel="stylesheet" /> 
+<script type="text/javascript">var MEDIA_URL = "{% media_url %}";</script>
+<script type="text/javascript" src="{% media_url %}pki/js/jquery-1.4.2.min.js"></script> 
+<script type="text/javascript" src="{% media_url %}pki/js/delete_detail.min.js"></script>
+<link href="{% media_url %}pki/css/pki.css" type="text/css" media="screen" rel="stylesheet" /> 
 {% endblock %}
 
 {% block nav-global %}
