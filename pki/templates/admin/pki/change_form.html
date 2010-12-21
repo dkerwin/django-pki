@@ -1,5 +1,20 @@
 {% extends "admin/change_form.html" %}
+{% load ctime_js %}
 {% load pkinav %}
+
+{% block extrahead %}
+<script type="text/javascript">
+    var C_TIME = new Date({% ctime_js %});
+    
+    function UpdateTime() {
+        C_TIME.setTime(C_TIME.getTime()+1000);
+        $("#clock").html(C_TIME.toLocaleString());
+    };
+</script>
+
+{{ block.super }}
+{% endblock %}
+
 
 {% block nav-global %}
     {% pkinav %}

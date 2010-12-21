@@ -274,6 +274,13 @@ class CertificateBase(models.Model):
     Certificate_Dump.allow_tags = True
     Certificate_Dump.short_description = "Certificate dump"
     
+    def CA_Clock(self):
+        """"""
+        return '<div id="clock"></div>'
+    
+    CA_Clock.allow_tags = True
+    CA_Clock.short_description = "CA clock"
+    
 ##------------------------------------------------------------------##
 ## Certificate authority class
 ##------------------------------------------------------------------##

@@ -1,6 +1,9 @@
 $(document).ready( function() {
     
-    
+    // Update the CA clock
+    UpdateTime();
+    setInterval(UpdateTime, 1000);
+
     // PKCS#12 passphrase verify if checkbox is found
     if ( $("input[id=id_pkcs12_encoded]") ) {
         

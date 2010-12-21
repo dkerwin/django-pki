@@ -56,7 +56,7 @@ class Certificate_Authority_Admin(admin.ModelAdmin):
     radio_fields       = { "action": admin.VERTICAL }
     search_fields      = [ 'name', 'common_name', 'description' ]
     date_hierarchy     = 'created'
-    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'serial', 'Chain', 'Certificate_Dump', )
+    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'serial', 'Chain', 'Certificate_Dump', 'CA_Clock', )
     exclude            = ( 'pf_encrypted', 'pem_encoded', )
     fieldsets          = ( ( 'Define action',    { 'fields': ( 'action', ), }, ),
                            ( 'Documentation',    { 'fields': ( 'description', ),
@@ -76,9 +76,9 @@ class Certificate_Authority_Admin(admin.ModelAdmin):
                            ),
                            ( 'Encoding options', { 'fields': ( 'der_encoded', ), },
                            ),
-                           ( 'CA setup',         { 'fields': ( 'subcas_allowed', 'Chain', 'parent', 'type', 'parent_passphrase', 'policy', ),
-                                                   'classes': [ 'wide', ],
-                                                 },
+                           ( 'Certificate signing', { 'fields': ( 'CA_Clock', 'subcas_allowed', 'Chain', 'parent', 'type', 'parent_passphrase', 'policy', ),
+                                                      'classes': [ 'wide', ],
+                                                    },
                            ),
                          )
     
@@ -112,7 +112,7 @@ class Certificate_Admin(admin.ModelAdmin):
     list_filter        = ( 'parent', 'active', )
     search_fields      = [ 'name', 'description' ]
     date_hierarchy     = 'created'
-    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'serial', 'Chain', 'Certificate_Dump', )
+    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'serial', 'Chain', 'Certificate_Dump', 'CA_Clock', )
     exclude            = ( 'pf_encrypted', )
     fieldsets          = ( ( 'Define action',   { 'fields': ( 'action', ) } ),
                            ( 'Documentation',   { 'fields': ( 'description', ),
@@ -134,9 +134,9 @@ class Certificate_Admin(admin.ModelAdmin):
                                                    'classes': [ 'wide', ],
                                                  },
                            ),
-                           ( 'CA setup',         { 'fields': ( 'Chain', 'parent', 'parent_passphrase', ),
-                                                   'classes': [ 'wide', ],
-                                                 },
+                           ( 'Certificate signing', { 'fields': ( 'CA_Clock', 'Chain', 'parent', 'parent_passphrase', ),
+                                                      'classes': [ 'wide', ],
+                                                    },
                            ),
                          )
     

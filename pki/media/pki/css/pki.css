@@ -21,5 +21,8 @@ div.details li { list-style-type: none; }
 /* Textarea */
 #certdump { width: 700px; height: 500px; }
 
+/* CA clock */
+#clock { font-weight: bold; }
+
 /* Footer */
 #footer { text-align: center; font-style: italic; font-size: 10px; margin-bottom: 20px; }
