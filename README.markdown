@@ -29,6 +29,7 @@ Dependencies
   * Optional Jquery library (djago-pki already shipped with built-in jquery-1.3.2)
   * pygraphviz + Graphviz (Tree viewer and object locator will not work without)
   * zipfile Python library
+  * south (database migration)
 
 Support
 -------
@@ -48,6 +49,52 @@ Installation
 ### Clone github repository (every release version is tagged)
 
     # git clone git://github.com/dkerwin/django-pki.git
+
+Update
+------
+
+django-pki requires south to perform database migrations. These are the stept If you're updating from a older, non-south version:
+
+  * Install south
+  * Add south to INSTALLED_APPS in settings.py
+  * Run "./manage.py syncdb" to install the south tables
+  * Make the initial migration "./manage.py migrate pki 0001 --fake"
+  * Run the real migrations "./manage.py migrate pki"
+
+### Example
+ 
+    deathstar-mac dknssl $ python manage.py syncdb
+    Syncing...
+    Creating table south_migrationhistory
+    No fixtures found.
+    
+    Synced:
+     > django.contrib.auth
+     > django.contrib.contenttypes
+     > django.contrib.sessions
+     > django.contrib.sites
+     > django.contrib.messages
+     > django.contrib.admin
+     > debug_toolbar
+     > south
+    
+    Not synced (use migrations):
+     - pki
+    (use ./manage.py migrate to migrate these)
+    
+    deathstar-mac dknssl $ python ./manage.py migrate pki 0001 --fake
+     - Soft matched migration 0001 to 0001_initial.
+    Running migrations for pki:
+     - Migrating forwards to 0001_initial.
+     > pki:0001_initial
+       (faked)
+    
+    deathstar-mac dknssl $ python ./manage.py migrate pki
+    Running migrations for pki:
+     - Migrating forwards to 0002_auto__add_field_certificateauthority_crl_distribution.
+     > pki:0002_auto__add_field_certificateauthority_crl_distribution
+     - Loading initial data for pki.
+    No fixtures found.
 
 Configuration
 -------------
@@ -134,7 +181,8 @@ Additionally, you can add your own logging destinations. This is an example for 
 Hasattr hack is required because Django imports settings.py multiple times. If you do not like
 this, place handler initialization code to urls.py or somewhere else in your project.
 
-### Do not forget to run `python manage.py syncdb` to create necessary database objects
+### django-pki uses south for database creation and migration. Do not forget to run `python manage.py syncdb` to create the necessary non django-pki database objects.
+After that run `./manage.py migrate pki` to setup the new django-pki tables.
 
 WSGI setup example
 ------------------

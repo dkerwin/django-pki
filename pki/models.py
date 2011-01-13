@@ -305,7 +305,7 @@ class CertificateAuthority(CertificateBase):
                                                                                                               match the signing CA<br> \
                                                                                                               policy_anything: Nothing has to match the \
                                                                                                               signing CA')
-    #crl_distribution  = models.URLField(verbose_name='CRL Distribution Point', null=True, blank=True, verify_exists=False, help_text='Optional CRL distribution URL (http://my.host.com/ca.crl)')
+    crl_distribution  = models.CharField(max_length=255, verbose_name='CRL Distribution Points', null=True, blank=True)
 
     class Meta:
         verbose_name_plural = 'Certificate Authorities'

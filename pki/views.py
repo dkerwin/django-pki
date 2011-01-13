@@ -172,13 +172,13 @@ def admin_delete(request, model, id):
         chain_recursion(item.id, deleted_objects, id_dict={ 'cert': [], 'ca': [], })
         
         ## Fill the required data for delete_confirmation.html template
-        opts               = CertificateAuthority._meta
-        object             = item.name
-        initial_id      = False
+        opts       = CertificateAuthority._meta
+        object     = item.name
+        initial_id = False
         
         ## Set the CA to verify the passphrase against
         if item.parent_id:
-            initial_ca_id = item.parent_id
+            initial_id = item.parent_id
             auth_object   = CertificateAuthority.objects.get(pk=item.parent_id).name
         else:
             initial_id = item.pk
@@ -203,9 +203,9 @@ def admin_delete(request, model, id):
                                           (urlresolvers.reverse('admin:pki_certificate_change', args=(item.pk,)), item.name, MEDIA_URL, div_content)) )
         
         ## Fill the required data for delete_confirmation.html template
-        opts               = Certificate._meta
-        object             = item.name
-        initial_id      = initial_id
+        opts       = Certificate._meta
+        object     = item.name
+        #initial_id = initial_id
         
         ## Set the CA to verify the passphrase against
         auth_object = authentication_obj

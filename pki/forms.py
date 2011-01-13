@@ -140,8 +140,12 @@ class CertificateForm(forms.ModelForm):
                     self.errors['passphrase_verify'] = ErrorList(['Passphrase mismtach detected'])
                 
                 ## Verify that we're not creating a certificate that already exists
-                if os.path.exists(os.path.join(PKI_DIR, parent.name, 'certs', '%s.key.pem' % name)):
-                    self._errors['name'] = ErrorList(['Name "%s" is already in use!' % name])
+                if parent:
+                    if os.path.exists(os.path.join(PKI_DIR, parent.name, 'certs', '%s.key.pem' % name)):
+                        self._errors['name'] = ErrorList(['Name "%s" is already in use!' % name])
+                else:
+                    if os.path.exists(os.path.join(PKI_DIR, '_SELF_SIGNED_CERTIFICATES', 'certs', '%s.key.pem' % name)):
+                        self._errors['name'] = ErrorList(['Name "%s" is already in use!' % name])
             
             ## Verify that pkcs12 passphrase isn't empty when encoding is requested
             if pkcs12_encoded and len(pkcs12_passphrase) < 8:

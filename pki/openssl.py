@@ -116,17 +116,11 @@ def refresh_pki_metadata(ca_list):
     ctx = {'ca_list': ca_list}
 
     # render template and save result to openssl.conf
-    try:
-        conf = render_to_string(PKI_OPENSSL_TEMPLATE, ctx)
-        
-        f = open(PKI_OPENSSL_CONF, 'wb')
-        f.write(conf)
-        f.close()
-
-    except:
-        raise Exception( 'Failed to render OpenSSL template' )
-        status = False
-
+    conf = render_to_string(PKI_OPENSSL_TEMPLATE, ctx)
+    
+    f = open(PKI_OPENSSL_CONF, 'wb')
+    f.write(conf)
+    f.close()
     return status # is it used somewhere?
 
 ##------------------------------------------------------------------##
@@ -175,6 +169,9 @@ class OpensslActions():
             
             if not self.i.subjaltname:
                 self.i.subjaltname = 'email:copy'
+            
+            if self.i.parent and self.i.parent.crl_distribution:
+                self.i.crl_distribution = self.i.parent.crl_distribution
         else:
             raise Exception( "Given object type is unknown!" )
         
@@ -239,7 +236,10 @@ class OpensslActions():
         try:
             extension = self.i.cert_extension
         except:
-            extension = "v3_ca"
+            if self.i.crl_distribution:
+                extension = "v3_ca_cdp"
+            else:
+                extension = "v3_ca"
         
         command = ['req', '-config', PKI_OPENSSL_CONF, '-verbose', '-batch', '-new', '-x509', '-subj', self.subj, '-days', str(self.i.valid_days), \
                    '-extensions', extension, '-key', self.key, '-out', self.crt, '-passin', 'env:%s' % self.env_pw]
@@ -251,7 +251,13 @@ class OpensslActions():
             logger.error( "Not setting inital serial number to %s. Fallback to random number" % PKI_SELF_SIGNED_SERIAL )
             logger.error( e )
         
-        self.exec_openssl( command, env_vars={ self.env_pw: str(self.i.passphrase), "S_A_N": self.i.subjaltname, })
+        env = { self.env_pw: str(self.i.passphrase), "S_A_N": self.i.subjaltname }
+        try:
+            env['C_D_P'] = self.i.crl_distribution
+        except:
+            pass
+        
+        self.exec_openssl( command, env_vars=env )
     
     def generate_csr(self):
         """CSR (Certificate Signing Request) generation"""
@@ -331,14 +337,20 @@ class OpensslActions():
         Certificate signing and hash creation in CA's certificate directory
         """
         
+        env = { self.env_pw: str(self.i.parent_passphrase), "S_A_N": self.i.subjaltname, }
+        
         try:
             extension = "-extensions %s" % self.i.cert_extension
+            if self.i.crl_distribution:
+                extension += "_cdp"
+                env["C_D_P"] = self.i.crl_distribution
         except:
             extension = ""
         
         command = 'ca -config %s -name %s -batch -in %s -out %s -days %d %s -passin env:%s' % \
                   ( PKI_OPENSSL_CONF, self.i.parent.name, self.csr, self.crt, self.i.valid_days, extension, self.env_pw)
-        self.exec_openssl(command.split(), env_vars={ self.env_pw: str(self.i.parent_passphrase), "S_A_N": self.i.subjaltname, })
+        
+        self.exec_openssl(command.split(), env_vars=env)
         
         ## Get the just created serial
         if self.parent_certs:
