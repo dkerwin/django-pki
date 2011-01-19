@@ -1,7 +1,8 @@
 .. _index:
 
-django-pki - PKI based on Django
-================================
+==========================
+django-pki - Web-based PKI
+==========================
 
 This project aims to simplify the installation and management of your personal CA infrastructure. Features include:
 
