@@ -1,0 +1,293 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>2. Configuration &mdash; django-pki v0.10.4 documentation</title>
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.10.4',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="django-pki v0.10.4 documentation" href="../index.html" />
+    <link rel="prev" title="1. Installation" href="install.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="install.html" title="1. Installation"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">django-pki v0.10.4 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="configuration">
+<h1>2. Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="create-and-configure-django-project">
+<h2>2.1. Create and configure Django project<a class="headerlink" href="#create-and-configure-django-project" title="Permalink to this headline">¶</a></h2>
+<p>If you don&#8217;t have a django project yet create it now:</p>
+<div class="highlight-python"><pre>django-admin.py startproject &lt;YOUR_PROJECT_NAME&gt;</pre>
+</div>
+</div>
+<div class="section" id="edit-project-s-settings-py">
+<h2>2.2. Edit project&#8217;s settings.py<a class="headerlink" href="#edit-project-s-settings-py" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p class="first">Configure database (SQLite example):</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">DATABASES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&#39;default&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s">&#39;ENGINE&#39;</span><span class="p">:</span> <span class="s">&#39;django.db.backends.sqlite3&#39;</span><span class="p">,</span>   <span class="c"># Add &#39;postgresql_psycopg2&#39;, &#39;postgresql&#39;, &#39;mysql&#39;, &#39;sqlite3&#39; or &#39;oracle&#39;.</span>
+        <span class="s">&#39;NAME&#39;</span><span class="p">:</span> <span class="s">&#39;/Users/dkerwin/dev/dpki/pki.db&#39;</span><span class="p">,</span> <span class="c"># Or path to database file if using sqlite3.</span>
+        <span class="s">&#39;USER&#39;</span><span class="p">:</span> <span class="s">&#39;&#39;</span><span class="p">,</span>                      <span class="c"># Not used with sqlite3.</span>
+        <span class="s">&#39;PASSWORD&#39;</span><span class="p">:</span> <span class="s">&#39;&#39;</span><span class="p">,</span>                  <span class="c"># Not used with sqlite3.</span>
+        <span class="s">&#39;HOST&#39;</span><span class="p">:</span> <span class="s">&#39;&#39;</span><span class="p">,</span>                      <span class="c"># Set to empty string for localhost. Not used with sqlite3.</span>
+        <span class="s">&#39;PORT&#39;</span><span class="p">:</span> <span class="s">&#39;&#39;</span><span class="p">,</span>                      <span class="c"># Set to empty string for default. Not used with sqlite3.</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Add django-pki template directory to TEMPLATE_DIRS if &#8216;django.template.loaders.app_directories.Loader&#8217; is not in TEMPLATE_LOADERS:</p>
+<div class="highlight-python"><pre>TEMPLATE_LOADERS = (
+    'django.template.loaders.filesystem.Loader',
+    'django.template.loaders.app_directories.Loader', &lt;==
+)
+
+or
+
+TEMPLATE_DIRS = ('/Library/Python/2.6/site-packages/pki/templates',)</pre>
+</div>
+</li>
+<li><p class="first">Add &#8216;pki.middleware.PkiExceptionMiddleware&#8217; to MIDDLEWARE_CLASSES (used for exception logging):</p>
+<div class="highlight-python"><pre>MIDDLEWARE_CLASSES = (
+    ...
+    'pki.middleware.PkiExceptionMiddleware',
+)</pre>
+</div>
+</li>
+<li><p class="first">Add &#8216;django.contrib.admin&#8217; and &#8216;pki&#8217; to INSTALLED_APPS:</p>
+<div class="highlight-python"><pre>INSTALLED_APPS = (
+    ...
+    'django.contrib.admin',
+    'pki',
+    'south',
+)</pre>
+</div>
+</li>
+<li><p class="first">Set MEDIA_URL and MEDIA_ROOT</p>
+<blockquote>
+<p>The values of MEDIA_URL and MEDIA_ROOT depend on your configuration.
+MEDIA_ROOT is the filesystem path to the django-pki media files (&lt;PATH_TO_DJANGO_PKI&gt;/media). You can of cause copy or symlink the files to another location.
+MEDIA_URL is the URL part where the media files can be accessed. Here are some examples:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">MEDIA_ROOT</span> <span class="o">=</span> <span class="s">&#39;/Library/Python/2.6/site-packages/pki/media/&#39;</span>
+<span class="n">MEDIA_ROOT</span> <span class="o">=</span> <span class="s">&#39;/var/www/myhost/static/pki&#39;</span>
+
+<span class="n">MEDIA_URL</span> <span class="o">=</span> <span class="s">&#39;/static/&#39;</span>
+<span class="n">MEDIA_URL</span> <span class="o">=</span> <span class="s">&#39;/pki_media/&#39;</span>
+</pre></div>
+</div>
+</blockquote>
+</li>
+<li><p class="first">Set ADMIN_MEDIA_PREFIX</p>
+</li>
+</ol>
+</div>
+<div class="section" id="configure-django-pki-settings-in-projects-settings-py">
+<h2>2.3. Configure django-pki settings (in projects settings.py)<a class="headerlink" href="#configure-django-pki-settings-in-projects-settings-py" title="Permalink to this headline">¶</a></h2>
+<p>You can use any combination of the following parameters:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">PKI_DIR</span></tt> - Default=/path-to-django-pki/PKI: absolute path to directory for pki storage. Must be writable</li>
+<li><tt class="docutils literal"><span class="pre">PKI_OPENSSL_BIN</span></tt> - Default=/usr/bin/openssl: path to openssl binary</li>
+<li><tt class="docutils literal"><span class="pre">PKI_OPENSSL_CONF</span></tt> - Default=PKI_DIR/openssl.conf: where to store openssl config</li>
+<li><tt class="docutils literal"><span class="pre">PKI_OPENSSL_TEMPLATE</span></tt> - Default=pki/openssl.conf.in: openssl configuration template</li>
+<li><tt class="docutils literal"><span class="pre">PKI_LOG</span></tt> - Default=PKI_DIR/pki.log: absolute path for log file</li>
+<li><tt class="docutils literal"><span class="pre">PKI_LOGLEVEL</span></tt> - Default=info: logging level</li>
+<li><tt class="docutils literal"><span class="pre">JQUERY_URL</span></tt> - Default=pki/jquery-1.4.2.min.js: jquery url</li>
+<li><tt class="docutils literal"><span class="pre">PKI_SELF_SIGNED_SERIAL</span></tt> - Default=0x0: The serial of self-signed certificates. Set to 0 or 0x0 to get a random number (0xabc = HEX; 123 = DEC)</li>
+<li><tt class="docutils literal"><span class="pre">PKI_DEFAULT_COUNTRY</span></tt> - Default=DE: The default country (as 2-letter code) selected (<a class="reference external" href="http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2</a>)</li>
+<li><tt class="docutils literal"><span class="pre">PKI_ENABLE_GRAPHVIZ</span></tt> - Default=False: Enable graphviz support (see requirements)</li>
+<li><tt class="docutils literal"><span class="pre">PKI_GRAPHVIZ_DIRECTION</span></tt> - Default=LR: Graph tree direction (LR=left-to-right, TD=top-down)</li>
+<li><tt class="docutils literal"><span class="pre">PKI_ENABLE_EMAIL</span></tt> - Default=False: Email delivery to certificate&#8217;s email address</li>
+</ul>
+</div>
+<div class="section" id="configure-projects-urls-py">
+<h2>2.4. Configure projects urls.py<a class="headerlink" href="#configure-projects-urls-py" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p class="first">Enable admin application:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">django.contrib</span> <span class="kn">import</span> <span class="n">admin</span>
+<span class="n">admin</span><span class="o">.</span><span class="n">autodiscover</span><span class="p">()</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Add exception handler:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">handler500</span> <span class="o">=</span> <span class="s">&#39;pki.views.show_exception&#39;</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Add the following lines to urlpatterns (make sure pki.urls is specified before admin.site.urls):</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="o">...</span>
+<span class="p">(</span><span class="s">r&#39;^&#39;</span><span class="p">,</span> <span class="n">include</span><span class="p">(</span><span class="s">&#39;pki.urls&#39;</span><span class="p">)),</span>
+<span class="p">(</span><span class="s">r&#39;^admin/&#39;</span><span class="p">,</span> <span class="n">include</span><span class="p">(</span><span class="n">admin</span><span class="o">.</span><span class="n">site</span><span class="o">.</span><span class="n">urls</span><span class="p">)),</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first"><strong>!! Do not use this in production !!</strong> If you want to serve static files with <tt class="docutils literal"><span class="pre">./manage.py</span> <span class="pre">runserver</span></tt> in DEBUG mode, add the following code:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">django.conf</span> <span class="kn">import</span> <span class="n">settings</span>
+
+<span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">:</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">MEDIA_URL</span>
+    <span class="k">if</span> <span class="n">M</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">):</span> <span class="n">M</span> <span class="o">=</span> <span class="n">M</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">M</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">):</span> <span class="n">M</span> <span class="o">+=</span> <span class="s">&#39;/&#39;</span>
+    <span class="n">urlpatterns</span> <span class="o">+=</span> <span class="n">patterns</span><span class="p">(</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s">r&#39;^</span><span class="si">%s</span><span class="s">(?P&lt;path&gt;.*)$&#39;</span> <span class="o">%</span> <span class="n">M</span><span class="p">,</span> <span class="s">&#39;django.views.static.serve&#39;</span><span class="p">,</span>
+                            <span class="p">{</span><span class="s">&#39;document_root&#39;</span><span class="p">:</span> <span class="n">settings</span><span class="o">.</span><span class="n">MEDIA_ROOT</span><span class="p">}))</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</div>
+<div class="section" id="initialize-database">
+<h2>2.5. Initialize database<a class="headerlink" href="#initialize-database" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p class="first">Initialize database:</p>
+<div class="highlight-python"><pre>$ python manage.py syncdb
+Syncing...
+Creating table auth_permission
+Creating table auth_group_permissions
+Creating table auth_group
+Creating table auth_user_user_permissions
+Creating table auth_user_groups
+Creating table auth_user
+Creating table auth_message
+Creating table django_content_type
+Creating table django_session
+Creating table django_site
+Creating table django_admin_log
+Creating table south_migrationhistory
+
+You just installed Django's auth system, which means you don't have any superusers defined.
+Would you like to create one now? (yes/no): yes
+Username (Leave blank to use 'dkerwin'): admin
+E-mail address: a@b.com
+Password:
+Password (again):
+Superuser created successfully.
+Installing index for auth.Permission model
+Installing index for auth.Group_permissions model
+Installing index for auth.User_user_permissions model
+Installing index for auth.User_groups model
+Installing index for auth.Message model
+Installing index for admin.LogEntry model
+No fixtures found.
+
+Synced:
+ &gt; django.contrib.auth
+ &gt; django.contrib.contenttypes
+ &gt; django.contrib.sessions
+ &gt; django.contrib.sites
+ &gt; django.contrib.messages
+ &gt; django.contrib.admin
+ &gt; debug_toolbar
+ &gt; south
+
+Not synced (use migrations):
+ - pki
+(use ./manage.py migrate to migrate these)</pre>
+</div>
+</li>
+<li><p class="first">Create django-pki tables. This is a south migration:</p>
+<div class="highlight-python"><pre>$ python manage.py migrate
+Running migrations for pki:
+ - Migrating forwards to 0002_auto__add_field_certificateauthority_crl_distribution.
+ &gt; pki:0001_initial
+ &gt; pki:0002_auto__add_field_certificateauthority_crl_distribution
+ - Loading initial data for pki.
+No fixtures found.</pre>
+</div>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">2. Configuration</a><ul>
+<li><a class="reference internal" href="#create-and-configure-django-project">2.1. Create and configure Django project</a></li>
+<li><a class="reference internal" href="#edit-project-s-settings-py">2.2. Edit project&#8217;s settings.py</a></li>
+<li><a class="reference internal" href="#configure-django-pki-settings-in-projects-settings-py">2.3. Configure django-pki settings (in projects settings.py)</a></li>
+<li><a class="reference internal" href="#configure-projects-urls-py">2.4. Configure projects urls.py</a></li>
+<li><a class="reference internal" href="#initialize-database">2.5. Initialize database</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="install.html"
+                        title="previous chapter">1. Installation</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/installation/configuration.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="install.html" title="1. Installation"
+             >previous</a> |</li>
+        <li><a href="../index.html">django-pki v0.10.4 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Daniel Kerwin.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.6.
+    </div>
+  </body>
+</html>
