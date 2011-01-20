@@ -7,7 +7,8 @@ Create and configure Django project
 
 If you don't have a django project yet create it now::
 
-    django-admin.py startproject <YOUR_PROJECT_NAME>
+    $ django-admin.py startproject <YOUR_PROJECT_NAME>
+    $ cd <YOUR_PROJECT_NAME>
 
 Edit project's settings.py
 ==========================
@@ -67,7 +68,7 @@ Edit project's settings.py
 6. Set ADMIN_MEDIA_PREFIX
 
 Configure django-pki settings (in projects settings.py)
-==============================================
+=======================================================
 
 You can use any combination of the following parameters:
 

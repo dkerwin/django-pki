@@ -1,7 +1,13 @@
 .. _index:
 
-django-pki - PKI based on Django
-================================
+==========================
+django-pki - Web-based PKI
+==========================
+
+django-pki is a PKI based on Django ;-)
+
+Introduction
+=============
 
 This project aims to simplify the installation and management of your personal CA infrastructure. Features include:
 
@@ -10,17 +16,25 @@ This project aims to simplify the installation and management of your personal C
 * Automatic CRL generation/update when CA or related certificate is modified
 * Creation and export of PEM, PKCS12 and DER encoded versions
 * Revoke and renew of certificates
-    
-Installation / Configuration
-============================
+
+Getting started
+===============
 
 .. toctree::
-   :numbered:
    :maxdepth: 2
+   :numbered:
 
    installation/install.rst
    installation/configuration.rst
 
+Tutorial
+========
+
+.. toctree::
+   :maxdepth: 2
+   :numbered:
+   
+   tutorial/ca.rst
 
 Indices and tables
 ==================
