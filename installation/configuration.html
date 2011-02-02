@@ -22,7 +22,14 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <link rel="top" title="django-pki v0.10.4 documentation" href="../index.html" />
-    <link rel="prev" title="1. Installation" href="install.html" /> 
+    <link rel="prev" title="1. Installation" href="install.html" />
+ 
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-3008794-1']);
+  _gaq.push(['_trackPageview']);
+</script>
+
   </head>
   <body>
     <div class="related">
@@ -47,14 +54,18 @@
 <h1>2. Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="create-and-configure-django-project">
 <h2>2.1. Create and configure Django project<a class="headerlink" href="#create-and-configure-django-project" title="Permalink to this headline">¶</a></h2>
-<p>If you don&#8217;t have a django project yet create it now:</p>
-<div class="highlight-python"><pre>django-admin.py startproject &lt;YOUR_PROJECT_NAME&gt;</pre>
+<p>If you don&#8217;t have a django project yet create one now:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>django-admin.py startproject &lt;YOUR_PROJECT_NAME&gt;
+<span class="nv">$ </span><span class="nb">cd</span> &lt;YOUR_PROJECT_NAME&gt;
+</pre></div>
 </div>
 </div>
 <div class="section" id="edit-project-s-settings-py">
 <h2>2.2. Edit project&#8217;s settings.py<a class="headerlink" href="#edit-project-s-settings-py" title="Permalink to this headline">¶</a></h2>
-<ol class="arabic">
-<li><p class="first">Configure database (SQLite example):</p>
+<ol class="arabic simple">
+<li>Configure database (SQLite example):</li>
+</ol>
+<blockquote>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">DATABASES</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s">&#39;default&#39;</span><span class="p">:</span> <span class="p">{</span>
         <span class="s">&#39;ENGINE&#39;</span><span class="p">:</span> <span class="s">&#39;django.db.backends.sqlite3&#39;</span><span class="p">,</span>   <span class="c"># Add &#39;postgresql_psycopg2&#39;, &#39;postgresql&#39;, &#39;mysql&#39;, &#39;sqlite3&#39; or &#39;oracle&#39;.</span>
@@ -67,35 +78,49 @@
 <span class="p">}</span>
 </pre></div>
 </div>
-</li>
-<li><p class="first">Add django-pki template directory to TEMPLATE_DIRS if &#8216;django.template.loaders.app_directories.Loader&#8217; is not in TEMPLATE_LOADERS:</p>
-<div class="highlight-python"><pre>TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader', &lt;==
-)
-
-or
-
-TEMPLATE_DIRS = ('/Library/Python/2.6/site-packages/pki/templates',)</pre>
+</blockquote>
+<ol class="arabic simple" start="2">
+<li>Add django-pki template directory to TEMPLATE_DIRS if &#8216;django.template.loaders.app_directories.Loader&#8217; is not in TEMPLATE_LOADERS:</li>
+</ol>
+<blockquote>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">TEMPLATE_LOADERS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s">&#39;django.template.loaders.filesystem.Loader&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.template.loaders.app_directories.Loader&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
 </div>
-</li>
-<li><p class="first">Add &#8216;pki.middleware.PkiExceptionMiddleware&#8217; to MIDDLEWARE_CLASSES (used for exception logging):</p>
-<div class="highlight-python"><pre>MIDDLEWARE_CLASSES = (
-    ...
-    'pki.middleware.PkiExceptionMiddleware',
-)</pre>
+<p><strong>or</strong></p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">TEMPLATE_DIRS</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;/Library/Python/2.6/site-packages/pki/templates&#39;</span><span class="p">,)</span>
+</pre></div>
 </div>
-</li>
-<li><p class="first">Add &#8216;django.contrib.admin&#8217; and &#8216;pki&#8217; to INSTALLED_APPS:</p>
-<div class="highlight-python"><pre>INSTALLED_APPS = (
-    ...
-    'django.contrib.admin',
-    'pki',
-    'south',
-)</pre>
+</blockquote>
+<ol class="arabic simple" start="3">
+<li>Add &#8216;pki.middleware.PkiExceptionMiddleware&#8217; to MIDDLEWARE_CLASSES (used for exception logging):</li>
+</ol>
+<blockquote>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">MIDDLEWARE_CLASSES</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s">&#39;...&#39;</span><span class="p">,</span>
+    <span class="s">&#39;pki.middleware.PkiExceptionMiddleware&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
 </div>
-</li>
-<li><p class="first">Set MEDIA_URL and MEDIA_ROOT</p>
+</blockquote>
+<ol class="arabic simple" start="4">
+<li>Add &#8216;django.contrib.admin&#8217; and &#8216;pki&#8217; to INSTALLED_APPS:</li>
+</ol>
+<blockquote>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">INSTALLED_APPS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s">&#39;...&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.contrib.admin&#39;</span><span class="p">,</span>
+    <span class="s">&#39;pki&#39;</span><span class="p">,</span>
+    <span class="s">&#39;south&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</blockquote>
+<ol class="arabic simple" start="5">
+<li>Set MEDIA_URL and MEDIA_ROOT</li>
+</ol>
 <blockquote>
 <p>The values of MEDIA_URL and MEDIA_ROOT depend on your configuration.
 MEDIA_ROOT is the filesystem path to the django-pki media files (&lt;PATH_TO_DJANGO_PKI&gt;/media). You can of cause copy or symlink the files to another location.
@@ -108,28 +133,60 @@ MEDIA_URL is the URL part where the media files can be accessed. Here are some e
 </pre></div>
 </div>
 </blockquote>
-</li>
-<li><p class="first">Set ADMIN_MEDIA_PREFIX</p>
-</li>
+<ol class="arabic simple" start="6">
+<li>Set ADMIN_MEDIA_PREFIX</li>
 </ol>
 </div>
 <div class="section" id="configure-django-pki-settings-in-projects-settings-py">
 <h2>2.3. Configure django-pki settings (in projects settings.py)<a class="headerlink" href="#configure-django-pki-settings-in-projects-settings-py" title="Permalink to this headline">¶</a></h2>
 <p>You can use any combination of the following parameters:</p>
-<ul class="simple">
-<li><tt class="docutils literal"><span class="pre">PKI_DIR</span></tt> - Default=/path-to-django-pki/PKI: absolute path to directory for pki storage. Must be writable</li>
-<li><tt class="docutils literal"><span class="pre">PKI_OPENSSL_BIN</span></tt> - Default=/usr/bin/openssl: path to openssl binary</li>
-<li><tt class="docutils literal"><span class="pre">PKI_OPENSSL_CONF</span></tt> - Default=PKI_DIR/openssl.conf: where to store openssl config</li>
-<li><tt class="docutils literal"><span class="pre">PKI_OPENSSL_TEMPLATE</span></tt> - Default=pki/openssl.conf.in: openssl configuration template</li>
-<li><tt class="docutils literal"><span class="pre">PKI_LOG</span></tt> - Default=PKI_DIR/pki.log: absolute path for log file</li>
-<li><tt class="docutils literal"><span class="pre">PKI_LOGLEVEL</span></tt> - Default=info: logging level</li>
-<li><tt class="docutils literal"><span class="pre">JQUERY_URL</span></tt> - Default=pki/jquery-1.4.2.min.js: jquery url</li>
-<li><tt class="docutils literal"><span class="pre">PKI_SELF_SIGNED_SERIAL</span></tt> - Default=0x0: The serial of self-signed certificates. Set to 0 or 0x0 to get a random number (0xabc = HEX; 123 = DEC)</li>
-<li><tt class="docutils literal"><span class="pre">PKI_DEFAULT_COUNTRY</span></tt> - Default=DE: The default country (as 2-letter code) selected (<a class="reference external" href="http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2</a>)</li>
-<li><tt class="docutils literal"><span class="pre">PKI_ENABLE_GRAPHVIZ</span></tt> - Default=False: Enable graphviz support (see requirements)</li>
-<li><tt class="docutils literal"><span class="pre">PKI_GRAPHVIZ_DIRECTION</span></tt> - Default=LR: Graph tree direction (LR=left-to-right, TD=top-down)</li>
-<li><tt class="docutils literal"><span class="pre">PKI_ENABLE_EMAIL</span></tt> - Default=False: Email delivery to certificate&#8217;s email address</li>
-</ul>
+<dl class="docutils">
+<dt><strong>PKI_DIR</strong> (<em>Default = /path-to-django-pki/PKI; Type = Python String</em>)</dt>
+<dd>Absolute path to directory for pki storage. Must be writable</dd>
+<dt><strong>PKI_OPENSSL_BIN</strong> (<em>Default = /usr/bin/openssl; Type = Python String</em>)</dt>
+<dd>Path to openssl binary</dd>
+<dt><strong>PKI_OPENSSL_CONF</strong> (<em>Default = PKI_DIR/openssl.conf; Type = Python String</em>)</dt>
+<dd>Location of OpenSSL config file (openssl.conf)</dd>
+<dt><strong>PKI_OPENSSL_TEMPLATE</strong> (<em>Default = pki/openssl.conf.in; Type = Python String</em>)</dt>
+<dd>OpenSSL configuration template (Shouldn&#8217;t be changen unless really neccessary)</dd>
+<dt><strong>PKI_LOG</strong> (<em>Default = PKI_DIR/pki.log; Type = Python String</em>)</dt>
+<dd>Full qualified path to logfile for PKI actions</dd>
+<dt><strong>PKI_LOGLEVEL</strong> (<em>Default = info; Type = Python String</em>)</dt>
+<dd>Logging level according to Python logging module</dd>
+<dt><strong>JQUERY_URL</strong> (<em>Default = pki/jquery-1.4.2.min.js; Type = Python String</em>)</dt>
+<dd>Alternative jQuery url</dd>
+<dt><strong>PKI_SELF_SIGNED_SERIAL</strong> (<em>Default = 0x0; Type = Python Number</em>)</dt>
+<dd>The serial of self-signed certificates. Set to 0 or 0x0 to get a random number (0xabc = HEX; 123 = DEC)</dd>
+<dt><strong>PKI_DEFAULT_COUNTRY</strong> (<em>Default = DE; Type = Python String</em>)</dt>
+<dd>The default country (as 2-letter code) selected (<a class="reference external" href="http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2</a>)</dd>
+<dt><strong>PKI_ENABLE_GRAPHVIZ</strong> (<em>Default = False; Type = Python Boolean</em>)</dt>
+<dd>Enable graphviz support (see requirements)</dd>
+<dt><strong>PKI_GRAPHVIZ_DIRECTION</strong> (<em>Default = LR; Type = Python String</em>)</dt>
+<dd>Graph tree direction (LR=left-to-right, TD=top-down)</dd>
+<dt><strong>PKI_ENABLE_EMAIL</strong> (<em>Default = False; Type = Python Boolean</em>)</dt>
+<dd>Email delivery to certificate&#8217;s email address. May require additional <a class="reference external" href="http://docs.djangoproject.com/en/dev/ref/settings/">Django paramters (EMAIL_*)</a></dd>
+</dl>
+<p><strong>Example:</strong></p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c">## django-pki specific parameters</span>
+<span class="n">PKI_DIR</span> <span class="o">=</span> <span class="s">&#39;/var/pki/ssl_store&#39;</span>
+<span class="n">PKI_OPENSSL_BIN</span> <span class="o">=</span> <span class="s">&#39;/opt/openssl/bin/openssl&#39;</span>
+<span class="n">PKI_OPENSSL_CONF</span> <span class="o">=</span> <span class="s">&#39;/opt/openssl/bin/etc/openssl.conf&#39;</span>
+<span class="n">PKI_LOG</span> <span class="o">=</span> <span class="s">&#39;/var/log/django-pki.log&#39;</span>
+<span class="n">PKI_LOGLEVEL</span> <span class="o">=</span> <span class="s">&#39;error&#39;</span>
+<span class="n">JQUERY_URL</span> <span class="o">=</span> <span class="s">&#39;http://static.company.com/js/jquery.js&#39;</span>
+<span class="n">PKI_SELF_SIGNED_SERIAL</span> <span class="o">=</span> <span class="mh">0x0</span>
+<span class="n">PKI_DEFAULT_COUNTRY</span> <span class="o">=</span> <span class="s">&#39;UK&#39;</span>
+<span class="n">PKI_ENABLE_GRAPHVIZ</span> <span class="o">=</span> <span class="bp">True</span>
+<span class="n">PKI_GRAPHVIZ_DIRECTION</span> <span class="o">=</span> <span class="s">&#39;TD&#39;</span>
+<span class="n">PKI_ENABLE_EMAIL</span> <span class="o">=</span> <span class="bp">True</span>
+
+<span class="c">## django specific email configuration</span>
+<span class="n">EMAIL_HOST</span> <span class="o">=</span> <span class="s">&quot;192.168.1.1&quot;</span>
+<span class="n">EMAIL_HOST_USER</span> <span class="o">=</span> <span class="s">&quot;relayuser&quot;</span>
+<span class="n">EMAIL_HOST_PASSWORD</span> <span class="o">=</span> <span class="s">&quot;icanrelay&quot;</span>
+<span class="n">DEFAULT_FROM_EMAIL</span> <span class="o">=</span> <span class="s">&quot;pki@my-company.com&quot;</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="configure-projects-urls-py">
 <h2>2.4. Configure projects urls.py<a class="headerlink" href="#configure-projects-urls-py" title="Permalink to this headline">¶</a></h2>
@@ -145,14 +202,27 @@ MEDIA_URL is the URL part where the media files can be accessed. Here are some e
 </pre></div>
 </div>
 </li>
-<li><p class="first">Add the following lines to urlpatterns (make sure pki.urls is specified before admin.site.urls):</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="o">...</span>
-<span class="p">(</span><span class="s">r&#39;^&#39;</span><span class="p">,</span> <span class="n">include</span><span class="p">(</span><span class="s">&#39;pki.urls&#39;</span><span class="p">)),</span>
+<li><p class="first">Add the following lines to urlpatterns</p>
+</li>
+</ol>
+<blockquote>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Ensure pki.urls is specified <strong>before</strong> admin.site.urls</p>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">(</span><span class="s">r&#39;^&#39;</span><span class="p">,</span> <span class="n">include</span><span class="p">(</span><span class="s">&#39;pki.urls&#39;</span><span class="p">)),</span>
 <span class="p">(</span><span class="s">r&#39;^admin/&#39;</span><span class="p">,</span> <span class="n">include</span><span class="p">(</span><span class="n">admin</span><span class="o">.</span><span class="n">site</span><span class="o">.</span><span class="n">urls</span><span class="p">)),</span>
 </pre></div>
 </div>
-</li>
-<li><p class="first"><strong>!! Do not use this in production !!</strong> If you want to serve static files with <tt class="docutils literal"><span class="pre">./manage.py</span> <span class="pre">runserver</span></tt> in DEBUG mode, add the following code:</p>
+</blockquote>
+<ol class="arabic simple" start="4">
+<li>If you want to serve static files with <tt class="docutils literal"><span class="pre">./manage.py</span> <span class="pre">runserver</span></tt> in DEBUG mode, add the following code:</li>
+</ol>
+<blockquote>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last"><strong>!! Do not use this in production !!</strong></p>
+</div>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">django.conf</span> <span class="kn">import</span> <span class="n">settings</span>
 
 <span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">:</span>
@@ -163,8 +233,7 @@ MEDIA_URL is the URL part where the media files can be accessed. Here are some e
                             <span class="p">{</span><span class="s">&#39;document_root&#39;</span><span class="p">:</span> <span class="n">settings</span><span class="o">.</span><span class="n">MEDIA_ROOT</span><span class="p">}))</span>
 </pre></div>
 </div>
-</li>
-</ol>
+</blockquote>
 </div>
 <div class="section" id="initialize-database">
 <h2>2.5. Initialize database<a class="headerlink" href="#initialize-database" title="Permalink to this headline">¶</a></h2>
@@ -284,9 +353,24 @@ No fixtures found.</pre>
         <li><a href="../index.html">django-pki v0.10.4 documentation</a> &raquo;</li> 
       </ul>
     </div>
+
     <div class="footer">
         &copy; Copyright 2011, Daniel Kerwin.
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.6.
     </div>
+<div class="footer">This page uses <a href="http://analytics.google.com/">
+Google Analytics</a> to collect statistics. You can disable it by blocking
+the JavaScript coming from www.google-analytics.com.
+<script type="text/javascript">
+  (function() {
+    var ga = document.createElement('script');
+    ga.src = ('https:' == document.location.protocol ?
+              'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    ga.setAttribute('async', 'true');
+    document.documentElement.firstChild.appendChild(ga);
+  })();
+</script>
+</div>
+
   </body>
 </html>
