@@ -30,11 +30,7 @@ Getting started
 Tutorial
 ========
 
-.. toctree::
-   :maxdepth: 2
-   :numbered:
-   
-   tutorial/ca.rst
+*Coming soon...*
 
 Indices and tables
 ==================
