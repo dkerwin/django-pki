@@ -1,5 +1,10 @@
 $(document).ready( function() {
     
+    // Tipsy
+    $("[id^=email_delivery_]").tipsy({html: true});
+    $("[id^=chain_link_]").tipsy({html: true});
+    $("[id^=tree_link_]").tipsy({html: true});
+    
     // Update the CA clock
     UpdateTime();
     setInterval(UpdateTime, 1000);

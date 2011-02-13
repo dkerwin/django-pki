@@ -23,10 +23,6 @@ except ImportError:
 
 logger = getLogger("pki")
 
-##------------------------------------------------------------------##
-## OpenSSLConfig: Config related stuff
-##------------------------------------------------------------------##
-
 def refresh_pki_metadata(ca_list):
     """Refresh pki metadata (PKI storage directories and openssl configuration files)
 
@@ -34,8 +30,6 @@ def refresh_pki_metadata(ca_list):
     'name': CA name
     'subcas_allowed': sub CAs allowed (boolean)
     """
-    
-    status = True
     
     # refresh directory structure
     dirs = { 'certs'  : 0755,
@@ -55,12 +49,11 @@ def refresh_pki_metadata(ca_list):
         
         # loop over CAs and create necessary filesystem objects
         for ca in ca_list:
-            
             ca_dir = os.path.join(PKI_DIR, ca.name)
             
             # create CA directory if necessary
             if not ca_dir in purge_dirs:
-                logger.info('Creating base directory for CA %s' % ca.name)
+                logger.info("Creating base directory for new CA %s" % ca.name)
                 os.mkdir(ca_dir)
                 
                 # create nested directories for key storage with proper permissions
@@ -85,6 +78,8 @@ def refresh_pki_metadata(ca_list):
                 s.write(h2s)
                 s.close()
                 
+                logger.info("Initial serial number set to %s" % h2s)
+                
                 # initialize CRL serial number
                 s = open(os.path.join(ca_dir, 'crlnumber'), 'wb')
                 s.write('01')
@@ -104,30 +99,25 @@ def refresh_pki_metadata(ca_list):
                 # probably can be removed when debugging will be finished
                 if os.path.isfile(os.path.join(d, 'crlnumber')):
                     logger.debug("Purging CA directory tree %s" % d)
-                    rmtree(d) # FIXME: commented for debugging purposes
+                    rmtree(d)
                 else:
                     logger.warning('Directory %s does not contain any metadata, preserving it' % d)
         
-    except OSError, e: # FIXME: probably catch any exception here, not just OS
-        status = False
-        logger.error("Refreshing directory structure failed: %s" % e)
+        # prepare context for template rendering
+        #ctx = {'ca_list': ca_list}
     
-    # prepare context for template rendering
-    ctx = {'ca_list': ca_list}
-
-    # render template and save result to openssl.conf
-    conf = render_to_string(PKI_OPENSSL_TEMPLATE, ctx)
+        # render template and save result to openssl.conf
+        conf = render_to_string(PKI_OPENSSL_TEMPLATE, {'ca_list': ca_list})
+        
+        f = open(PKI_OPENSSL_CONF, 'wb')
+        f.write(conf)
+        f.close()
+    except Exception, e:
+        logger.exception("Refreshing PKI metadata failed: %s" % e)
     
-    f = open(PKI_OPENSSL_CONF, 'wb')
-    f.write(conf)
-    f.close()
-    return status # is it used somewhere?
+    logger.info("Successfully finished PKI metadata refresh")
 
-##------------------------------------------------------------------##
-## OpenSSLActions: All non config related actions
-##------------------------------------------------------------------##
-
-class OpensslActions():
+class Openssl():
     """OpenSSL command and task wrapper class
     
     instance must be a CertificateAuthority or Certificate object.
@@ -224,14 +214,14 @@ class OpensslActions():
         
         command = 'genrsa %s -out %s %s %s %s' % (key_type, self.key, po, pf, self.i.key_length)
         self.exec_openssl(command.split(), env_vars={ self.env_pw: str(self.i.passphrase) } )
+        
+        logger.debug("Finished %s bit private key generation" % self.i.key_length)
     
     def generate_self_signed_cert(self):
         """Generate a self signed root certificate.
         
         Serial is set to user specified value when PKI_SELF_SIGNED_SERIAL > 0
         """
-        
-        logger.info( 'Generating self-signed root certificate' )
         
         try:
             extension = self.i.cert_extension
@@ -240,6 +230,8 @@ class OpensslActions():
                 extension = "v3_ca_cdp"
             else:
                 extension = "v3_ca"
+        
+        logger.info("Generating new self-signed certificate (CN=%s, x509 extension=%s)" % (self.i.common_name, extension))
         
         command = ['req', '-config', PKI_OPENSSL_CONF, '-verbose', '-batch', '-new', '-x509', '-subj', self.subj, '-days', str(self.i.valid_days), \
                    '-extensions', extension, '-key', self.key, '-out', self.crt, '-passin', 'env:%s' % self.env_pw]
@@ -258,11 +250,13 @@ class OpensslActions():
             pass
         
         self.exec_openssl( command, env_vars=env )
+        
+        logger.info("Finished self-signed certificate creation")
     
     def generate_csr(self):
         """CSR (Certificate Signing Request) generation"""
         
-        logger.info( 'Generating the CSR for %s' % self.i.name )
+        logger.info("Generating new CSR for %s" % self.i.common_name )
         
         command = ['req', '-config', PKI_OPENSSL_CONF, '-new', '-batch', '-subj', self.subj, '-key', self.key, '-out', self.csr, \
                    '-days', str(self.i.valid_days), '-passin', 'env:%s' % self.env_pw]        
@@ -271,7 +265,7 @@ class OpensslActions():
     def generate_der_encoded(self):
         """Generate a DER encoded certificate"""
         
-        logger.info( 'Generating DER encoded certificate for %s' % self.i.name )
+        logger.info( 'Generating DER encoded certificate for %s' % self.i.common_name )
         
         command = 'x509 -in %s -out %s -outform DER' % (self.crt, self.der)
         self.exec_openssl(command.split())
@@ -280,7 +274,7 @@ class OpensslActions():
         """Remove a DER encoded certificate"""
         
         if os.path.exists(self.der):
-            logger.info( 'Removal of DER encoded certificate for %s' % self.i.name )
+            logger.info( 'Removal of DER encoded certificate for %s' % self.i.common_name )
             
             try:
                 os.remove(self.der)
@@ -485,3 +479,8 @@ class OpensslActions():
         output  = self.exec_openssl(command.split())
         
         return "%s" % output
+    
+    def rollback(self):
+        """Rollback on failed operations"""
+        
+        pass

@@ -68,7 +68,6 @@ class PkiExceptionMiddleware(object):
         logger.error( 'HTTP_USER_AGENT: %s' % request.META.get('HTTP_USER_AGENT') )
         logger.error( '' )
         logger.error( _get_traceback(exc_info) )
-        #logger.error( 'REQUEST_URI: %s' % repr(request) )
 
 def _get_traceback(self, exc_info=None):
     """Helper function to return the traceback as a string"""

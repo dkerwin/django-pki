@@ -6,7 +6,7 @@ from shutil import rmtree
 from django.db import models
 from django.core import urlresolvers
 
-from pki.openssl import OpensslActions, md5_constructor, refresh_pki_metadata
+from pki.openssl import Openssl, md5_constructor, refresh_pki_metadata
 from pki.settings import ADMIN_MEDIA_PREFIX, MEDIA_URL, PKI_BASE_URL, PKI_DEFAULT_COUNTRY, PKI_ENABLE_GRAPHVIZ, PKI_ENABLE_EMAIL
 
 logger = getLogger("pki")
@@ -107,7 +107,7 @@ class CertificateBase(models.Model):
         else:
             return '<img class="centered" src="%simg/admin/icon-no.gif" alt="False" />'  % ADMIN_MEDIA_PREFIX
     
-    def get_pki_icon_html(self, img, alt="", title="", css="centered"):
+    def get_pki_icon_html(self, img, alt="", title="", css="centered", id=""):
         """Return HTML for given image.
         
         Can add optional alt and title parameters.
@@ -119,7 +119,7 @@ class CertificateBase(models.Model):
             css_class = ''
         
         img_path = os.path.join(PKI_BASE_URL, MEDIA_URL, 'pki/img', img)
-        return '<img %s src="%s" alt="%s" title="%s"/>' % (css_class, img_path, alt, title)
+        return '<img id="%s" %s src="%s" alt="%s" title="%s"/>' % (id, css_class, img_path, alt, title)
     
     ##------------------------------------------------------------------##
     ## Changelist list_display functions
@@ -203,7 +203,7 @@ class CertificateBase(models.Model):
         
         if PKI_ENABLE_GRAPHVIZ:
             return '<a href="%s" target="_blank">%s</a>' % (urlresolvers.reverse('pki:chain', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
-                                            self.get_pki_icon_html('chain.png', "Show chain", "Show object chain"))
+                                            self.get_pki_icon_html('chain.png', "Show chain", "Show object chain", id="chain_link_%d" % self.pk))
         else:
             return self.get_pki_icon_html("chain.png", "Show chain", "Enable setting PKI_ENABLE_GRAPHVIZ")
     
@@ -219,15 +219,16 @@ class CertificateBase(models.Model):
         """
         
         if not PKI_ENABLE_EMAIL:
-            return self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Enable setting PKI_ENABLE_EMAIL")
+            return self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Enable setting PKI_ENABLE_EMAIL", id="email_delivery_%d" % self.pk)
         elif not self.active:
-            return self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Certificate is revoked. Disabled")
+            return self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Certificate is revoked. Disabled", id="email_delivery_%d" % self.pk)
         else:
             if self.email:
                 return '<a href="%s">%s</a>' % (urlresolvers.reverse('pki:email', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
-                                                self.get_pki_icon_html("mail--arrow.png", "Send email", "Send cert to specified email"))
+                                                self.get_pki_icon_html("mail--arrow.png", "Send email", "Send to <strong>%s</strong>" % self.email, \
+                                                                       id="email_delivery_%d" % self.pk))
             else:
-                return self.get_pki_icon_html("mail--exclamation.png", "Send email", "Certificate has no email set. Disabled")
+                return self.get_pki_icon_html("mail--exclamation.png", "Send email", "Certificate has no email set. Disabled", id="email_delivery_%d" % self.pk)
     
     Email_link.allow_tags = True
     Email_link.short_description = 'Delivery'
@@ -266,7 +267,7 @@ class CertificateBase(models.Model):
         """Dump of the certificate"""
         
         if self.pk:
-            a = OpensslActions(self)
+            a = Openssl(self)
             return "<textarea id=\"certdump\">%s</textarea>" % a.dump_certificate()
         else:
             return "Nothing to display"
@@ -327,7 +328,7 @@ class CertificateAuthority(CertificateBase):
             ## existing CA
             if self.action in ('update', 'revoke', 'renew'):
                 
-                action = OpensslActions(self)
+                action = Openssl(self)
                 prev   = CertificateAuthority.objects.get(pk=self.pk)
                 
                 ## Update description. This is always allowed
@@ -446,7 +447,7 @@ class CertificateAuthority(CertificateBase):
             self.rebuild_ca_metadata(modify=True, task='append')
             
             ## Generate keys and certificates
-            action = OpensslActions(self)
+            action = Openssl(self)
             action.generate_key()
             
             if not self.parent:
@@ -534,7 +535,7 @@ class CertificateAuthority(CertificateBase):
         
         ## Remoke first ca in the chain
         if revoke_required:
-            a = OpensslActions(CertificateAuthority.objects.get(pk=self.pk))
+            a = Openssl(CertificateAuthority.objects.get(pk=self.pk))
             a.revoke_certificate(passphrase)
             a.generate_crl(ca=self.parent.name, pf=passphrase)
         
@@ -575,7 +576,7 @@ class CertificateAuthority(CertificateBase):
         
         if PKI_ENABLE_GRAPHVIZ:
             return '<a href="%s" target="_blank">%s</a>' % (urlresolvers.reverse('pki:chain', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
-                                                            self.get_pki_icon_html("tree.png", "Show full CA tree", "Show full CA tree"))
+                                                            self.get_pki_icon_html("tree.png", "Show full CA tree", "Show full CA tree", id="tree_link_%d" % self.pk))
         else:
             return self.get_pki_icon_html("tree_disabled.png", "Enable setting PKI_ENABLE_GRAPHVIZ", "Enable setting PKI_ENABLE_GRAPHVIZ")
     
@@ -632,7 +633,7 @@ class Certificate(CertificateBase):
         if self.pk:
             if self.action in ('update', 'revoke', 'renew'):
                 
-                action = OpensslActions(self)
+                action = Openssl(self)
                 prev   = Certificate.objects.get(pk=self.pk)
                 
                 ## Update description. This is always allowed
@@ -730,7 +731,7 @@ class Certificate(CertificateBase):
             logger.info( "***** { New certificate generation: %s } *****" % self.name )
             
             ## Generate key and certificate
-            action = OpensslActions(self)
+            action = Openssl(self)
             action.generate_key()
             
             if self.parent:
@@ -776,7 +777,7 @@ class Certificate(CertificateBase):
         """Delete the Certificate object"""
         
         ## Time for some rm action
-        a = OpensslActions(self)
+        a = Openssl(self)
         
         if self.parent:
             a.revoke_certificate(passphrase)
