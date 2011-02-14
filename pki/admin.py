@@ -146,8 +146,8 @@ class Certificate_Admin(admin.ModelAdmin):
                          )
     
     class Media:
-        js = ( JQUERY_URL, 'pki/js/pki_admin.min.js', )
-        css = { 'screen': ( 'pki/css/pki.css', ), }
+        js = ( JQUERY_URL, 'pki/js/jquery.tipsy.js', 'pki/js/pki_admin.min.js', )
+        css = { 'screen': ( 'pki/css/pki.css', 'pki/css/tipsy.css', ), }
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         """Filter foreign key parent field.

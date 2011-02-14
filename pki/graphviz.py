@@ -95,40 +95,45 @@ def ObjectTree(object, target):
         
         if c.subcas_allowed == True:
             x = CertificateAuthority.objects.filter(parent__id=c.pk)
+        else:
+            x = [c]
+        
+        for ca in x:
             
-            for ca in x:
-                
-                if graph != None:
-                    if ca.active is True:
-                        col = "green3"
-                    else:
-                        col = "red"
-                    
-                    graph.add_node(ca.common_name, shape='folder', color=col, style="bold")
-                    graph.add_edge(c.common_name, ca.common_name, color="black", weight="4.5")
-                
-                if ca.subcas_allowed == True:
-                    TraverseToBottom(ca.pk, graph)
+            if graph != None:
+                if ca.active is True:
+                    col = "green3"
                 else:
-                    certs = Certificate.objects.filter(parent__id=ca.pk)
+                    col = "red"
+                
+                graph.add_node(ca.common_name, shape='folder', color=col, style="bold")
+                
+                ## Prevent link to self when this is a toplevel rootca with subcas_allowed=False
+                if ca != c:
+                    graph.add_edge(c.common_name, ca.common_name, color="black", weight="4.5")
+            
+            if ca.subcas_allowed == True:
+                TraverseToBottom(ca.pk, graph)
+            else:
+                certs = Certificate.objects.filter(parent__id=ca.pk)
+                
+                if certs:
+                    subgraph_list = [ ca.common_name ]
                     
-                    if certs:
-                        subgraph_list = [ ca.common_name ]
+                    for cert in certs:
                         
-                        for cert in certs:
-                            
-                            subgraph_list.append( cert.common_name )
-                            
-                            if graph != None:
-                                if cert.active:
-                                    col = "green3"
-                                else:
-                                    col = "red"
-                                
-                                graph.add_node(str(cert.common_name), shape='note', color=col, style="bold")
-                                graph.add_edge(ca.common_name, cert.common_name, color="black", weight="4.5")
+                        subgraph_list.append( cert.common_name )
                         
-                        sg = graph.subgraph(nbunch=subgraph_list, name="cluster_%d" % ca.pk, style='bold', color='black', label="")
+                        if graph != None:
+                            if cert.active:
+                                col = "green3"
+                            else:
+                                col = "red"
+                            
+                            graph.add_node(str(cert.common_name), shape='note', color=col, style="bold")
+                            graph.add_edge(ca.common_name, cert.common_name, color="black", weight="4.5")
+                    
+                    sg = graph.subgraph(nbunch=subgraph_list, name="cluster_%d" % ca.pk, style='bold', color='black', label="")
     
     ##-------------------------------------##
     ## Object tree starts here

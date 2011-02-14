@@ -95,18 +95,6 @@ class CertificateBase(models.Model):
     ## Helper functions
     ##------------------------------------------------------------------##
     
-    def get_icon_html(self, state):
-        """Return HTML based on state.
-        
-        True : Return Django's yes icon
-        False: Return Django's no icon
-        """
-        
-        if state is True:
-            return '<img class="centered" src="%simg/admin/icon-yes.gif" alt="True">' % ADMIN_MEDIA_PREFIX
-        else:
-            return '<img class="centered" src="%simg/admin/icon-no.gif" alt="False" />'  % ADMIN_MEDIA_PREFIX
-    
     def get_pki_icon_html(self, img, alt="", title="", css="centered", id=""):
         """Return HTML for given image.
         
@@ -128,7 +116,10 @@ class CertificateBase(models.Model):
     def active_center(self):
         """Overwrite the Booleanfield admin for admin's changelist"""
         
-        return self.get_icon_html(self.active)
+        if self.active is True:
+            return self.get_pki_icon_html('icon-yes.gif', "Certificate is active", "Certificate is active", id="active_%d" % self.pk)
+        else:
+            return self.get_pki_icon_html('icon-no.gif', "Certificate is disabled", "Certificate is disabled", id="active_%d" % self.pk)
     
     active_center.allow_tags = True
     active_center.short_description = 'Active'
@@ -225,7 +216,7 @@ class CertificateBase(models.Model):
         else:
             if self.email:
                 return '<a href="%s">%s</a>' % (urlresolvers.reverse('pki:email', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
-                                                self.get_pki_icon_html("mail--arrow.png", "Send email", "Send to <strong>%s</strong>" % self.email, \
+                                                self.get_pki_icon_html("mail--arrow.png", "Send email", "Send to '<strong>%s</strong>'" % self.email, \
                                                                        id="email_delivery_%d" % self.pk))
             else:
                 return self.get_pki_icon_html("mail--exclamation.png", "Send email", "Certificate has no email set. Disabled", id="email_delivery_%d" % self.pk)
@@ -241,9 +232,9 @@ class CertificateBase(models.Model):
         
         if self.active:
             return '<a href="%s">%s</a>' % (urlresolvers.reverse('pki:download', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
-                                            self.get_pki_icon_html("drive-download.png", "Download", "Download certificate data"))
+                                            self.get_pki_icon_html("drive-download.png", "Download", "Download certificate zip", id="download_link_%d" % self.pk))
         else:
-            return self.get_pki_icon_html("drive-download_bw.png", "Download", "Cannot download because certificate is revoked")
+            return self.get_pki_icon_html("drive-download_bw.png", "Download", "Cannot download because certificate is revoked", id="download_link_%d" % self.pk)
     
     Download_link.allow_tags = True
     Download_link.short_description = 'Download'
@@ -575,8 +566,8 @@ class CertificateAuthority(CertificateBase):
     def Tree_link(self):
         
         if PKI_ENABLE_GRAPHVIZ:
-            return '<a href="%s" target="_blank">%s</a>' % (urlresolvers.reverse('pki:chain', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
-                                                            self.get_pki_icon_html("tree.png", "Show full CA tree", "Show full CA tree", id="tree_link_%d" % self.pk))
+            return '<a href="%s" target="_blank">%s</a>' % (urlresolvers.reverse('pki:tree', kwargs={'id': self.pk}), \
+                                                            self.get_pki_icon_html("tree.png", "Show full CA tree", "Show CA tree", id="tree_link_%d" % self.pk))
         else:
             return self.get_pki_icon_html("tree_disabled.png", "Enable setting PKI_ENABLE_GRAPHVIZ", "Enable setting PKI_ENABLE_GRAPHVIZ")
     
@@ -587,10 +578,11 @@ class CertificateAuthority(CertificateBase):
         """Show associated client certificates"""
         
         if self.subcas_allowed:
-            return self.get_pki_icon_html("blue-document-tree_bw.png", "No children", "No children")
+            return self.get_pki_icon_html("blue-document-tree_bw.png", "No children", "No children", id="show_child_certs_%d" % self.pk)
         else:
             return "<a href=\"%s\" target=\"_blank\">%s</a>" % ('?'.join([urlresolvers.reverse('admin:pki_certificate_changelist'), 'parent__id__exact=%d' % self.pk]), \
-                                                                self.get_pki_icon_html("blue-document-tree.png", "Show child certificates", "Show child certificates"))
+                                                                self.get_pki_icon_html("blue-document-tree.png", "Show child certificates", "Show child certificates", \
+                                                                                       id="show_child_certs_%d" % self.pk))
     
     Child_certs.allow_tags = True
     Child_certs.short_description = "Children"

@@ -1,13 +1,18 @@
 $(document).ready( function() {
     
-    // Tipsy
+    // Tipsyfy some links
     $("[id^=email_delivery_]").tipsy({html: true});
     $("[id^=chain_link_]").tipsy({html: true});
     $("[id^=tree_link_]").tipsy({html: true});
+    $("[id^=download_link_]").tipsy({html: true});
+    $("[id^=show_child_certs_]").tipsy({html: true});
+    $("[id^=active_]").tipsy({html: true});
     
     // Update the CA clock
-    UpdateTime();
-    setInterval(UpdateTime, 1000);
+    if ( typeof UpdateTime === 'function' ) {
+        UpdateTime();
+        setInterval(UpdateTime, 1000);
+    }
 
     // PKCS#12 passphrase verify if checkbox is found
     if ( $("input[id=id_pkcs12_encoded]") ) {
