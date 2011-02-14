@@ -225,6 +225,7 @@ class Openssl():
         
         try:
             extension = self.i.cert_extension
+            extension += '_ss'
         except:
             if self.i.crl_distribution:
                 extension = "v3_ca_cdp"

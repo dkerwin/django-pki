@@ -150,6 +150,27 @@ keyUsage                        = critical,keyCertSign,cRLSign
 crlDistributionPoints           = ${ENV::C_D_P}
 
 ## Certificate extensions
+[ v3_server_cert_ss ]
+basicConstraints                = CA:TRUE, pathlen:0
+keyUsage                        = nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage                = serverAuth
+nsCertType                      = server
+nsComment                       = "django-pki generated server sertificate"
+subjectKeyIdentifier            = hash
+authorityKeyIdentifier          = keyid,issuer:always
+subjectAltName                  = ${ENV::S_A_N}
+
+[ v3_server_cert_ss_cdp ]
+basicConstraints                = CA:TRUE, pathlen:0
+keyUsage                        = nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage                = serverAuth
+nsCertType                      = server
+nsComment                       = "django-pki generated server sertificate"
+subjectKeyIdentifier            = hash
+authorityKeyIdentifier          = keyid,issuer:always
+subjectAltName                  = ${ENV::S_A_N}
+crlDistributionPoints           = ${ENV::C_D_P}
+
 [ v3_server_cert ]
 basicConstraints                = CA:FALSE, pathlen:0
 keyUsage                        = nonRepudiation, digitalSignature, keyEncipherment

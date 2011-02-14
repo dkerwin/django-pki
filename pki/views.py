@@ -14,6 +14,7 @@ from pki.forms import CaPassphraseForm, CertPassphraseForm
 from pki.graphviz import ObjectChain, ObjectTree
 from pki.email import SendCertificateData
 from pki.helper import files_for_object, chain_recursion, build_delete_item, generate_temp_file, build_zip_for_object
+from pki.openssl import refresh_pki_metadata
 
 logger = logging.getLogger("pki")
 
@@ -152,6 +153,23 @@ def pki_email(request, model, id):
         raise Http404
     
     request.user.message_set.create(message='Email to "%s" was sent successfully.' % obj.email)
+    return HttpResponseRedirect(back)
+
+##------------------------------------------------------------------##
+## Management views
+##------------------------------------------------------------------##
+
+@login_required
+def pki_refresh_metadata(request):
+    """Rebuild PKI metadate.
+    
+    Renders openssl.conf template and cleans PKI_DIR.
+    """
+    
+    refresh_pki_metadata(list(CertificateAuthority.objects.all()))
+    request.user.message_set.create(message='Successfully refreshed PKI metadata.')
+    
+    back = request.META.get('HTTP_REFERER', None) or '/'
     return HttpResponseRedirect(back)
 
 ##------------------------------------------------------------------##

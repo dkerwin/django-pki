@@ -119,7 +119,7 @@ class CertificateBase(models.Model):
         if self.active is True:
             return self.get_pki_icon_html('icon-yes.gif', "Certificate is active", "Certificate is active", id="active_%d" % self.pk)
         else:
-            return self.get_pki_icon_html('icon-no.gif', "Certificate is disabled", "Certificate is disabled", id="active_%d" % self.pk)
+            return self.get_pki_icon_html('icon-no.gif', "Certificate is revoked", "Certificate is revoked", id="active_%d" % self.pk)
     
     active_center.allow_tags = True
     active_center.short_description = 'Active'
