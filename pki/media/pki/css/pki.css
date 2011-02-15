@@ -5,8 +5,9 @@ img.centered { margin-left: auto; margin-right: auto; display: block; vertical-a
 div.serial_align_right { text-align: right; }
 
 /* Expiry text decoration */
-div.almost_expired { color: #f19d09; font-weight: bold; }
-div.expired { color: red; font-weight: bold; }
+span.almost_expired { color: #f19d09; font-weight: bold; }
+span.expired { color: red; font-weight: bold; }
+span.revoked { text-decoration: line-through; }
 
 /* Navigation */
 #pkinav ul { list-style:none; text-align:center; }

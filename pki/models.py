@@ -113,17 +113,17 @@ class CertificateBase(models.Model):
     ## Changelist list_display functions
     ##------------------------------------------------------------------##
     
-    def active_center(self):
+    def Valid_center(self):
         """Overwrite the Booleanfield admin for admin's changelist"""
         
         if self.active is True:
-            return self.get_pki_icon_html('icon-yes.gif', "Certificate is active", "Certificate is active", id="active_%d" % self.pk)
+            return self.get_pki_icon_html('icon-yes.gif', "Certificate is active", "Certificate is valid", id="active_%d" % self.pk)
         else:
             return self.get_pki_icon_html('icon-no.gif', "Certificate is revoked", "Certificate is revoked", id="active_%d" % self.pk)
     
-    active_center.allow_tags = True
-    active_center.short_description = 'Active'
-    active_center.admin_order_field = 'active'
+    Valid_center.allow_tags = True
+    Valid_center.short_description = 'Valid'
+    Valid_center.admin_order_field = 'active'
     
     def Serial_align_right(self):
         """Make serial in changelist right justified"""
@@ -156,6 +156,13 @@ class CertificateBase(models.Model):
     
     Creation_date.admin_order_field = 'created'
     
+    def Revocation_date(self):
+        """Return revocation date in custom format"""
+        
+        return self.revoked.strftime("%Y-%m-%d %H:%M:%S")
+    
+    Revocation_date.admin_order_field = 'revoked'
+    
     def Expiry_date(self):
         """Return expiry date with days left.
         
@@ -167,10 +174,15 @@ class CertificateBase(models.Model):
         now = datetime.datetime.now().date()        
         diff = self.expiry_date - now
         
+        
+        if not self.active:
+            return '<span class="revoked">%s (%sd)</span>' % (self.expiry_date, diff.days)
+        
         if diff.days < 30 and diff.days >= 0:
-            return '<div class="almost_expired">%s (%sd)</div>' % (self.expiry_date, diff.days)
+            span_class = ""
+            return '<span class="almost_expired">%s (%sd)</span>' % (self.expiry_date, diff.days)
         elif diff.days < 0:
-            return '<div class="expired">%s (EXPIRED)</div>' % self.expiry_date
+            return '<span class="expired">%s (EXPIRED)</span>' % self.expiry_date
         else:
             return '%s (%sd)' % (self.expiry_date, diff.days)
     
@@ -234,7 +246,7 @@ class CertificateBase(models.Model):
             return '<a href="%s">%s</a>' % (urlresolvers.reverse('pki:download', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
                                             self.get_pki_icon_html("drive-download.png", "Download", "Download certificate zip", id="download_link_%d" % self.pk))
         else:
-            return self.get_pki_icon_html("drive-download_bw.png", "Download", "Cannot download because certificate is revoked", id="download_link_%d" % self.pk)
+            return self.get_pki_icon_html("drive-download_bw.png", "Download", "Certificate is revoked. Disabled", id="download_link_%d" % self.pk)
     
     Download_link.allow_tags = True
     Download_link.short_description = 'Download'

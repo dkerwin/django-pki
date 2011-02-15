@@ -47,8 +47,8 @@ logger.addHandler(l_hdlr)
 class Certificate_Authority_Admin(admin.ModelAdmin):
     """CertificateAuthority admin definition"""
     form               = CertificateAuthorityForm
-    list_display       = ( 'id', 'common_name', 'Serial_align_right', 'active_center', 'Chain_link', 'Tree_link', 'Parent_link',
-                           'Expiry_date', 'Description', 'Creation_date', 'revoked', 'Child_certs', 'Download_link', 'Email_link', )
+    list_display       = ( 'id', 'common_name', 'Serial_align_right', 'Valid_center', 'Chain_link', 'Tree_link', 'Parent_link',
+                           'Expiry_date', 'Description', 'Creation_date', 'Revocation_date', 'Child_certs', 'Download_link', 'Email_link', )
     list_display_links = ( 'common_name', )
     save_on_top        = True
     actions            = []
@@ -56,7 +56,7 @@ class Certificate_Authority_Admin(admin.ModelAdmin):
     radio_fields       = { "action": admin.VERTICAL }
     search_fields      = [ 'name', 'common_name', 'description' ]
     date_hierarchy     = 'created'
-    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'serial', 'Chain', 'Certificate_Dump', 'CA_Clock', )
+    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'Revocation_date', 'serial', 'Chain', 'Certificate_Dump', 'CA_Clock', )
     exclude            = ( 'pf_encrypted', 'pem_encoded', )
     fieldsets          = ( ( 'Define action',    { 'fields': ( 'action', ), }, ),
                            ( 'Documentation',    { 'fields': ( 'description', ),
@@ -69,7 +69,7 @@ class Certificate_Authority_Admin(admin.ModelAdmin):
                            ),
                            ( 'Certificate',      { 'fields': ( 'common_name', 'name', 'country', 'state', 'locality', 'organization', 'OU',
                                                                'email', 'key_length', 'valid_days', 'passphrase', 'passphrase_verify',
-                                                               'serial', 'Creation_date', 'Expiry_date',
+                                                               'serial', 'Expiry_date', 'Creation_date', 'Revocation_date',
                                                              ),
                                                    'classes': [ 'wide', ],
                                                  },
@@ -104,8 +104,8 @@ admin.site.register(CertificateAuthority, Certificate_Authority_Admin)
 class Certificate_Admin(admin.ModelAdmin):
     """CertificateAuthority admin definition"""
     form               = CertificateForm
-    list_display       = ( 'id', 'common_name', 'Serial_align_right', 'active_center', 'Chain_link', 'Parent_link',
-                           'Expiry_date', 'Description', 'Creation_date', 'revoked', 'Download_link', 'Email_link' )
+    list_display       = ( 'id', 'common_name', 'Serial_align_right', 'Valid_center', 'Chain_link', 'Parent_link',
+                           'Expiry_date', 'Description', 'Creation_date', 'Revocation_date', 'Download_link', 'Email_link' )
     list_display_links = ( 'common_name', )
     save_on_top        = True
     actions            = []
@@ -113,7 +113,7 @@ class Certificate_Admin(admin.ModelAdmin):
     list_filter        = ( 'parent', 'active', )
     search_fields      = [ 'name', 'description' ]
     date_hierarchy     = 'created'
-    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'serial', 'Chain', 'Certificate_Dump', 'CA_Clock', )
+    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'Revocation_date', 'serial', 'Chain', 'Certificate_Dump', 'CA_Clock', )
     exclude            = ( 'pf_encrypted', )
     fieldsets          = ( ( 'Define action',   { 'fields': ( 'action', ) } ),
                            ( 'Documentation',   { 'fields': ( 'description', ),
@@ -126,7 +126,7 @@ class Certificate_Admin(admin.ModelAdmin):
                            ),
                            ( 'Certificate',     { 'fields': ( 'common_name', 'name', 'country', 'state', 'locality', 'organization', 'OU',
                                                               'email', 'key_length', 'cert_extension', 'valid_days', 'passphrase',
-                                                              'passphrase_verify', 'serial', 'Expiry_date', 'Creation_date',
+                                                              'passphrase_verify', 'serial', 'Expiry_date', 'Creation_date', 'Revocation_date',
                                                             ),
                                                   'classes': [ 'wide', ],
                                                 },

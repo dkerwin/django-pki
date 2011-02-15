@@ -50,7 +50,12 @@ def ObjectChain(object, target):
         p = object.parent
         
         ## Add parent node to graph
-        G.add_node(p.common_name, shape="folder", color="green3", style="bold")
+        if p.active:
+            p_color = "green3"
+        else:
+            p_color = "red"
+        
+        G.add_node(p.common_name, shape="folder", color=p_color, style="bold")
         
         ## Set initial edge between requested onject and it's parent
         edges.append( [p.common_name, object.common_name] )
