@@ -17,10 +17,10 @@ logger = getLogger("pki")
 
 KEY_LENGTH = ( (1024, '1024'), (2048, '2048'), (4096, '4096'), )
 POLICY     = ( ('policy_match', 'policy_match'), ('policy_anything', 'policy_anything'), )
-ACTIONS    = ( ('create', 'Create a new certificate'),
+ACTIONS    = ( ('create', 'Create certificate'),
                ('update', 'Update description and export options'),
-               ('revoke', 'Revoke certificate. May break chain'),
-               ('renew',  'Renew CSR but name, CN and key stay the same. Doesn\'t break chains'),
+               ('revoke', 'Revoke certificate'),
+               ('renew',  'Renew CSR (CN and key are kept)'),
              )
 CA_TYPES   = ( ('RootCA', 'self-signed (RootCA)'), ('SubCA', 'SubCA'), )
 EXTENSIONS = ( ('v3_server_cert', 'V3 Server'), ('v3_client_cert', 'V3 Client' ), )
@@ -268,7 +268,7 @@ class CertificateBase(models.Model):
     
     def CA_Clock(self):
         """"""
-        return '<div id="clock"></div>'
+        return '<div id="clock_container"><img src="%spki/img/clock-frame.png" style="margin-right:5px"/><span id="clock"></span></div>' % MEDIA_URL
     
     CA_Clock.allow_tags = True
     CA_Clock.short_description = "CA clock"
