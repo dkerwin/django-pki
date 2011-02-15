@@ -344,10 +344,63 @@ class CertificateAuthority(CertificateBase):
                     action.remove_der_encoded()
                 
                 prev.der_encoded = self.der_encoded
-                    
-                if self.action == 'revoke':
-                    if not self.parent:
-                        raise Exception( "You cannot revoke a self-signed certificate! No parent => No revoke" )
+                
+                if self.action in ('revoke', 'renew'):
+                    if self.action == 'revoke':
+                        if not self.parent:
+                            raise Exception( "You cannot revoke a self-signed certificate! No parent => No revoke" )
+                        
+                        ## Revoke and generate CRL
+                        action.revoke_certificate(self.parent_passphrase)
+                        action.generate_crl(self.parent.name, self.parent_passphrase)
+                        
+                        ## Modify fields
+                        prev.parent_passphrase = None
+                        prev.active            = False
+                        prev.der_encoded       = False
+                        prev.pem_encoded       = False
+                        prev.revoked           = datetime.datetime.now()
+                        
+                    elif self.action == 'renew':
+                        ## Revoke if certificate is active
+                        if self.parent and not action.get_revoke_status_from_cert():
+                            action.revoke_certificate(self.parent_passphrase)
+                            action.generate_crl(self.parent.name, self.parent_passphrase)
+                        
+                        ## Rebuild the ca metadata
+                        self.rebuild_ca_metadata(modify=True, task='replace')
+                        
+                        ## Renew certificate and update CRL
+                        if self.parent == None:
+                            action.generate_self_signed_cert()
+                            action.generate_crl(self.name, self.passphrase)
+                        else:
+                            action.generate_csr()
+                            action.sign_csr()
+                            action.generate_crl(self.parent.name, self.parent_passphrase)
+                        
+                        action.update_ca_chain_file()
+                        
+                        ## Modify fields
+                        prev.created = datetime.datetime.now()
+                        delta = datetime.timedelta(self.valid_days)
+                        prev.expiry_date = datetime.datetime.now() + delta
+                        prev.valid_days = self.valid_days
+                        
+                        prev.parent_passphrase = None
+                        prev.active            = True
+                        prev.pem_encoded       = True
+                        prev.der_encoded       = self.der_encoded
+                        prev.revoked           = None
+                        
+                        ## Make sure possibly updated fields are saved to DB
+                        prev.country      = self.country
+                        prev.locality     = self.locality
+                        prev.organization = self.organization
+                        prev.email        = self.email
+                        
+                        ## Get the new serial
+                        prev.serial = action.get_serial_from_cert()
                     
                     ## DB-revoke all related certs
                     garbage = []
@@ -374,59 +427,6 @@ class CertificateAuthority(CertificateBase):
                         x.revoked     = datetime.datetime.now()
                         
                         super(CertificateAuthority, x).save(*args, **kwargs)
-                    
-                    ## Revoke and generate CRL
-                    action.revoke_certificate(self.parent_passphrase)
-                    action.generate_crl(self.parent.name, self.parent_passphrase)
-                    
-                    ## Modify fields
-                    prev.parent_passphrase = None
-                    prev.active            = False
-                    prev.der_encoded       = False
-                    prev.pem_encoded       = False
-                    prev.revoked           = datetime.datetime.now()
-                    
-                elif self.action == 'renew':
-                    ## Revoke if certificate is active
-                    if self.parent and not action.get_revoke_status_from_cert():
-                        action.revoke_certificate(self.parent_passphrase)
-                        action.generate_crl(self.parent.name, self.parent_passphrase)
-                    
-                    ## Rebuild the ca metadata
-                    self.rebuild_ca_metadata(modify=True, task='replace')
-                    
-                    ## Renew certificate and update CRL
-                    if self.parent == None:
-                        action.generate_self_signed_cert()
-                        action.generate_crl(self.name, self.passphrase)
-                    else:
-                        action.generate_csr()
-                        action.sign_csr()
-                        action.generate_crl(self.parent.name, self.parent_passphrase)
-                    
-                    action.update_ca_chain_file()
-                    
-                    ## Modify fields
-                    prev.created = datetime.datetime.now()
-                    delta = datetime.timedelta(self.valid_days)
-                    prev.expiry_date = datetime.datetime.now() + delta
-                    prev.valid_days = self.valid_days
-                    
-                    prev.parent_passphrase = None
-                    prev.active            = True
-                    prev.pem_encoded       = True
-                    prev.der_encoded       = self.der_encoded
-                    prev.revoked           = None
-                    
-                    ## Make sure possibly updated fields are saved to DB
-                    prev.country      = self.country
-                    prev.locality     = self.locality
-                    prev.organization = self.organization
-                    prev.email        = self.email
-                    
-                    ## Get the new serial
-                    prev.serial = action.get_serial_from_cert()
-                
                 ## Save the data
                 self = prev
                 self.action = 'update'
