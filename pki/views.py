@@ -166,8 +166,9 @@ def pki_refresh_metadata(request):
     Renders openssl.conf template and cleans PKI_DIR.
     """
     
-    refresh_pki_metadata(list(CertificateAuthority.objects.all()))
-    request.user.message_set.create(message='Successfully refreshed PKI metadata.')
+    ca_objects = list(CertificateAuthority.objects.all())
+    refresh_pki_metadata(ca_objects)
+    request.user.message_set.create(message='Successfully refreshed PKI metadata (%d certificate authorities)' % len(ca_objects))
     
     back = request.META.get('HTTP_REFERER', None) or '/'
     return HttpResponseRedirect(back)
