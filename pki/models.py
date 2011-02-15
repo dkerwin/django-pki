@@ -113,6 +113,17 @@ class CertificateBase(models.Model):
     ## Changelist list_display functions
     ##------------------------------------------------------------------##
     
+    def State(self):
+        """Overwrite the Booleanfield admin for admin's changelist"""
+        
+        if self.active is True:
+            return self.get_pki_icon_html('icon-yes.gif', "Certificate is valid", "Certificate is valid", css="", id="active_%d" % self.pk) + " <strong>/ valid</strong>"
+        else:
+            return self.get_pki_icon_html('icon-no.gif', "Certificate is revoked", "Certificate is revoked", css="", id="active_%d" % self.pk) + " <strong>/ revoked</strong>"
+    
+    State.allow_tags = True
+    State.short_description = 'State'
+    
     def Valid_center(self):
         """Overwrite the Booleanfield admin for admin's changelist"""
         

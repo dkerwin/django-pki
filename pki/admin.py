@@ -56,7 +56,7 @@ class Certificate_Authority_Admin(admin.ModelAdmin):
     radio_fields       = { "action": admin.VERTICAL }
     search_fields      = [ 'name', 'common_name', 'description' ]
     date_hierarchy     = 'created'
-    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'Revocation_date', 'serial', 'Chain', 'Certificate_Dump', 'CA_Clock', )
+    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'Revocation_date', 'serial', 'Chain', 'Certificate_Dump', 'CA_Clock', 'State', )
     exclude            = ( 'pf_encrypted', 'pem_encoded', )
     fieldsets          = ( ( 'Define action',    { 'fields': ( 'action', ), }, ),
                            ( 'Documentation',    { 'fields': ( 'description', ),
@@ -67,8 +67,8 @@ class Certificate_Authority_Admin(admin.ModelAdmin):
                                                    'classes': [ 'collapse', 'wide', ],
                                                  },
                            ),
-                           ( 'Certificate',      { 'fields': ( 'common_name', 'name', 'country', 'state', 'locality', 'organization', 'OU',
-                                                               'email', 'key_length', 'valid_days', 'passphrase', 'passphrase_verify',
+                           ( 'Certificate',      { 'fields': ( 'State', 'common_name', 'name', 'country', 'state', 'locality', 'organization',
+                                                               'OU', 'email', 'key_length', 'valid_days', 'passphrase', 'passphrase_verify',
                                                                'serial', 'Expiry_date', 'Creation_date', 'Revocation_date',
                                                              ),
                                                    'classes': [ 'wide', ],
@@ -113,7 +113,7 @@ class Certificate_Admin(admin.ModelAdmin):
     list_filter        = ( 'parent', 'active', )
     search_fields      = [ 'name', 'description' ]
     date_hierarchy     = 'created'
-    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'Revocation_date', 'serial', 'Chain', 'Certificate_Dump', 'CA_Clock', )
+    readonly_fields    = ( 'Expiry_date', 'Creation_date', 'Revocation_date', 'serial', 'Chain', 'Certificate_Dump', 'CA_Clock', 'State', )
     exclude            = ( 'pf_encrypted', )
     fieldsets          = ( ( 'Define action',   { 'fields': ( 'action', ) } ),
                            ( 'Documentation',   { 'fields': ( 'description', ),
@@ -124,8 +124,8 @@ class Certificate_Admin(admin.ModelAdmin):
                                                    'classes': [ 'collapse', 'wide', ],
                                                  },
                            ),
-                           ( 'Certificate',     { 'fields': ( 'common_name', 'name', 'country', 'state', 'locality', 'organization', 'OU',
-                                                              'email', 'key_length', 'cert_extension', 'valid_days', 'passphrase',
+                           ( 'Certificate',     { 'fields': ( 'State', 'common_name', 'name', 'country', 'state', 'locality', 'organization',
+                                                               'OU', 'email', 'key_length', 'cert_extension', 'valid_days', 'passphrase',
                                                               'passphrase_verify', 'serial', 'Expiry_date', 'Creation_date', 'Revocation_date',
                                                             ),
                                                   'classes': [ 'wide', ],
