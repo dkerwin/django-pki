@@ -5,6 +5,8 @@ from shutil import rmtree
 
 from django.db import models
 from django.core import urlresolvers
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.models import User
 
 from pki.openssl import Openssl, md5_constructor, refresh_pki_metadata
 from pki.settings import ADMIN_MEDIA_PREFIX, MEDIA_URL, PKI_BASE_URL, PKI_DEFAULT_COUNTRY, PKI_ENABLE_GRAPHVIZ, PKI_ENABLE_EMAIL
@@ -645,6 +647,11 @@ class Certificate(CertificateBase):
     def save(self, *args, **kwargs):
         """Save the Certificate object"""
         
+        ## Variables to track changes
+        c_action = self.action
+        c_user   = self.user
+        c_list   = []
+        
         if self.pk:
             if self.action in ('update', 'revoke', 'renew'):
                 
@@ -732,8 +739,6 @@ class Certificate(CertificateBase):
                 ## Save the data
                 self = prev
                 self.action = 'update'
-                
-                super(Certificate, self).save(*args, **kwargs)
         else:
             ## Set creation data
             self.created = datetime.datetime.now()
@@ -785,8 +790,14 @@ class Certificate(CertificateBase):
             
             self.parent_passphrase = None
             
-            ## Save the data
-            super(Certificate, self).save(*args, **kwargs)
+            ## Set change text to fixed value
+            c_list.append('Created certificate "%s"' % action.subj)
+        
+        ## Save the data
+        super(Certificate, self).save(*args, **kwargs)
+        
+        ## Update changelog
+        PkiChangelog(model_id=ContentType.objects.get_for_model(self).pk, object_id=self.pk, action=c_action, user=c_user, changes="; ".join(c_list)).save()
     
     def delete(self, passphrase, *args, **kwargs):
         """Delete the Certificate object"""
@@ -803,4 +814,12 @@ class Certificate(CertificateBase):
         ## Call the "real" delete function
         super(Certificate, self).delete(*args, **kwargs)
 
+class PkiChangelog(models.Model):
+    """Changlog for changes on the PKI. Overrides the builtin admin history"""
     
+    model_id    = models.IntegerField()
+    object_id   = models.IntegerField()
+    action_time = models.DateTimeField(auto_now=True)
+    action      = models.CharField(max_length=64)
+    user        = models.ForeignKey(User)
+    changes     = models.TextField()

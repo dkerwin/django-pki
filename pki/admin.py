@@ -98,6 +98,12 @@ class Certificate_Authority_Admin(admin.ModelAdmin):
             return db_field.formfield(**kwargs)
         
         return super(Certificate_Authority_Admin, self).formfield_for_foreignkey(db_field, request, **kwargs)
+    
+    def save_model(self, request, obj, form, change):
+        """Override builtin save_model function to pass user to model save"""
+        
+        obj.user = request.user
+        obj.save()
 
 admin.site.register(CertificateAuthority, Certificate_Authority_Admin)
 
@@ -160,6 +166,12 @@ class Certificate_Admin(admin.ModelAdmin):
             return db_field.formfield(**kwargs)
         
         return super(Certificate_Authority_Admin, self).formfield_for_foreignkey(db_field, request, **kwargs)
+    
+    def save_model(self, request, obj, form, change):
+        """Override builtin save_model function to pass user to model save"""
+        
+        obj.user = request.user
+        obj.save()
 
 admin.site.register(Certificate, Certificate_Admin)
 admin.site.disable_action('delete_selected')

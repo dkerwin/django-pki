@@ -178,6 +178,25 @@ def pki_refresh_metadata(request):
 ##------------------------------------------------------------------##
 
 @login_required
+def admin_history(request, model, id):
+    """Overwrite the default admin history view"""
+    
+    from django.contrib.contenttypes.models import ContentType
+    from pki.models import PkiChangelog
+    
+    ct  = ContentType.objects.get(model=model)
+    model_obj = ct.model_class()
+    obj = model_obj.objects.get(pk=id)
+    
+    changelogs = PkiChangelog.objects.filter(model_id=ct.pk).filter(object_id=id)
+    
+    return render_to_response('admin/pki/object_history.html', { 'changelogs': changelogs, 'title': "Change history: %s" % obj.name,
+                                                                 'app_label': model_obj._meta.app_label, 'object': obj,
+                                                                 'module_name': model_obj._meta.verbose_name_plural,
+                                                                }, RequestContext(request))
+
+
+@login_required
 def admin_delete(request, model, id):
     """Overwite the default admin delete view"""
     
