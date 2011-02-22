@@ -232,11 +232,11 @@ Initialize database
 
 * Create django-pki tables. This is a south migration::
     
-    $ python manage.py migrate
+    $ python manage.py migrate pki
     Running migrations for pki:
-     - Migrating forwards to 0002_auto__add_field_certificateauthority_crl_distribution.
+     - Migrating forwards to 0003_auto__add_pkichangelog.
      > pki:0001_initial
      > pki:0002_auto__add_field_certificateauthority_crl_distribution
+     > pki:0003_auto__add_pkichangelog
      - Loading initial data for pki.
     No fixtures found.
-

@@ -207,50 +207,47 @@ class CertificateForm(forms.ModelForm):
 ## Dynamic forms
 ##------------------------------------------------------------------##
 
-class CaPassphraseForm(forms.Form):
-    passphrase = forms.CharField(max_length=100, widget=forms.PasswordInput)
-    ca_id      = forms.CharField(widget=forms.HiddenInput, required=True)
+class DeleteForm(forms.Form):
+    """Deletion form base class"""
     
-    def clean(self):
-        """Verify crucial fields"""
-        
-        cleaned_data = self.cleaned_data
-        passphrase   = cleaned_data.get('passphrase')
-        
-        if passphrase: 
-            e_passphrase = md5_constructor(cleaned_data.get('passphrase')).hexdigest()
-            ca_id        = cleaned_data.get('ca_id')
-            ca           = CertificateAuthority.objects.get(pk=ca_id)
-            
-            if ca.passphrase != e_passphrase:
-                self._errors["passphrase"] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA "%s"' % ca])
-        else:
-            self._errors["passphrase"] = ErrorList(['Passphrase is missing!'])
-        
-        return cleaned_data
-
-class CertPassphraseForm(forms.Form):
-    """Special form to handle the deletion of self-signen non CA certificates"""
-    
+    _model    = forms.CharField(widget=forms.HiddenInput, required=True)
+    _id       = forms.CharField(widget=forms.HiddenInput, required=True)
     passphrase = forms.CharField(max_length=100, widget=forms.PasswordInput, required=False)
-    cert_id    = forms.CharField(widget=forms.HiddenInput)
     
     def clean(self):
-        """Field verify"""
+        """Let's veridfy the given passphrase"""
         
         cleaned_data = self.cleaned_data
-        passphrase   = cleaned_data.get('passphrase')
-        cert_id      = cleaned_data.get('cert_id')
         
-        item = get_object_or_404(Certificate, pk=cert_id)
+        model  = cleaned_data.get('_model')
+        obj_id = cleaned_data.get('_id')
+        pf_raw = cleaned_data.get('passphrase')
         
-        if passphrase:
-            e_passphrase = md5_constructor(cleaned_data.get('passphrase')).hexdigest()
-            
-            if item.passphrase != e_passphrase:
-                self._errors["passphrase"] = ErrorList(['Passphrase is wrong. Enter correct passphrase for self-signed certificate "%s"' % item.name])
+        if not pf_raw or pf_raw == '':
+            pf_in = ''
         else:
-            if item.passphrase and item.passphrase != '':
+            pf_in = md5_constructor(pf_raw).hexdigest()
+        
+        if model == "certificateauthority":
+            obj = get_object_or_404(CertificateAuthority, pk=obj_id)
+            
+            if not pf_in or pf_in == "":
                 self._errors["passphrase"] = ErrorList(['Passphrase is missing!'])
+                return cleaned_data
+        elif model == "certificate":
+            obj = get_object_or_404(Certificate, pk=obj_id)
+            
+            if not obj.parent and not obj.passphrase:
+                return cleaned_data
+        else:
+            raise Http404
+            
+        if obj.parent:
+            pf_obj = obj.parent.passphrase
+        else:
+            pf_obj = obj.passphrase
+        
+        if pf_in != pf_obj:
+            self._errors["passphrase"] = ErrorList(['Passphrase is wrong!'])
         
         return cleaned_data

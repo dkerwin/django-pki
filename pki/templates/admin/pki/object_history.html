@@ -14,6 +14,7 @@
 {% block content %}
 <div id="content-main">
 <div class="module">
+    <p />
     <table id="change-history">
         <thead>
         <tr>
@@ -26,7 +27,7 @@
         <tbody>
         {% if changelogs %}
         {% for c in changelogs %}
-        <tr>
+        <tr class="{% cycle 'row1' 'row2' %}">
             <th scope="row">{{ c.action_time|date:"DATETIME_FORMAT" }}</th>
             <td>{{ c.user.username }}{% if c.user.get_full_name %} ({{ c.user.get_full_name }}){% endif %}</td>
             <td>{{ c.action }}</td>

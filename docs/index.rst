@@ -17,6 +17,21 @@ This project aims to simplify the installation and management of your personal C
 * Creation and export of PEM, PKCS12 and DER encoded versions
 * Revoke and renew of certificates
 
+Online Resources
+================
+
+Sourcecode repository:
+    https://github.com/dkerwin/django-pki/
+
+Documentation:
+    http://dkerwin.github.com/django-pki/
+
+Issue tracker:
+    https://github.com/dkerwin/django-pki/issues
+
+Discussion:
+    http://groups.google.com/group/django-pki
+
 Getting started
 ===============
 

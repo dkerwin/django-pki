@@ -11,7 +11,7 @@ Prequisites
 * Django framework (>=1.2 is recommended)
 * A RDBMS of your choice (MySQL, PostgreSQL, SQLite, Oracle)
 * `OpenSSL <http://openssl.org/>`_
-* Optional `Jquery library <http://jquery.com/>`_ (djago-pki already shipped with built-in jquery-1.5)
+* Optional `jQuery library <http://jquery.com/>`_ (djago-pki already shipped with built-in jquery-1.5)
 * `Graphviz <http://www.graphviz.org/>`_ + `pygraphviz <http://networkx.lanl.gov/pygraphviz/>`_ (Tree viewer and object locator requirement)
 * zipfile Python library (Shipped with python)
 * `south library <http://south.aeracode.org/>`_

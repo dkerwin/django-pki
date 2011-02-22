@@ -104,7 +104,7 @@ class Certificate_Authority_Admin(admin.ModelAdmin):
         
         obj.user = request.user
         obj.save()
-
+    
 admin.site.register(CertificateAuthority, Certificate_Authority_Admin)
 
 class Certificate_Admin(admin.ModelAdmin):
@@ -172,7 +172,7 @@ class Certificate_Admin(admin.ModelAdmin):
         
         obj.user = request.user
         obj.save()
-
+    
 admin.site.register(Certificate, Certificate_Admin)
 admin.site.disable_action('delete_selected')
 

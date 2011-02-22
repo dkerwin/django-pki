@@ -97,7 +97,7 @@ class CertificateBase(models.Model):
     ## Helper functions
     ##------------------------------------------------------------------##
     
-    def get_pki_icon_html(self, img, alt="", title="", css="centered", id=""):
+    def get_pki_icon_html(self, img, title="", css="centered", id=""):
         """Return HTML for given image.
         
         Can add optional alt and title parameters.
@@ -109,7 +109,7 @@ class CertificateBase(models.Model):
             css_class = ''
         
         img_path = os.path.join(PKI_BASE_URL, MEDIA_URL, 'pki/img', img)
-        return '<img id="%s" %s src="%s" alt="%s" title="%s"/>' % (id, css_class, img_path, alt, title)
+        return '<img id="%s" %s src="%s" alt="%s" title="%s"/>' % (id, css_class, img_path, title, title)
     
     ##------------------------------------------------------------------##
     ## Changelist list_display functions
@@ -118,10 +118,13 @@ class CertificateBase(models.Model):
     def State(self):
         """Overwrite the Booleanfield admin for admin's changelist"""
         
+        if not self.pk:
+            return ""
+        
         if self.active is True:
-            return self.get_pki_icon_html('icon-yes.gif', "Certificate is valid", "Certificate is valid", css="", id="active_%d" % self.pk) + " <strong>/ valid</strong>"
+            return self.get_pki_icon_html('icon-yes.gif', "Certificate is valid", css="") + " <strong>/ valid</strong>"
         else:
-            return self.get_pki_icon_html('icon-no.gif', "Certificate is revoked", "Certificate is revoked", css="", id="active_%d" % self.pk) + " <strong>/ revoked</strong>"
+            return self.get_pki_icon_html('icon-no.gif', "Certificate is revoked", css="") + " <strong>/ revoked</strong>"
     
     State.allow_tags = True
     State.short_description = 'State'
@@ -130,9 +133,9 @@ class CertificateBase(models.Model):
         """Overwrite the Booleanfield admin for admin's changelist"""
         
         if self.active is True:
-            return self.get_pki_icon_html('icon-yes.gif', "Certificate is active", "Certificate is valid", id="active_%d" % self.pk)
+            return self.get_pki_icon_html('icon-yes.gif', "Certificate is valid", id="active_%d" % self.pk)
         else:
-            return self.get_pki_icon_html('icon-no.gif', "Certificate is revoked", "Certificate is revoked", id="active_%d" % self.pk)
+            return self.get_pki_icon_html('icon-no.gif', "Certificate is revoked", id="active_%d" % self.pk)
     
     Valid_center.allow_tags = True
     Valid_center.short_description = 'Valid'
@@ -219,9 +222,9 @@ class CertificateBase(models.Model):
         
         if PKI_ENABLE_GRAPHVIZ:
             return '<a href="%s" target="_blank">%s</a>' % (urlresolvers.reverse('pki:chain', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
-                                            self.get_pki_icon_html('chain.png', "Show chain", "Show object chain", id="chain_link_%d" % self.pk))
+                                            self.get_pki_icon_html('chain.png', "Show object chain", id="chain_link_%d" % self.pk))
         else:
-            return self.get_pki_icon_html("chain.png", "Show chain", "Enable setting PKI_ENABLE_GRAPHVIZ")
+            return self.get_pki_icon_html("chain.png", "Enable setting PKI_ENABLE_GRAPHVIZ")
     
     Chain_link.allow_tags = True
     Chain_link.short_description = 'Chain'
@@ -235,16 +238,16 @@ class CertificateBase(models.Model):
         """
         
         if not PKI_ENABLE_EMAIL:
-            return self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Enable setting PKI_ENABLE_EMAIL", id="email_delivery_%d" % self.pk)
+            return self.get_pki_icon_html("mail--arrow_bw.png", "Enable setting PKI_ENABLE_EMAIL", id="email_delivery_%d" % self.pk)
         elif not self.active:
-            return self.get_pki_icon_html("mail--arrow_bw.png", "Send email", "Certificate is revoked. Disabled", id="email_delivery_%d" % self.pk)
+            return self.get_pki_icon_html("mail--arrow_bw.png", "Certificate is revoked. Disabled", id="email_delivery_%d" % self.pk)
         else:
             if self.email:
                 return '<a href="%s">%s</a>' % (urlresolvers.reverse('pki:email', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
-                                                self.get_pki_icon_html("mail--arrow.png", "Send email", "Send to '<strong>%s</strong>'" % self.email, \
+                                                self.get_pki_icon_html("mail--arrow.png", "Send to '<strong>%s</strong>'" % self.email, \
                                                                        id="email_delivery_%d" % self.pk))
             else:
-                return self.get_pki_icon_html("mail--exclamation.png", "Send email", "Certificate has no email set. Disabled", id="email_delivery_%d" % self.pk)
+                return self.get_pki_icon_html("mail--exclamation.png", "Certificate has no email set. Disabled", id="email_delivery_%d" % self.pk)
     
     Email_link.allow_tags = True
     Email_link.short_description = 'Delivery'
@@ -257,9 +260,9 @@ class CertificateBase(models.Model):
         
         if self.active:
             return '<a href="%s">%s</a>' % (urlresolvers.reverse('pki:download', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
-                                            self.get_pki_icon_html("drive-download.png", "Download", "Download certificate zip", id="download_link_%d" % self.pk))
+                                            self.get_pki_icon_html("drive-download.png", "Download certificate zip", id="download_link_%d" % self.pk))
         else:
-            return self.get_pki_icon_html("drive-download_bw.png", "Download", "Certificate is revoked. Disabled", id="download_link_%d" % self.pk)
+            return self.get_pki_icon_html("drive-download_bw.png", "Certificate is revoked. Disabled", id="download_link_%d" % self.pk)
     
     Download_link.allow_tags = True
     Download_link.short_description = 'Download'
@@ -282,7 +285,7 @@ class CertificateBase(models.Model):
     def Certificate_Dump(self):
         """Dump of the certificate"""
         
-        if self.pk:
+        if self.pk and self.active:
             a = Openssl(self)
             return "<textarea id=\"certdump\">%s</textarea>" % a.dump_certificate()
         else:
@@ -297,6 +300,16 @@ class CertificateBase(models.Model):
     
     CA_Clock.allow_tags = True
     CA_Clock.short_description = "CA clock"
+    
+    def Update_Changelog(self, obj, user, action, changes):
+        """Update changelog for given object"""
+        
+        PkiChangelog(model_id=ContentType.objects.get_for_model(obj).pk, object_id=obj.pk, action=action, user=user, changes="; ".join(changes)).save()
+    
+    def Delete_Changelog(self, obj):
+        """Delete changelogs for a given object"""
+        
+        PkiChangelog.objects.filter(model_id=ContentType.objects.get_for_model(obj).pk, object_id=obj.pk).delete()
     
 ##------------------------------------------------------------------##
 ## Certificate authority class
@@ -327,8 +340,8 @@ class CertificateAuthority(CertificateBase):
                                                                                                                                    URI:http://ca.local/ca.crl,...')
 
     class Meta:
+        db_table            = 'pki_certificateauthority'
         verbose_name_plural = 'Certificate Authorities'
-        permissions         = ( ( "can_download_ca", "Can download", ), )
     
     def __unicode__(self):
         return self.common_name
@@ -340,111 +353,126 @@ class CertificateAuthority(CertificateBase):
     def save(self, *args, **kwargs):
         """Save the CertificateAuthority object"""
         
+        ## Variables to track changes
+        c_action = self.action
+        c_user   = self.user
+        c_list   = []
+        
         if self.pk:
-            ## existing CA
             if self.action in ('update', 'revoke', 'renew'):
-                
                 action = Openssl(self)
                 prev   = CertificateAuthority.objects.get(pk=self.pk)
                 
-                ## Update description. This is always allowed
-                prev.description = self.description
+                if self.action == 'revoke':
+                    if not self.parent:
+                        raise Exception( "You cannot revoke a self-signed certificate! No parent => No revoke" )
+                    
+                    ## Revoke and generate CRL
+                    action.revoke_certificate(self.parent_passphrase)
+                    action.generate_crl(self.parent.name, self.parent_passphrase)
+                    
+                    ## Modify fields
+                    prev.active            = False
+                    prev.der_encoded       = False
+                    prev.pem_encoded       = False
+                    prev.revoked           = datetime.datetime.now()
+                    
+                    c_list.append('Revoked certificate "%s"' % self.common_name)
+                elif self.action == 'renew':
+                    c_list.append('Renewed certificate "%s"' % self.common_name)
+                    
+                    ## Revoke if certificate is active
+                    if self.parent and not action.get_revoke_status_from_cert():
+                        action.revoke_certificate(self.parent_passphrase)
+                        action.generate_crl(self.parent.name, self.parent_passphrase)
+                    
+                    ## Rebuild the ca metadata
+                    self.rebuild_ca_metadata(modify=True, task='replace')
+                    
+                    ## Renew certificate and update CRL
+                    if self.parent == None:
+                        action.generate_self_signed_cert()
+                        action.generate_crl(self.name, self.passphrase)
+                    else:
+                        action.generate_csr()
+                        action.sign_csr()
+                        action.generate_crl(self.parent.name, self.parent_passphrase)
+                    
+                    action.update_ca_chain_file()
+                    
+                    ## Modify fields
+                    prev.created = datetime.datetime.now()
+                    delta = datetime.timedelta(self.valid_days)
+                    prev.expiry_date = datetime.datetime.now() + delta
+                    
+                    if prev.valid_days != self.valid_days:
+                        c_list.append("Changed valid days to %d" % (prev.valid_days, self.valid_days))
+                    
+                    prev.valid_days  = self.valid_days
+                    prev.active      = True
+                    prev.pem_encoded = True
+                    prev.revoked     = None
+                    
+                    ## Make sure possibly updated fields are saved to DB
+                    if prev.country != self.country: c_list.append('Updated country to "%s"' % self.country)
+                    if prev.locality != self.locality: c_list.append('Updated locality to "%s"' % self.locality)
+                    if prev.organization != self.organization: c_list.append('Updated organization to "%s"' % self.organization)
+                    if prev.email != self.email: c_list.append('Updated email to "%s"' % self.email)
+                    if prev.OU != self.OU: c_list.append('Updated OU to "%s"' % self.OU)
+                    
+                    prev.country      = self.country
+                    prev.locality     = self.locality
+                    prev.organization = self.organization
+                    prev.email        = self.email
+                    prev.OU           = self.OU
+                    
+                    ## Get the new serial
+                    prev.serial = action.get_serial_from_cert()
+                    c_list.append("Serial number changed to %s" % prev.serial)
                 
-                ## Create or remove DER certificate. Doesn't hurt to do this anyway
-                if self.der_encoded:
+                ## DB-revoke all related certs
+                garbage = []
+                id_dict = { 'cert': [], 'ca': [], }
+                
+                from pki.views import chain_recursion as r_chain_recursion
+                r_chain_recursion(self.id, garbage, id_dict)
+                
+                for i in id_dict['cert']:
+                    x = Certificate.objects.get(pk=i)
+                    x.active         = False
+                    x.der_encoded    = False
+                    x.pem_encoded    = False
+                    x.pkcs12_encoded = False
+                    x.revoked        = datetime.datetime.now()
+                    
+                    super(Certificate, x).save(*args, **kwargs)
+                    self.Update_Changelog(obj=x, user=c_user, action='broken', changes=(['Broken by %s of CA "%s"' % (c_action, self.common_name),]))
+                
+                for i in id_dict['ca']:
+                    x = CertificateAuthority.objects.get(pk=i)
+                    x.active      = False
+                    x.der_encoded = False
+                    x.pem_encoded = False
+                    x.revoked     = datetime.datetime.now()
+                    
+                    super(CertificateAuthority, x).save(*args, **kwargs)
+                    if x.pk != self.pk:
+                        self.Update_Changelog(obj=x, user=c_user, action='broken', changes=(['Broken by %s of CA "%s"' % (c_action, self.common_name),]))
+                
+                ## Update description. This is always allowed
+                if prev.description != self.description:
+                    c_list.append('Updated description to "%s"' % self.description)
+                
+                if prev.der_encoded is not self.der_encoded:
+                    c_list.append("DER encoding set to %s" % self.der_encoded)
+                
+                if self.der_encoded and self.action != "revoke":
                     action.generate_der_encoded()
                 else:
                     action.remove_der_encoded()
                 
-                prev.der_encoded = self.der_encoded
-                
-                if self.action in ('revoke', 'renew'):
-                    if self.action == 'revoke':
-                        if not self.parent:
-                            raise Exception( "You cannot revoke a self-signed certificate! No parent => No revoke" )
-                        
-                        ## Revoke and generate CRL
-                        action.revoke_certificate(self.parent_passphrase)
-                        action.generate_crl(self.parent.name, self.parent_passphrase)
-                        
-                        ## Modify fields
-                        prev.parent_passphrase = None
-                        prev.active            = False
-                        prev.der_encoded       = False
-                        prev.pem_encoded       = False
-                        prev.revoked           = datetime.datetime.now()
-                        
-                    elif self.action == 'renew':
-                        ## Revoke if certificate is active
-                        if self.parent and not action.get_revoke_status_from_cert():
-                            action.revoke_certificate(self.parent_passphrase)
-                            action.generate_crl(self.parent.name, self.parent_passphrase)
-                        
-                        ## Rebuild the ca metadata
-                        self.rebuild_ca_metadata(modify=True, task='replace')
-                        
-                        ## Renew certificate and update CRL
-                        if self.parent == None:
-                            action.generate_self_signed_cert()
-                            action.generate_crl(self.name, self.passphrase)
-                        else:
-                            action.generate_csr()
-                            action.sign_csr()
-                            action.generate_crl(self.parent.name, self.parent_passphrase)
-                        
-                        action.update_ca_chain_file()
-                        
-                        ## Modify fields
-                        prev.created = datetime.datetime.now()
-                        delta = datetime.timedelta(self.valid_days)
-                        prev.expiry_date = datetime.datetime.now() + delta
-                        prev.valid_days = self.valid_days
-                        
-                        prev.parent_passphrase = None
-                        prev.active            = True
-                        prev.pem_encoded       = True
-                        prev.der_encoded       = self.der_encoded
-                        prev.revoked           = None
-                        
-                        ## Make sure possibly updated fields are saved to DB
-                        prev.country      = self.country
-                        prev.locality     = self.locality
-                        prev.organization = self.organization
-                        prev.email        = self.email
-                        
-                        ## Get the new serial
-                        prev.serial = action.get_serial_from_cert()
-                    
-                    ## DB-revoke all related certs
-                    garbage = []
-                    id_dict = { 'cert': [], 'ca': [], }
-                    
-                    from pki.views import chain_recursion as r_chain_recursion
-                    r_chain_recursion(self.id, garbage, id_dict)
-                    
-                    for i in id_dict['cert']:
-                        x = Certificate.objects.get(pk=i)
-                        x.active         = False
-                        x.der_encoded    = False
-                        x.pem_encoded    = False
-                        x.pkcs12_encoded = False
-                        x.revoked        = datetime.datetime.now()
-                        
-                        super(Certificate, x).save(*args, **kwargs)
-                    
-                    for i in id_dict['ca']:
-                        x = CertificateAuthority.objects.get(pk=i)
-                        x.active      = False
-                        x.der_encoded = False
-                        x.pem_encoded = False
-                        x.revoked     = datetime.datetime.now()
-                        
-                        super(CertificateAuthority, x).save(*args, **kwargs)
-                ## Save the data
                 self = prev
                 self.action = 'update'
-                
-                super(CertificateAuthority, self).save(*args, **kwargs)
             else:
                 raise Exception( 'Invalid action %s supplied' % self.action )
         else:
@@ -508,15 +536,22 @@ class CertificateAuthority(CertificateBase):
                     chain_str += '&nbsp;&rarr;&nbsp;%s' % i
             
             self.ca_chain = chain_str
-            
             action.update_ca_chain_file()
             
             ## Encrypt passphrase and blank parent's passphrase
             self.passphrase = md5_constructor(self.passphrase).hexdigest()
-            self.parent_passphrase = None
             
+            ## Set change text to fixed value
+            c_list.append('Created certificate "%s"' % self.common_name)
+        
+        ## Blank parent passphrase
+        self.parent_passphrase = None
+        
         ## Save the data
         super(CertificateAuthority, self).save(*args, **kwargs)
+        
+        ## Update changelog
+        self.Update_Changelog(obj=self, user=c_user, action=c_action, changes=c_list)
     
     def delete(self, passphrase, *args, **kwargs):
         """Delete the CertificateAuthority object"""
@@ -558,6 +593,9 @@ class CertificateAuthority(CertificateBase):
         ## Rebuild the ca metadata
         self.rebuild_ca_metadata(modify=True, task='exclude')
         
+        ## Remove object history
+        self.Delete_Changelog(obj=self)
+        
         ## Call the "real" delete function
         super(CertificateAuthority, self).delete(*args, **kwargs)
     
@@ -592,9 +630,9 @@ class CertificateAuthority(CertificateBase):
         
         if PKI_ENABLE_GRAPHVIZ:
             return '<a href="%s" target="_blank">%s</a>' % (urlresolvers.reverse('pki:tree', kwargs={'id': self.pk}), \
-                                                            self.get_pki_icon_html("tree.png", "Show full CA tree", "Show CA tree", id="tree_link_%d" % self.pk))
+                                                            self.get_pki_icon_html("tree.png", "Show CA tree", id="tree_link_%d" % self.pk))
         else:
-            return self.get_pki_icon_html("tree_disabled.png", "Enable setting PKI_ENABLE_GRAPHVIZ", "Enable setting PKI_ENABLE_GRAPHVIZ")
+            return self.get_pki_icon_html("tree_disabled.png", "Enable setting PKI_ENABLE_GRAPHVIZ")
     
     Tree_link.allow_tags = True
     Tree_link.short_description = 'Tree'
@@ -603,10 +641,10 @@ class CertificateAuthority(CertificateBase):
         """Show associated client certificates"""
         
         if self.subcas_allowed:
-            return self.get_pki_icon_html("blue-document-tree_bw.png", "No children", "No children", id="show_child_certs_%d" % self.pk)
+            return self.get_pki_icon_html("blue-document-tree_bw.png", "No children", id="show_child_certs_%d" % self.pk)
         else:
             return "<a href=\"%s\" target=\"_blank\">%s</a>" % ('?'.join([urlresolvers.reverse('admin:pki_certificate_changelist'), 'parent__id__exact=%d' % self.pk]), \
-                                                                self.get_pki_icon_html("blue-document-tree.png", "Show child certificates", "Show child certificates", \
+                                                                self.get_pki_icon_html("blue-document-tree.png", "Show child certificates", \
                                                                                        id="show_child_certs_%d" % self.pk))
     
     Child_certs.allow_tags = True
@@ -633,8 +671,8 @@ class Certificate(CertificateBase):
                                          combination. Refer to the official openssl documentation for details' )
 
     class Meta:
+        db_table            = 'pki_certificate'
         verbose_name_plural = 'Certificates'
-        permissions         = ( ( "can_download", "Can download certificate", ), )
         unique_together     = ( ( "name", "parent" ), ("common_name", "parent"), )
     
     def __unicode__(self):
@@ -654,59 +692,34 @@ class Certificate(CertificateBase):
         
         if self.pk:
             if self.action in ('update', 'revoke', 'renew'):
-                
                 action = Openssl(self)
                 prev   = Certificate.objects.get(pk=self.pk)
                 
-                ## Update description. This is always allowed
-                prev.description = self.description
-                
-                ## Create or remove DER certificate
-                if self.der_encoded:
-                    action.generate_der_encoded()
-                else:
-                    action.remove_der_encoded()
-                
-                prev.der_encoded    = self.der_encoded
-                
-                ## Create or remove PKCS12 certificate
-                if self.pkcs12_encoded:
-                    if prev.pkcs12_encoded and prev.pkcs12_passphrase == self.pkcs12_passphrase:
-                        logger.debug( 'PKCS12 passphrase is unchanged. Nothing to do' )
-                    else:
-                        action.generate_pkcs12_encoded()
-                else:
-                    action.remove_pkcs12_encoded()
-                    self.pkcs12_passphrase = prev.pkcs12_passphrase = None
-                
-                if self.pkcs12_passphrase:
-                    prev.pkcs12_passphrase = md5_constructor(self.pkcs12_passphrase).hexdigest()
-                else:
-                    prev.pkcs12_passphrase = None
-                
-                prev.pkcs12_encoded = self.pkcs12_encoded
-                
-                if self.action == 'revoke' and self.parent:
+                if self.action == 'revoke':
+                    if not self.parent:
+                        raise Exception( "You cannot revoke a self-signed certificate! No parent => No revoke" )
                     
                     ## Revoke and generate CRL
                     action.revoke_certificate(self.parent_passphrase)
                     action.generate_crl(self.parent.name, self.parent_passphrase)
                     
                     ## Modify fields
-                    prev.parent_passphrase = None
                     prev.active            = False
                     prev.der_encoded       = False
                     prev.pem_encoded       = False
                     prev.pkcs12_encoded    = False
                     prev.revoked           = datetime.datetime.now()
                     
+                    c_list.append('Revoked certificate "%s"' % self.common_name)
                 elif self.action == 'renew':
+                    c_list.append('Renewed certificate "%s"' % self.common_name)
                     
                     ## Revoke if certificate is active
                     if self.parent and not action.get_revoke_status_from_cert():
                         action.revoke_certificate(self.parent_passphrase)
+                        action.generate_crl(self.parent.name, self.parent_passphrase)
                     
-                    ## Renew and update CRL
+                    ## Renew certificate and update CRL
                     if self.parent == None:
                         action.generate_self_signed_cert()
                     else:
@@ -719,22 +732,60 @@ class Certificate(CertificateBase):
                     delta            = datetime.timedelta(self.valid_days)
                     prev.expiry_date = datetime.datetime.now() + delta
                     
-                    prev.parent_passphrase = None
-                    prev.active            = True
-                    prev.pem_encoded       = True
-                    prev.der_encoded       = self.der_encoded
-                    prev.pkcs12_encoded    = self.pkcs12_encoded
-                    prev.revoked           = None
-                    prev.valid_days        = self.valid_days
+                    if prev.valid_days != self.valid_days:
+                        c_list.append("Changed valid days to %d" % (prev.valid_days, self.valid_days))
+                    
+                    prev.valid_days  = self.valid_days
+                    prev.active      = True
+                    prev.pem_encoded = True
+                    prev.revoked     = None
                     
                     ## Make sure possibly updated fields are saved to DB
+                    if prev.country != self.country: c_list.append('Updated country to "%s"' % self.country)
+                    if prev.locality != self.locality: c_list.append('Updated locality to "%s"' % self.locality)
+                    if prev.organization != self.organization: c_list.append('Updated organization to "%s"' % self.organization)
+                    if prev.email != self.email: c_list.append('Updated email to "%s"' % self.email)
+                    if prev.OU != self.OU: c_list.append('Updated OU to "%s"' % self.OU)
+                    
                     prev.country      = self.country
                     prev.locality     = self.locality
                     prev.organization = self.organization
                     prev.email        = self.email
+                    prev.OU           = self.OU
                     
                     ## Get the new serial
                     prev.serial = action.get_serial_from_cert()
+                    c_list.append("Serial number changed to %s" % prev.serial)
+                    
+                    ## Encoding
+                    if prev.pkcs12_encoded != self.pkcs12_encoded:
+                        c_list.append("PKCS12 encoding set to %s" % self.der_encoded)
+                    
+                    if self.pkcs12_encoded:
+                        if prev.pkcs12_encoded and prev.pkcs12_passphrase == self.pkcs12_passphrase:
+                            logger.debug( 'PKCS12 passphrase is unchanged. Nothing to do' )
+                        else:
+                            action.generate_pkcs12_encoded()
+                    else:
+                        action.remove_pkcs12_encoded()
+                        self.pkcs12_passphrase = prev.pkcs12_passphrase = None
+                    
+                    if self.pkcs12_passphrase:
+                        prev.pkcs12_passphrase = md5_constructor(self.pkcs12_passphrase).hexdigest()
+                    else:
+                        prev.pkcs12_passphrase = None
+                    
+                    if prev.der_encoded is not self.der_encoded:
+                        c_list.append("DER encoding set to %s" % self.der_encoded)
+                    
+                    if self.der_encoded:
+                        action.generate_der_encoded()
+                    else:
+                        action.remove_der_encoded()
+                
+                ## Update description. This is always allowed
+                if prev.description != self.description:
+                    c_list.append('Updated description to "%s"' % self.description)
                 
                 ## Save the data
                 self = prev
@@ -769,35 +820,28 @@ class Certificate(CertificateBase):
             
             self.pem_encoded = True
             
-            ## Create or remove DER certificate
+            ## Encoding
             if self.der_encoded:
                 action.generate_der_encoded()
-            else:
-                action.remove_der_encoded()
             
-            ## Create or remove PKCS12 certificate
             if self.pkcs12_encoded:
                 action.generate_pkcs12_encoded()
-            else:
-                action.remove_pkcs12_encoded()
-            
-            if self.pkcs12_passphrase:
-                self.pkcs12_passphrase = md5_constructor(self.pkcs12_passphrase).hexdigest()
             
             ## Encrypt passphrase and blank parent's passphrase
             if self.passphrase:
                 self.passphrase = md5_constructor(self.passphrase).hexdigest()
             
-            self.parent_passphrase = None
-            
             ## Set change text to fixed value
             c_list.append('Created certificate "%s"' % action.subj)
+        
+        ## Blank parent passphrase
+        self.parent_passphrase = None
         
         ## Save the data
         super(Certificate, self).save(*args, **kwargs)
         
         ## Update changelog
-        PkiChangelog(model_id=ContentType.objects.get_for_model(self).pk, object_id=self.pk, action=c_action, user=c_user, changes="; ".join(c_list)).save()
+        self.Update_Changelog(obj=self, user=c_user, action=c_action, changes=c_list)
     
     def delete(self, passphrase, *args, **kwargs):
         """Delete the Certificate object"""
@@ -811,6 +855,9 @@ class Certificate(CertificateBase):
         
         a.remove_complete_certificate()
         
+        ## Remove object history
+        self.Delete_Changelog(obj=self)
+        
         ## Call the "real" delete function
         super(Certificate, self).delete(*args, **kwargs)
 
@@ -821,5 +868,12 @@ class PkiChangelog(models.Model):
     object_id   = models.IntegerField()
     action_time = models.DateTimeField(auto_now=True)
     action      = models.CharField(max_length=64)
-    user        = models.ForeignKey(User)
+    user        = models.ForeignKey(User, blank=True, null=True)
     changes     = models.TextField()
+    
+    class Meta:
+        db_table = 'pki_changelog'
+        ordering = ['-action_time']
+    
+    def __unicode__(self):
+        return str(self.pk)

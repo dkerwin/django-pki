@@ -58,9 +58,9 @@ class CertificateAuthorityTestCase(unittest.TestCase):
         
         
         openssl.refresh_pki_metadata([self.rca, self.ica, self.sca])
-        self.rca_action = openssl.OpensslActions(self.rca)
-        self.ica_action = openssl.OpensslActions(self.ica)
-        self.sca_action = openssl.OpensslActions(self.sca)
+        self.rca_action = openssl.Openssl(self.rca)
+        self.ica_action = openssl.Openssl(self.ica)
+        self.sca_action = openssl.Openssl(self.sca)
     
     def test_001_OpensslExec(self):
         self.assertTrue(self.rca_action.exec_openssl(['version'], None))

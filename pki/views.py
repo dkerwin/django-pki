@@ -10,7 +10,7 @@ from django.core import urlresolvers
 
 from pki.settings import PKI_LOG, MEDIA_URL, PKI_ENABLE_GRAPHVIZ, PKI_ENABLE_EMAIL
 from pki.models import CertificateAuthority, Certificate
-from pki.forms import CaPassphraseForm, CertPassphraseForm
+from pki.forms import DeleteForm
 from pki.graphviz import ObjectChain, ObjectTree
 from pki.email import SendCertificateData
 from pki.helper import files_for_object, chain_recursion, build_delete_item, generate_temp_file, build_zip_for_object
@@ -190,11 +190,10 @@ def admin_history(request, model, id):
     
     changelogs = PkiChangelog.objects.filter(model_id=ct.pk).filter(object_id=id)
     
-    return render_to_response('admin/pki/object_history.html', { 'changelogs': changelogs, 'title': "Change history: %s" % obj.name,
+    return render_to_response('admin/pki/object_history.html', { 'changelogs': changelogs, 'title': "Change history: %s" % obj.common_name,
                                                                  'app_label': model_obj._meta.app_label, 'object': obj,
                                                                  'module_name': model_obj._meta.verbose_name_plural,
                                                                 }, RequestContext(request))
-
 
 @login_required
 def admin_delete(request, model, id):
@@ -243,28 +242,22 @@ def admin_delete(request, model, id):
         ## Fill the required data for delete_confirmation.html template
         opts       = Certificate._meta
         object     = item.name
-        #initial_id = initial_id
         
         ## Set the CA to verify the passphrase against
         auth_object = authentication_obj
     
     if request.method == 'POST':
-        if model == 'certificateauthority':
-            form = CaPassphraseForm(request.POST)
-        elif model == 'certificate':
-            form = CertPassphraseForm(request.POST)
+        form = DeleteForm(request.POST)
         
         if form.is_valid():
             item.delete(request.POST['passphrase'])
             request.user.message_set.create(message='The %s "%s" was deleted successfully.' % (opts.verbose_name, object))
             return HttpResponseRedirect("../../")
     else:
-        if model == 'certificateauthority':
-            form = CaPassphraseForm()
-            form.fields['ca_id'].initial = initial_id
-        elif model == 'certificate':
-            form = CertPassphraseForm()
-            form.fields['cert_id'].initial = initial_id
+        form = DeleteForm()
+        
+        form.fields['_model'].initial = model
+        form.fields['_id'].initial    = id
     
     return render_to_response('admin/pki/delete_confirmation.html', { 'deleted_objects': deleted_objects, 'object_name': opts.verbose_name,
                                                                       'app_label': opts.app_label, 'opts': opts, 'object': object, 'form': form,
