@@ -1,0 +1,256 @@
+[
+  {
+    "pk": 1, 
+    "model": "pki.keyusage", 
+    "fields": {
+      "name": "digitalSignature"
+    }
+  }, 
+  {
+    "pk": 2, 
+    "model": "pki.keyusage", 
+    "fields": {
+      "name": "nonRepudiation"
+    }
+  }, 
+  {
+    "pk": 3, 
+    "model": "pki.keyusage", 
+    "fields": {
+      "name": "keyEncipherment"
+    }
+  }, 
+  {
+    "pk": 4, 
+    "model": "pki.keyusage", 
+    "fields": {
+      "name": "dataEncipherment"
+    }
+  }, 
+  {
+    "pk": 5, 
+    "model": "pki.keyusage", 
+    "fields": {
+      "name": "keyAgreement"
+    }
+  }, 
+  {
+    "pk": 6, 
+    "model": "pki.keyusage", 
+    "fields": {
+      "name": "keyCertSign"
+    }
+  }, 
+  {
+    "pk": 7, 
+    "model": "pki.keyusage", 
+    "fields": {
+      "name": "cRLSign"
+    }
+  }, 
+  {
+    "pk": 8, 
+    "model": "pki.keyusage", 
+    "fields": {
+      "name": "encipherOnly"
+    }
+  }, 
+  {
+    "pk": 9, 
+    "model": "pki.keyusage", 
+    "fields": {
+      "name": "decipherOnly"
+    }
+  }, 
+  {
+    "pk": 1, 
+    "model": "pki.extendedkeyusage", 
+    "fields": {
+      "name": "serverAuth"
+    }
+  }, 
+  {
+    "pk": 2, 
+    "model": "pki.extendedkeyusage", 
+    "fields": {
+      "name": "clientAuth"
+    }
+  }, 
+  {
+    "pk": 3, 
+    "model": "pki.extendedkeyusage", 
+    "fields": {
+      "name": "codeSigning"
+    }
+  }, 
+  {
+    "pk": 4, 
+    "model": "pki.extendedkeyusage", 
+    "fields": {
+      "name": "emailProtection"
+    }
+  }, 
+  {
+    "pk": 5, 
+    "model": "pki.extendedkeyusage", 
+    "fields": {
+      "name": "timeStamping"
+    }
+  }, 
+  {
+    "pk": 6, 
+    "model": "pki.extendedkeyusage", 
+    "fields": {
+      "name": "msCodeInd"
+    }
+  }, 
+  {
+    "pk": 7, 
+    "model": "pki.extendedkeyusage", 
+    "fields": {
+      "name": "msCodeCom"
+    }
+  }, 
+  {
+    "pk": 8, 
+    "model": "pki.extendedkeyusage", 
+    "fields": {
+      "name": "msCTLSign"
+    }
+  }, 
+  {
+    "pk": 9, 
+    "model": "pki.extendedkeyusage", 
+    "fields": {
+      "name": "msSGC"
+    }
+  }, 
+  {
+    "pk": 10, 
+    "model": "pki.extendedkeyusage", 
+    "fields": {
+      "name": "msEFS"
+    }
+  }, 
+  {
+    "pk": 11, 
+    "model": "pki.extendedkeyusage", 
+    "fields": {
+      "name": "nsSGC"
+    }
+  }, 
+  {
+    "pk": 1, 
+    "model": "pki.x509extension", 
+    "fields": {
+      "key_usage_critical": true, 
+      "extended_key_usage_critical": false, 
+      "crl_distribution_point": false, 
+      "name": "v3_root_or_intermediate_ca", 
+      "created": "2011-02-23 08:28:24", 
+      "basic_constraints": "CA:TRUE", 
+      "authority_key_identifier": "keyid:always,issuer:always", 
+      "extended_key_usage": [], 
+      "subject_key_identifier": "hash", 
+      "key_usage": [
+        6, 
+        7
+      ], 
+      "basic_constraints_critical": true, 
+      "description": "Root or Intermediate CA which can contain sub CA's"
+    }
+  }, 
+  {
+    "pk": 2, 
+    "model": "pki.x509extension", 
+    "fields": {
+      "key_usage_critical": true, 
+      "extended_key_usage_critical": false, 
+      "crl_distribution_point": false, 
+      "name": "v3_edge_ca", 
+      "created": "2011-02-23 09:12:09", 
+      "basic_constraints": "CA:TRUE,pathlen:0", 
+      "authority_key_identifier": "keyid:always,issuer:always", 
+      "extended_key_usage": [], 
+      "subject_key_identifier": "hash", 
+      "key_usage": [
+        6, 
+        7
+      ], 
+      "basic_constraints_critical": true, 
+      "description": "Edge CA the cannot contain CA's"
+    }
+  }, 
+  {
+    "pk": 3, 
+    "model": "pki.x509extension", 
+    "fields": {
+      "key_usage_critical": true, 
+      "extended_key_usage_critical": true, 
+      "crl_distribution_point": false, 
+      "name": "v3_edge_cert_server", 
+      "created": "2011-02-24 10:13:24", 
+      "basic_constraints": "CA:FALSE", 
+      "authority_key_identifier": "keyid:always,issuer:always", 
+      "extended_key_usage": [
+        1
+      ], 
+      "subject_key_identifier": "hash", 
+      "key_usage": [
+        1, 
+        2, 
+        3
+      ], 
+      "basic_constraints_critical": true, 
+      "description": "A server edge certificate (non CA)"
+    }
+  }, 
+  {
+    "pk": 4, 
+    "model": "pki.x509extension", 
+    "fields": {
+      "key_usage_critical": true, 
+      "extended_key_usage_critical": true, 
+      "crl_distribution_point": false, 
+      "name": "v3_edge_cert_client", 
+      "created": "2011-02-24 10:15:37", 
+      "basic_constraints": "CA:FALSE", 
+      "authority_key_identifier": "keyid:always,issuer:always", 
+      "extended_key_usage": [
+        2
+      ], 
+      "subject_key_identifier": "hash", 
+      "key_usage": [
+        1, 
+        2, 
+        3
+      ], 
+      "basic_constraints_critical": true, 
+      "description": "Client edge certificates (non CA)"
+    }
+  }, 
+  {
+    "pk": 5, 
+    "model": "pki.x509extension", 
+    "fields": {
+      "key_usage_critical": true, 
+      "extended_key_usage_critical": true, 
+      "crl_distribution_point": false, 
+      "name": "v3_edge_self_signed_server", 
+      "created": "2011-02-24 10:18:14", 
+      "basic_constraints": "CA:TRUE,pathlen:0", 
+      "authority_key_identifier": "keyid:always,issuer:always", 
+      "extended_key_usage": [
+        1
+      ], 
+      "subject_key_identifier": "hash", 
+      "key_usage": [
+        1, 
+        2, 
+        3
+      ], 
+      "basic_constraints_critical": true, 
+      "description": "Self-signed server certificates"
+    }
+  }
+]

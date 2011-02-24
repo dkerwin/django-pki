@@ -98,7 +98,7 @@ def ObjectTree(object, target):
         
         c = CertificateAuthority.objects.get(id=r_id)
         
-        if c.subcas_allowed == True:
+        if not c.is_edge_ca():
             x = CertificateAuthority.objects.filter(parent__id=c.pk)
         else:
             x = [c]
@@ -113,11 +113,11 @@ def ObjectTree(object, target):
                 
                 graph.add_node(ca.common_name, shape='folder', color=col, style="bold")
                 
-                ## Prevent link to self when this is a toplevel rootca with subcas_allowed=False
+                ## Prevent link to self when this is a toplevel edge rootca
                 if ca != c:
                     graph.add_edge(c.common_name, ca.common_name, color="black", weight="4.5")
             
-            if ca.subcas_allowed == True:
+            if not ca.is_edge_ca():
                 TraverseToBottom(ca.pk, graph)
             else:
                 certs = Certificate.objects.filter(parent__id=ca.pk)

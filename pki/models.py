@@ -89,6 +89,7 @@ class CertificateBase(models.Model):
     pem_encoded  = models.BooleanField(default=False)
     der_encoded  = models.BooleanField(default=False, verbose_name="DER encoding")
     action       = models.CharField(max_length=32, choices=ACTIONS, default='create', help_text="Yellow fields can/have to be modified!")
+    extension    = models.ForeignKey(to="x509Extension", blank=True, null=True, verbose_name="x509 Extension")
     
     class Meta:
         abstract = True
@@ -324,13 +325,11 @@ class CertificateAuthority(CertificateBase):
     
     common_name       = models.CharField(max_length=64, unique=True)
     name              = models.CharField(max_length=64, unique=True, help_text="Only change the suggestion if you really know what you're doing")
-    subcas_allowed    = models.BooleanField(verbose_name="Sub CA's allowed", help_text="If enabled you cannot sign certificates with this CA")
     parent            = models.ForeignKey('self', blank=True, null=True)
     type              = models.CharField(max_length=32, null=True, choices=CA_TYPES, default='RootCA')
     passphrase        = models.CharField(max_length=255, blank=True, help_text="At least 8 characters. Remeber this passphrase - <font color='red'> \
                                                                     <strong>IT'S NOT RECOVERABLE</strong></font><br>Will be shown as md5 encrypted string")
     parent_passphrase = models.CharField(max_length=255, null=True, blank=True, help_text="Leave empty if this is a top-level CA")
-    pf_encrypted      = models.NullBooleanField()
     policy            = models.CharField(max_length=50, choices=POLICY, default='policy_anything', help_text='policy_match: All subject settings must \
                                                                                                               match the signing CA<br> \
                                                                                                               policy_anything: Nothing has to match the \
@@ -622,6 +621,11 @@ class CertificateAuthority(CertificateBase):
         ## Rebuild the CA store metadata
         refresh_pki_metadata(known_cas)
     
+    def is_edge_ca(self):
+        """Return true if the CA is a edge CA that cannot contain other CA's"""
+        
+        return "pathlen:0" in self.extension.basic_constraints.lower()
+    
     ##---------------------------------##
     ## View functions
     ##---------------------------------##
@@ -640,7 +644,7 @@ class CertificateAuthority(CertificateBase):
     def Child_certs(self):
         """Show associated client certificates"""
         
-        if self.subcas_allowed:
+        if not self.is_edge_ca():
             return self.get_pki_icon_html("blue-document-tree_bw.png", "No children", id="show_child_certs_%d" % self.pk)
         else:
             return "<a href=\"%s\" target=\"_blank\">%s</a>" % ('?'.join([urlresolvers.reverse('admin:pki_certificate_changelist'), 'parent__id__exact=%d' % self.pk]), \
@@ -649,7 +653,7 @@ class CertificateAuthority(CertificateBase):
     
     Child_certs.allow_tags = True
     Child_certs.short_description = "Children"
-    
+     
 ##------------------------------------------------------------------##
 ## Certificate class
 ##------------------------------------------------------------------##
@@ -661,11 +665,9 @@ class Certificate(CertificateBase):
     name              = models.CharField(max_length=64, help_text="Only change the suggestion if you really know what you're doing")
     parent            = models.ForeignKey('CertificateAuthority', blank=True, null=True, help_text='Leave blank to generate self-signed certificate')
     passphrase        = models.CharField(max_length=255, null=True, blank=True)
-    pf_encrypted      = models.NullBooleanField()
     parent_passphrase = models.CharField(max_length=255, blank=True, null=True)
     pkcs12_encoded    = models.BooleanField(default=False, verbose_name="PKCS#12 encoding")
     pkcs12_passphrase = models.CharField(max_length=255, verbose_name="PKCS#12 passphrase", blank=True, null=True)
-    cert_extension    = models.CharField(max_length=64, choices=EXTENSIONS, verbose_name="Purpose")
     subjaltname       = models.CharField(max_length=255, blank=True, null=True, verbose_name="SubjectAltName", \
                                          help_text='Comma seperated list of alt names. Valid are DNS:www.xyz.com, IP:1.2.3.4 and email:a@b.com in any \
                                          combination. Refer to the official openssl documentation for details' )
@@ -877,3 +879,64 @@ class PkiChangelog(models.Model):
     
     def __unicode__(self):
         return str(self.pk)
+
+class x509Extension(models.Model):
+    """x509 extensions"""
+    
+    SUBJECT_KEY_IDENTIFIER   = ( ('hash', 'hash'), )
+    AUTHORITY_KEY_IDENTIFIER = ( ('keyid:always,issuer:always', 'keyid: always, issuer: always'), )
+    BASIC_CONSTRAINTS        = ( ('CA:TRUE', 'Root or Intermediate CA (CA:TRUE)'),
+                                 ('CA:TRUE,pathlen:0', 'Edge CA (CA:TRUE, pathlen:0)'),
+                                 ('CA:FALSE', 'Enduser Certificate (CA:FALSE)'), )
+    
+    name                        = models.CharField(max_length=255, unique=True)
+    description                 = models.CharField(max_length=255)
+    created                     = models.DateTimeField(auto_now_add=True)
+    basic_constraints           = models.CharField(max_length=255, choices=BASIC_CONSTRAINTS, verbose_name="basicConstraints")
+    basic_constraints_critical  = models.BooleanField(default=True, verbose_name="Make basicConstraints critical")
+    key_usage                   = models.ManyToManyField("KeyUsage", verbose_name="keyUsage")
+    key_usage_critical          = models.BooleanField(verbose_name="Make keyUsage critical")
+    extended_key_usage          = models.ManyToManyField("ExtendedKeyUsage", blank=True, null=True, verbose_name="extendedKeyUsage")
+    extended_key_usage_critical = models.BooleanField(verbose_name="Make extendedKeyUsage critical")
+    subject_key_identifier      = models.CharField(max_length=255, choices=SUBJECT_KEY_IDENTIFIER, default="hash", verbose_name="subjectKeyIdentifier")
+    authority_key_identifier    = models.CharField(max_length=255, choices=AUTHORITY_KEY_IDENTIFIER, default="keyid:always,issuer:always", verbose_name="authorityKeyIdentifier")
+    crl_distribution_point      = models.BooleanField(verbose_name="Require CRL Distribution Point", help_text="All objects using will require a CRLDistributionPoint set")
+    
+    class Meta:
+        db_table = 'pki_x509extension'
+    
+    def __unicode__(self):
+        return self.name
+    
+    def key_usage_csv(self):
+        r = []
+        if self.key_usage_critical:
+            r.append('critical')
+        for x in self.key_usage.all():
+            r.append(x.name)
+        return ",".join(r)
+    
+    def ext_key_usage_csv(self):
+        r = []
+        if self.extended_key_usage_critical:
+            r.append('critical')
+        for x in self.extended_key_usage.all():
+            r.append(x.name)
+        return ",".join(r)
+    
+class KeyUsage(models.Model):
+    """Container table for KeyUsage"""
+    
+    name = models.CharField(max_length=64)
+    
+    def __unicode__(self):
+        return self.name
+
+class ExtendedKeyUsage(models.Model):
+    """Container table for Extended Key Usage"""
+    
+    name = models.CharField(max_length=64)
+    
+    def __unicode__(self):
+        return self.name
+    

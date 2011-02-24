@@ -7,24 +7,12 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        
-        # Adding model 'PkiChangelog'
-        db.create_table('pki_changelog', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('model_id', self.gf('django.db.models.fields.IntegerField')()),
-            ('object_id', self.gf('django.db.models.fields.IntegerField')()),
-            ('action_time', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
-            ('action', self.gf('django.db.models.fields.CharField')(max_length=64)),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'], null=True, blank=True)),
-            ('changes', self.gf('django.db.models.fields.TextField')()),
-        ))
-        db.send_create_signal('pki', ['PkiChangelog'])
+        from django.core.management import call_command
+        call_command("loaddata", "eku_and_ku.json")
 
 
     def backwards(self, orm):
-        
-        # Deleting model 'PkiChangelog'
-        db.delete_table('pki_changelog')
+        pass
 
 
     models = {
@@ -128,6 +116,11 @@ class Migration(SchemaMigration):
             'type': ('django.db.models.fields.CharField', [], {'default': "'RootCA'", 'max_length': '32', 'null': 'True'}),
             'valid_days': ('django.db.models.fields.IntegerField', [], {})
         },
+        'pki.keyusage': {
+            'Meta': {'object_name': 'KeyUsage'},
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'key_usage': ('django.db.models.fields.CharField', [], {'max_length': '64'})
+        },
         'pki.pkichangelog': {
             'Meta': {'ordering': "['-action_time']", 'object_name': 'PkiChangelog', 'db_table': "'pki_changelog'"},
             'action': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
@@ -137,6 +130,16 @@ class Migration(SchemaMigration):
             'model_id': ('django.db.models.fields.IntegerField', [], {}),
             'object_id': ('django.db.models.fields.IntegerField', [], {}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']", 'null': 'True', 'blank': 'True'})
+        },
+        'pki.x509extension': {
+            'Meta': {'object_name': 'x509Extension'},
+            'authority_key_identifier': ('django.db.models.fields.CharField', [], {'default': "'keyid:always,issuer:always'", 'max_length': '255'}),
+            'basic_constraints': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
+            'crl_distribution_point': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'key_usage': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['pki.KeyUsage']", 'symmetrical': 'False'}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
+            'subject_key_identifier': ('django.db.models.fields.CharField', [], {'default': "'hash'", 'max_length': '255'})
         }
     }
 

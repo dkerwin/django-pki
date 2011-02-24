@@ -75,8 +75,8 @@ class CertificateAuthorityForm(forms.ModelForm):
                 if p_pf: enc_p_pf = md5_constructor(p_pf).hexdigest()
                 
                 ## Check if parent allows sub CA
-                if not ca.subcas_allowed:
-                    self._errors['parent'] = ErrorList(['Parent CA %s doesn\'t allow a sub CA. Only non CA certificates can be created' % ca.name])
+                if ca.is_edge_ca():
+                    self._errors['parent'] = ErrorList(['Parent\'s x509 extension doesn\'t allow a sub CA. Only non CA certificates can be created'])
                     
                 ## Check parent passphrase if not RootCA
                 if ca.passphrase != enc_p_pf:
@@ -200,6 +200,37 @@ class CertificateForm(forms.ModelForm):
             ## Verify that pkcs12 passphrase isn't empty when encoding is requested
             if pkcs12_encoded and len(pkcs12_passphrase) < 8:
                 self._errors['pkcs12_passphrase'] = ErrorList(['PKCS12 passphrase has to be at least 8 characters long'])
+        
+        return cleaned_data
+
+class x509ExtensionForm(forms.ModelForm):
+    """Validation class for x590 Extensions form"""
+    
+    class Meta:
+        model = x509Extension
+    
+    def clean(self):
+        """Verify crucial fields"""
+        
+        cleaned_data = self.cleaned_data
+        
+        name  = cleaned_data.get('name')
+        bc    = cleaned_data.get('basic_constraints')
+        ku    = cleaned_data.get('key_usage')
+        eku   = cleaned_data.get('extended_key_usage')
+        eku_c = cleaned_data.get('extended_key_usage_critical')
+        
+        if re.search('[^a-zA-Z0-9-_\.]', name):
+                self._errors['name'] = ErrorList(['Name may only contain characters in range "a-zA-Z0-9-_\."'])
+        
+        if bc in ('root_ca', 'edge_ca'):
+            if len(eku) > 0:
+                self._errors['extended_key_usage'] = ErrorList(['You cannot set extendedKeyUsage for a CA extension'])
+            if eku_c is True:
+                self._errors['extended_key_usage_critical'] = ErrorList(['You cannot set extendedKeyUsage to critical for a CA extension'])
+        elif bc == 'enduser_cert':
+            if len(eku) < 1:
+                self._errors['extended_key_usage'] = ErrorList(['extendedKeyUsage is required for a non-CA extension'])
         
         return cleaned_data
 

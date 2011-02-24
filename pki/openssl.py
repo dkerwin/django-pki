@@ -28,7 +28,6 @@ def refresh_pki_metadata(ca_list):
 
     Each ca_list element is a dictionary:
     'name': CA name
-    'subcas_allowed': sub CAs allowed (boolean)
     """
     
     # refresh directory structure
@@ -103,11 +102,8 @@ def refresh_pki_metadata(ca_list):
                 else:
                     logger.warning('Directory %s does not contain any metadata, preserving it' % d)
         
-        # prepare context for template rendering
-        #ctx = {'ca_list': ca_list}
-    
         # render template and save result to openssl.conf
-        conf = render_to_string(PKI_OPENSSL_TEMPLATE, {'ca_list': ca_list})
+        conf = render_to_string(PKI_OPENSSL_TEMPLATE, {'ca_list': ca_list, 'x509_extensions': pki.models.x509Extension.objects.all(),})
         
         f = open(PKI_OPENSSL_CONF, 'wb')
         f.write(conf)
@@ -223,19 +219,10 @@ class Openssl():
         Serial is set to user specified value when PKI_SELF_SIGNED_SERIAL > 0
         """
         
-        try:
-            extension = self.i.cert_extension
-            extension += '_ss'
-        except:
-            if self.i.crl_distribution:
-                extension = "v3_ca_cdp"
-            else:
-                extension = "v3_ca"
-        
         logger.info("Generating new self-signed certificate (CN=%s, x509 extension=%s)" % (self.i.common_name, extension))
         
         command = ['req', '-config', PKI_OPENSSL_CONF, '-verbose', '-batch', '-new', '-x509', '-subj', self.subj, '-days', str(self.i.valid_days), \
-                   '-extensions', extension, '-key', self.key, '-out', self.crt, '-passin', 'env:%s' % self.env_pw]
+                   '-extensions', self.i.extension, '-key', self.key, '-out', self.crt, '-passin', 'env:%s' % self.env_pw]
         
         try:
             if PKI_SELF_SIGNED_SERIAL and int(PKI_SELF_SIGNED_SERIAL) > 0:
@@ -334,16 +321,8 @@ class Openssl():
         
         env = { self.env_pw: str(self.i.parent_passphrase), "S_A_N": self.i.subjaltname, }
         
-        try:
-            extension = "-extensions %s" % self.i.cert_extension
-            if self.i.crl_distribution:
-                extension += "_cdp"
-                env["C_D_P"] = self.i.crl_distribution
-        except:
-            extension = ""
-        
-        command = 'ca -config %s -name %s -batch -in %s -out %s -days %d %s -passin env:%s' % \
-                  ( PKI_OPENSSL_CONF, self.i.parent.name, self.csr, self.crt, self.i.valid_days, extension, self.env_pw)
+        command = 'ca -config %s -name %s -batch -in %s -out %s -days %d -extension %s -passin env:%s' % \
+                  ( PKI_OPENSSL_CONF, self.i.parent.name, self.csr, self.crt, self.i.valid_days, self.i.extension, self.env_pw)
         
         self.exec_openssl(command.split(), env_vars=env)
         
