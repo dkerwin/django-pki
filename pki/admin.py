@@ -1,6 +1,6 @@
 import os
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.utils.safestring import mark_safe
 from django.db.models import Q
 from django.http import HttpResponseRedirect
@@ -219,13 +219,13 @@ class x509Extension_Admin(CertificateBaseAdmin):
         x509 = x509Extension.objects.get(pk=object_id)
         if x509.certificateauthority_set.all() or x509.certificate_set.all():
             logger.error("x509 extension \"%s\" cannot be removed because it is in use!" % x509.name)
-            request.user.message_set.create(message='x509 extension \"%s\" cannot be removed because it is in use!' % x509.name)
+            messages.error(request, 'x509 extension "%s" cannot be removed because it is in use!' % x509.name)
             return HttpResponseRedirect("../../")
         else:
             return super(x509Extension_Admin, self).delete_view(request, object_id, extra_context)
     
     def response_change(self, request, obj):
-        request.user.message_set.create(message='You cannot modify x509 extensions!')
+        messages.warning(request, 'You cannot modify x509 extensions!')
         return HttpResponseRedirect("../")
     
 admin.site.register(x509Extension, x509Extension_Admin)

@@ -1,6 +1,7 @@
 import os
 import logging
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponse, Http404, HttpResponseRedirect, HttpResponseBadRequest
@@ -152,7 +153,7 @@ def pki_email(request, model, id):
     else:
         raise Http404
     
-    request.user.message_set.create(message='Email to "%s" was sent successfully.' % obj.email)
+    messages.info(request, 'Email to "%s" was sent successfully.' % obj.email)
     return HttpResponseRedirect(back)
 
 ##------------------------------------------------------------------##
@@ -168,7 +169,7 @@ def pki_refresh_metadata(request):
     
     ca_objects = list(CertificateAuthority.objects.all())
     refresh_pki_metadata(ca_objects)
-    request.user.message_set.create(message='Successfully refreshed PKI metadata (%d certificate authorities)' % len(ca_objects))
+    messages.info(request, 'Successfully refreshed PKI metadata (%d certificate authorities)' % len(ca_objects))
     
     back = request.META.get('HTTP_REFERER', None) or '/'
     return HttpResponseRedirect(back)
@@ -251,7 +252,7 @@ def admin_delete(request, model, id):
         
         if form.is_valid():
             item.delete(request.POST['passphrase'])
-            request.user.message_set.create(message='The %s "%s" was deleted successfully.' % (opts.verbose_name, object))
+            messages.info(request, 'The %s "%s" was deleted successfully.' % (opts.verbose_name, object))
             return HttpResponseRedirect("../../")
     else:
         form = DeleteForm()
