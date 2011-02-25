@@ -158,13 +158,11 @@ Configure projects urls.py
     handler500 = 'pki.views.show_exception'
 
 3. Add the following lines to urlpatterns
-    
-  .. warning:: Ensure pki.urls is specified **before** admin.site.urls
 
   ::
     
-    (r'^', include('pki.urls')),
     (r'^admin/', include(admin.site.urls)),
+    (r'^', include('pki.urls')),
 
 4. If you want to serve static files with ``./manage.py runserver`` in DEBUG mode, add the following code:
     

@@ -220,7 +220,7 @@ class x509ExtensionForm(forms.ModelForm):
         eku   = cleaned_data.get('extended_key_usage')
         eku_c = cleaned_data.get('extended_key_usage_critical')
         
-        if re.search('[^a-zA-Z0-9-_\.]', name):
+        if name and re.search('[^a-zA-Z0-9-_\.]', name):
                 self._errors['name'] = ErrorList(['Name may only contain characters in range "a-zA-Z0-9-_\."'])
         
         if bc in ('root_ca', 'edge_ca'):

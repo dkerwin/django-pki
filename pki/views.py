@@ -9,7 +9,7 @@ from django.template import RequestContext
 from django.core import urlresolvers
 
 from pki.settings import PKI_LOG, MEDIA_URL, PKI_ENABLE_GRAPHVIZ, PKI_ENABLE_EMAIL
-from pki.models import CertificateAuthority, Certificate
+from pki.models import CertificateAuthority, Certificate, x509Extension
 from pki.forms import DeleteForm
 from pki.graphviz import ObjectChain, ObjectTree
 from pki.email import SendCertificateData
@@ -190,7 +190,7 @@ def admin_history(request, model, id):
     
     changelogs = PkiChangelog.objects.filter(model_id=ct.pk).filter(object_id=id)
     
-    return render_to_response('admin/pki/object_history.html', { 'changelogs': changelogs, 'title': "Change history: %s" % obj.common_name,
+    return render_to_response('admin/pki/object_changelogs.html', { 'changelogs': changelogs, 'title': "Change history: %s" % obj.common_name,
                                                                  'app_label': model_obj._meta.app_label, 'object': obj,
                                                                  'module_name': model_obj._meta.verbose_name_plural,
                                                                 }, RequestContext(request))
@@ -218,8 +218,8 @@ def admin_delete(request, model, id):
             initial_id = item.parent_id
             auth_object   = CertificateAuthority.objects.get(pk=item.parent_id).name
         else:
-            initial_id = item.pk
-            auth_object   = item.name
+            initial_id  = item.pk
+            auth_object = item.name
     elif model == 'certificate':
         ## Fetch the certificate data
         try:
@@ -240,8 +240,8 @@ def admin_delete(request, model, id):
                                           (urlresolvers.reverse('admin:pki_certificate_change', args=(item.pk,)), item.name, MEDIA_URL, div_content)) )
         
         ## Fill the required data for delete_confirmation.html template
-        opts       = Certificate._meta
-        object     = item.name
+        opts   = Certificate._meta
+        object = item.name
         
         ## Set the CA to verify the passphrase against
         auth_object = authentication_obj

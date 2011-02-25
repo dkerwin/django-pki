@@ -120,7 +120,8 @@ def build_delete_item(obj):
     if obj.parent is not None:
         parent = obj.parent.name
     
-    return "<ul><li>Serial: %s</li><li>Subject: %s</li><li>Parent: %s</li><li>Description: %s</li><li>Created: %s</li><li>Expiry date: %s</li></ul>" % ( obj.serial, subject_for_object(obj), parent, obj.description, obj.created, obj.expiry_date)
+    return "<ul><li>Serial: %s</li><li>Subject: %s</li><li>Parent: %s</li><li>Description: %s</li><li>x509 Extension: %s</li><li>Created: %s</li><li>Expiry date: %s</li></ul>" % \
+           ( obj.serial, subject_for_object(obj), parent, obj.description, obj.extension, obj.created, obj.expiry_date)
 
 def generate_temp_file():
     """Generate a filename in the systems temp directory"""
