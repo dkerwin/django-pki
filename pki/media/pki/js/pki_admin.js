@@ -24,6 +24,14 @@ $(document).ready( function() {
     // Determine action => add | change
     if ( window.__pki_add__ != 'True' ) {
         
+        if ( window.__pki_model__ == 'x509Extension' ) {
+            
+            $('#x509extension_form :input:not(:submit, :hidden)').each( function( i, el ) {
+                                            $(el).attr("disabled", "disabled");
+                                            $(el).css('background-color', '#F2F2F2')
+                            });
+        }
+        
         onActionChange();
         $("input[name=action]").change(onActionChange);
         
@@ -38,6 +46,9 @@ $(document).ready( function() {
                             
                             // Remove disabled attribute
                             $('#certificateauthority_form :input:not(:submit), #certificate_form :input:not(:submit)').each( function( i, el ) {
+                                            $(el).removeAttr("disabled");
+                            });
+                            $('#x509extension_form :input:not(:submit, :hidden)').each( function( i, el ) {
                                             $(el).removeAttr("disabled");
                             });
         });
