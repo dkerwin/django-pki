@@ -76,7 +76,6 @@ class Certificate_Authority_Admin(CertificateBaseAdmin):
     search_fields      = [ 'name', 'common_name', 'description' ]
     date_hierarchy     = 'created'
     readonly_fields    = ( 'Expiry_date', 'Creation_date', 'Revocation_date', 'serial', 'Chain', 'Certificate_Dump', 'CA_Clock', 'State', )
-    exclude            = ( 'pem_encoded', )
     fieldsets          = ( ( 'Define action',    { 'fields': ( 'action', ), }, ),
                            ( 'Documentation',    { 'fields': ( 'description', ),
                                                    'classes': [ 'wide', ],
@@ -95,7 +94,7 @@ class Certificate_Authority_Admin(CertificateBaseAdmin):
                            ),
                            ( 'Encoding options', { 'fields': ( 'der_encoded', ), },
                            ),
-                           ( 'Certificate signing', { 'fields': ( 'CA_Clock', 'Chain', 'parent', 'type', 'parent_passphrase', 'crl_distribution', 'policy', ),
+                           ( 'Certificate signing', { 'fields': ( 'CA_Clock', 'Chain', 'parent', 'parent_passphrase', 'crl_distribution', 'policy', ),
                                                       'classes': [ 'wide', ],
                                                     },
                            ),

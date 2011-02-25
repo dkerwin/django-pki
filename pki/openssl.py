@@ -219,10 +219,10 @@ class Openssl():
         Serial is set to user specified value when PKI_SELF_SIGNED_SERIAL > 0
         """
         
-        logger.info("Generating new self-signed certificate (CN=%s, x509 extension=%s)" % (self.i.common_name, extension))
+        logger.info("Generating new self-signed certificate (CN=%s, x509 extension=%s)" % (self.i.common_name, self.i.extension))
         
         command = ['req', '-config', PKI_OPENSSL_CONF, '-verbose', '-batch', '-new', '-x509', '-subj', self.subj, '-days', str(self.i.valid_days), \
-                   '-extensions', self.i.extension, '-key', self.key, '-out', self.crt, '-passin', 'env:%s' % self.env_pw]
+                   '-extensions', str(self.i.extension), '-key', self.key, '-out', self.crt, '-passin', 'env:%s' % self.env_pw]
         
         try:
             if PKI_SELF_SIGNED_SERIAL and int(PKI_SELF_SIGNED_SERIAL) > 0:
@@ -321,7 +321,7 @@ class Openssl():
         
         env = { self.env_pw: str(self.i.parent_passphrase), "S_A_N": self.i.subjaltname, }
         
-        command = 'ca -config %s -name %s -batch -in %s -out %s -days %d -extension %s -passin env:%s' % \
+        command = 'ca -config %s -name %s -batch -in %s -out %s -days %d -extensions %s -passin env:%s' % \
                   ( PKI_OPENSSL_CONF, self.i.parent.name, self.csr, self.crt, self.i.valid_days, self.i.extension, self.env_pw)
         
         self.exec_openssl(command.split(), env_vars=env)

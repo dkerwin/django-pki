@@ -24,8 +24,6 @@ ACTIONS    = ( ('create', 'Create certificate'),
                ('revoke', 'Revoke certificate'),
                ('renew',  'Renew CSR (CN and key are kept)'),
              )
-CA_TYPES   = ( ('RootCA', 'self-signed (RootCA)'), ('SubCA', 'SubCA'), )
-EXTENSIONS = ( ('v3_server_cert', 'V3 Server'), ('v3_client_cert', 'V3 Client' ), )
 COUNTRY    = ( ('AD', 'AD'),('AE', 'AE'),('AF', 'AF'),('AG', 'AG'),('AI', 'AI'),('AL', 'AL'),('AM', 'AM'),
                ('AN', 'AN'),('AO', 'AO'),('AQ', 'AQ'),('AR', 'AR'),('AS', 'AS'),('AT', 'AT'),('AU', 'AU'),
                ('AW', 'AW'),('AZ', 'AZ'),('BA', 'BA'),('BB', 'BB'),('BD', 'BD'),('BE', 'BE'),('BF', 'BF'),
@@ -86,7 +84,6 @@ class CertificateBase(models.Model):
     active       = models.BooleanField(default=True, help_text="Turn off to revoke this certificate")
     serial       = models.CharField(max_length=64, blank=True, null=True)
     ca_chain     = models.CharField(max_length=200, blank=True, null=True)
-    pem_encoded  = models.BooleanField(default=False)
     der_encoded  = models.BooleanField(default=False, verbose_name="DER encoding")
     action       = models.CharField(max_length=32, choices=ACTIONS, default='create', help_text="Yellow fields can/have to be modified!")
     extension    = models.ForeignKey(to="x509Extension", blank=True, null=True, verbose_name="x509 Extension")
@@ -326,7 +323,6 @@ class CertificateAuthority(CertificateBase):
     common_name       = models.CharField(max_length=64, unique=True)
     name              = models.CharField(max_length=64, unique=True, help_text="Only change the suggestion if you really know what you're doing")
     parent            = models.ForeignKey('self', blank=True, null=True)
-    type              = models.CharField(max_length=32, null=True, choices=CA_TYPES, default='RootCA')
     passphrase        = models.CharField(max_length=255, blank=True, help_text="At least 8 characters. Remeber this passphrase - <font color='red'> \
                                                                     <strong>IT'S NOT RECOVERABLE</strong></font><br>Will be shown as md5 encrypted string")
     parent_passphrase = models.CharField(max_length=255, null=True, blank=True, help_text="Leave empty if this is a top-level CA")
@@ -373,7 +369,6 @@ class CertificateAuthority(CertificateBase):
                     ## Modify fields
                     prev.active            = False
                     prev.der_encoded       = False
-                    prev.pem_encoded       = False
                     prev.revoked           = datetime.datetime.now()
                     
                     c_list.append('Revoked certificate "%s"' % self.common_name)
@@ -409,7 +404,6 @@ class CertificateAuthority(CertificateBase):
                     
                     prev.valid_days  = self.valid_days
                     prev.active      = True
-                    prev.pem_encoded = True
                     prev.revoked     = None
                     
                     ## Make sure possibly updated fields are saved to DB
@@ -440,7 +434,6 @@ class CertificateAuthority(CertificateBase):
                     x = Certificate.objects.get(pk=i)
                     x.active         = False
                     x.der_encoded    = False
-                    x.pem_encoded    = False
                     x.pkcs12_encoded = False
                     x.revoked        = datetime.datetime.now()
                     
@@ -451,7 +444,6 @@ class CertificateAuthority(CertificateBase):
                     x = CertificateAuthority.objects.get(pk=i)
                     x.active      = False
                     x.der_encoded = False
-                    x.pem_encoded = False
                     x.revoked     = datetime.datetime.now()
                     
                     super(CertificateAuthority, x).save(*args, **kwargs)
@@ -504,9 +496,6 @@ class CertificateAuthority(CertificateBase):
             
             ## Generate CRL
             action.generate_crl(self.name, self.passphrase)
-            
-            ## Always enable pem encoded flag
-            self.pem_encoded = True
             
             ## Get the serial from certificate
             self.serial = action.get_serial_from_cert()
@@ -708,7 +697,6 @@ class Certificate(CertificateBase):
                     ## Modify fields
                     prev.active            = False
                     prev.der_encoded       = False
-                    prev.pem_encoded       = False
                     prev.pkcs12_encoded    = False
                     prev.revoked           = datetime.datetime.now()
                     
@@ -739,7 +727,6 @@ class Certificate(CertificateBase):
                     
                     prev.valid_days  = self.valid_days
                     prev.active      = True
-                    prev.pem_encoded = True
                     prev.revoked     = None
                     
                     ## Make sure possibly updated fields are saved to DB
@@ -819,8 +806,6 @@ class Certificate(CertificateBase):
             
             ## Get the serial from certificate
             self.serial = action.get_serial_from_cert()
-            
-            self.pem_encoded = True
             
             ## Encoding
             if self.der_encoded:
