@@ -8,69 +8,75 @@ $(document).ready( function() {
     $("[id^=show_child_certs_]").tipsy({html: true});
     $("[id^=active_]").tipsy({html: true});
     
-    // Update the CA clock
-    if ( typeof UpdateTime === 'function' ) {
-        UpdateTime();
-        setInterval(UpdateTime, 1000);
-    }
-
-    // PKCS#12 passphrase verify if checkbox is found
-    if ( $("input[id=id_pkcs12_encoded]") ) {
+    // Different stuff for different models
+    if ( window.__pki_model__ == 'certificateauthority' || window.__pki_model__ == 'certificate' ) {
         
-        $('#id_pkcs12_passphrase').bind("change keyup focus", { 'a': '#id_pkcs12_passphrase', 'b': '#id_pkcs12_passphrase_verify' }, onPfChange);
-        $('#id_pkcs12_passphrase_verify').bind("change keyup focus", { 'a': '#id_pkcs12_passphrase', 'b': '#id_pkcs12_passphrase_verify' }, onPfChange);
-    }
+        // Update the CA clock
+        if ( typeof UpdateTime === 'function' ) {
+            UpdateTime();
+            setInterval(UpdateTime, 1000);
+        }
     
-    // Determine action => add | change
-    if ( window.__pki_add__ != 'True' ) {
+        // PKCS#12 passphrase verify if checkbox is found
+        if ( $("input[id=id_pkcs12_encoded]") ) {
+            
+            $('#id_pkcs12_passphrase').bind("change keyup focus", { 'a': '#id_pkcs12_passphrase', 'b': '#id_pkcs12_passphrase_verify' }, onPfChange);
+            $('#id_pkcs12_passphrase_verify').bind("change keyup focus", { 'a': '#id_pkcs12_passphrase', 'b': '#id_pkcs12_passphrase_verify' }, onPfChange);
+        }
+    
+        // Determine action => add | change
+        if ( window.__pki_add__ != 'True' ) {
+            
+            onActionChange();
+            $("input[name=action]").change(onActionChange);
+            
+            // Enable all elements on submit
+            $("form").submit(function() {
+                                
+                                // Add dummy passphrase to survive model validation in CA mode
+                                if ( (! $("input[id=id_action_3]").attr("checked")) && (window.__pki_model__ == 'CertificateAuthority') ) {
+                                    
+                                    $("input[id=id_passphrase]").val('XXXXXXXXXXXXXXXXXXXXXXXXXX');
+                                }
+                                
+                                // Remove disabled attribute
+                                $('#certificateauthority_form :input:not(:submit), #certificate_form :input:not(:submit)').each( function( i, el ) {
+                                                $(el).removeAttr("disabled");
+                                });
+                                $('#x509extension_form :input:not(:submit, :hidden)').each( function( i, el ) {
+                                                $(el).removeAttr("disabled");
+                                });
+            });
+        }
+        else {
+            
+            $("input[id=id_action_1]").attr("disabled", "disabled");
+            $("input[id=id_action_2]").attr("disabled", "disabled");
+            $("input[id=id_action_3]").attr("disabled", "disabled");
+            
+            // Make id_passphrase_verify as required as id_passphrase
+            $("label[for=id_passphrase_verify]").addClass($("label[for=id_passphrase]").attr("class"));
+            
+            onParentChange();
+            onCnChange();
+            
+            $("#id_parent").change(onParentChange);
+            $('#id_common_name').bind("change keyup", onCnChange);
+            
+            // Passphrase verify
+            $('#id_passphrase').bind("change keyup focus", { 'a': '#id_passphrase', 'b': '#id_passphrase_verify' }, onPfChange);
+            $('#id_passphrase_verify').bind("change keyup focus", { 'a': '#id_passphrase', 'b': '#id_passphrase_verify' }, onPfChange);        
+        }
+    }
+    else {
         
-        if ( window.__pki_model__ == 'x509Extension' ) {
+        if ( (window.__pki_model__ == 'x509extension') && (window.__pki_add__ != 'True') ) {
             
             $('#x509extension_form :input:not(:submit, :hidden)').each( function( i, el ) {
                                             $(el).attr("disabled", "disabled");
                                             $(el).css('background-color', '#F2F2F2')
                             });
         }
-        
-        onActionChange();
-        $("input[name=action]").change(onActionChange);
-        
-        // Enable all elements on submit
-        $("form").submit(function() {
-                            
-                            // Add dummy passphrase to survive model validation in CA mode
-                            if ( (! $("input[id=id_action_3]").attr("checked")) && (window.__pki_model__ == 'CertificateAuthority') ) {
-                                
-                                $("input[id=id_passphrase]").val('XXXXXXXXXXXXXXXXXXXXXXXXXX');
-                            }
-                            
-                            // Remove disabled attribute
-                            $('#certificateauthority_form :input:not(:submit), #certificate_form :input:not(:submit)').each( function( i, el ) {
-                                            $(el).removeAttr("disabled");
-                            });
-                            $('#x509extension_form :input:not(:submit, :hidden)').each( function( i, el ) {
-                                            $(el).removeAttr("disabled");
-                            });
-        });
-    }
-    else {
-        
-        $("input[id=id_action_1]").attr("disabled", "disabled");
-        $("input[id=id_action_2]").attr("disabled", "disabled");
-        $("input[id=id_action_3]").attr("disabled", "disabled");
-        
-        // Make id_passphrase_verify as required as id_passphrase
-        $("label[for=id_passphrase_verify]").addClass($("label[for=id_passphrase]").attr("class"));
-        
-        onParentChange();
-        onCnChange();
-        
-        $("#id_parent").change(onParentChange);
-        $('#id_common_name').bind("change keyup", onCnChange);
-        
-        // Passphrase verify
-        $('#id_passphrase').bind("change keyup focus", { 'a': '#id_passphrase', 'b': '#id_passphrase_verify' }, onPfChange);
-        $('#id_passphrase_verify').bind("change keyup focus", { 'a': '#id_passphrase', 'b': '#id_passphrase_verify' }, onPfChange);        
     }
 });
 
