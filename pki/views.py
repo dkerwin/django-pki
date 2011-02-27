@@ -30,6 +30,10 @@ def pki_download(request, model, id):
     Type (ca/cert) and ID are used to determine the object to download.
     """
     
+    if not request.user.has_perm('can_download'):
+        messages.error(request, "Permission denied!")
+        return HttpResponseRedirect(urlresolvers.reverse('admin:pki_%s_changelist' % model))
+    
     if model == "certificateauthority":
         c = get_object_or_404(CertificateAuthority, pk=id)
     elif model == "certificate":

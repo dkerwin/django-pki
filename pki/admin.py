@@ -1,7 +1,7 @@
 import os
+import logging
 
 from django.contrib import admin, messages
-from django.utils.safestring import mark_safe
 from django.db.models import Q
 from django.http import HttpResponseRedirect
 
@@ -23,8 +23,6 @@ if not os.path.exists( PKI_DIR ):
 ##------------------------------------------------------------------##
 ## Initialize logging
 ##------------------------------------------------------------------##
-
-import logging
 
 LOG_LEVELS = { 'debug'    : logging.DEBUG,
                'info'     : logging.INFO,
@@ -181,10 +179,14 @@ class Certificate_Admin(CertificateBaseAdmin):
         """
         
         if db_field.name == "parent":
-            kwargs["queryset"] = CertificateAuthority.objects.filter(extension__basic_constraints__contains="CA:TRUE", active=True).filter(extension__basic_constraints__contains="pathlen:0")
+            kwargs["queryset"] = CertificateAuthority.objects.filter(extension__basic_constraints__contains="CA:TRUE", \
+                                                                     active=True).filter(extension__basic_constraints__contains="pathlen:0")
             return db_field.formfield(**kwargs)
         elif db_field.name == "extension":
-            kwargs["queryset"] = x509Extension.objects.filter(Q(basic_constraints__contains="CA:FALSE") | ((Q(basic_constraints__contains="CA:TRUE") & Q(basic_constraints__contains="pathlen:0")) & ~Q(key_usage__name__contains="keyCertSign")))
+            kwargs["queryset"] = x509Extension.objects.filter(Q(basic_constraints__contains="CA:FALSE") | \
+                                                              ((Q(basic_constraints__contains="CA:TRUE") & \
+                                                                Q(basic_constraints__contains="pathlen:0")) & \
+                                                                ~Q(key_usage__name__contains="keyCertSign")))
             return db_field.formfield(**kwargs)
         
         return super(Certificate_Admin, self).formfield_for_foreignkey(db_field, request, **kwargs)

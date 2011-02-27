@@ -90,7 +90,7 @@ class CertificateAuthorityForm(forms.ModelForm):
                 if ca.passphrase != enc_p_pf:
                     self._errors['parent_passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA "%s"' % parent])
             else:
-                self._errors['action'] = ErrorList(['You cannot revoke a self-signed root certificate as this would break the whole chain! Delete the certificate instead'])
+                self._errors['action'] = ErrorList(['You cannot revoke a self-signed root certificate as there\'s no CA to revoke against. Delete it instead!'])
         
         return cleaned_data
 
@@ -196,6 +196,9 @@ class CertificateForm(forms.ModelForm):
                 ## Check parent passphrase
                 if ca.passphrase != enc_p_pf:
                     self._errors['parent_passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA "%s"' % parent])
+            else:
+                self._errors['action'] = ErrorList(['You cannot revoke a self-signed certificate as there\'s no CA to revoke against. Delete it instead!'])
+
         elif action == 'update':
             ## Verify that pkcs12 passphrase isn't empty when encoding is requested
             if pkcs12_encoded and len(pkcs12_passphrase) < 8:

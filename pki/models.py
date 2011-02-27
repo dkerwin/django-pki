@@ -337,7 +337,8 @@ class CertificateAuthority(CertificateBase):
     class Meta:
         db_table            = 'pki_certificateauthority'
         verbose_name_plural = 'Certificate Authorities'
-    
+        permissions         = ( ( "can_download", "Can download", ), )
+
     def __unicode__(self):
         return self.common_name
     
@@ -347,6 +348,10 @@ class CertificateAuthority(CertificateBase):
     
     def save(self, *args, **kwargs):
         """Save the CertificateAuthority object"""
+        
+        ## Set user to UNKNOWN if it's missing
+        if not self.user:
+            self.user = "UNKNOWN"
         
         ## Variables to track changes
         c_action = self.action
@@ -664,6 +669,7 @@ class Certificate(CertificateBase):
     class Meta:
         db_table            = 'pki_certificate'
         verbose_name_plural = 'Certificates'
+        permissions         = ( ( "can_download", "Can download", ), )
         unique_together     = ( ( "name", "parent" ), ("common_name", "parent"), )
     
     def __unicode__(self):
@@ -675,6 +681,10 @@ class Certificate(CertificateBase):
     
     def save(self, *args, **kwargs):
         """Save the Certificate object"""
+        
+        ## Set user to UNKNOWN if it's missing
+        if not self.user:
+            self.user = "UNKNOWN"
         
         ## Variables to track changes
         c_action = self.action
@@ -879,9 +889,23 @@ class x509Extension(models.Model):
     created                     = models.DateTimeField(auto_now_add=True)
     basic_constraints           = models.CharField(max_length=255, choices=BASIC_CONSTRAINTS, verbose_name="basicConstraints")
     basic_constraints_critical  = models.BooleanField(default=True, verbose_name="Make basicConstraints critical")
-    key_usage                   = models.ManyToManyField("KeyUsage", verbose_name="keyUsage")
+    key_usage                   = models.ManyToManyField("KeyUsage", verbose_name="keyUsage",
+                                                         help_text="Usual values:<br />\
+                                                                    CA: keyCertSign, cRLsign<br />\
+                                                                    Cert: digitalSignature, nonRedupiation, keyEncipherment<br />")
     key_usage_critical          = models.BooleanField(verbose_name="Make keyUsage critical")
-    extended_key_usage          = models.ManyToManyField("ExtendedKeyUsage", blank=True, null=True, verbose_name="extendedKeyUsage")
+    extended_key_usage          = models.ManyToManyField("ExtendedKeyUsage", blank=True, null=True, verbose_name="extendedKeyUsage", \
+                                                         help_text="serverAuth - SSL/TLS Web Server Authentication<br /> \
+                                                                    clientAuth - SSL/TLS Web Client Authentication.<br /> \
+                                                                    codeSigning - Code signing<br /> \
+                                                                    emailProtection - E-mail Protection (S/MIME)<br /> \
+                                                                    timeStamping - Trusted Timestamping<br /> \
+                                                                    msCodeInd - Microsoft Individual Code Signing (authenticode)<br /> \
+                                                                    msCodeCom - Microsoft Commercial Code Signing (authenticode)<br /> \
+                                                                    msCTLSign - Microsoft Trust List Signing<br /> \
+                                                                    msSGC - Microsoft Server Gated Crypto<br /> \
+                                                                    msEFS - Microsoft Encrypted File System<br /> \
+                                                                    nsSGC - Netscape Server Gated Crypto<br />")
     extended_key_usage_critical = models.BooleanField(verbose_name="Make extendedKeyUsage critical")
     subject_key_identifier      = models.CharField(max_length=255, choices=SUBJECT_KEY_IDENTIFIER, default="hash", verbose_name="subjectKeyIdentifier")
     authority_key_identifier    = models.CharField(max_length=255, choices=AUTHORITY_KEY_IDENTIFIER, default="keyid:always,issuer:always", verbose_name="authorityKeyIdentifier")
@@ -912,7 +936,7 @@ class x509Extension(models.Model):
 class KeyUsage(models.Model):
     """Container table for KeyUsage"""
     
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=64, unique=True)
     
     def __unicode__(self):
         return self.name
@@ -920,7 +944,7 @@ class KeyUsage(models.Model):
 class ExtendedKeyUsage(models.Model):
     """Container table for Extended Key Usage"""
     
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=64, unique=True)
     
     def __unicode__(self):
         return self.name
