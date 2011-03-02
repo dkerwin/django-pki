@@ -2,8 +2,8 @@
 Configuration
 =============
 
-Create and configure Django project
-===================================
+Create and configure a new Django project
+=========================================
 
 If you don't have a django project yet create one now:
 
@@ -238,3 +238,50 @@ Initialize database
      > pki:0003_auto__add_pkichangelog
      - Loading initial data for pki.
     No fixtures found.
+
+
+PKI store layout (PKI_DIR)
+==========================
+
+Every certificate authority (CA) lives in a dedicated directory in PKI_DIR. There is a special directory named "_SELF_SIGNED_CERTIFICATES" which
+contains all self-signed non-CA certificates. A certificate authority directory contains the follwoing sub-directories and files:
+
+* Directories:
+    * private: Private key of the CA
+    * crl: Generated CRL
+    * certs: All direct related certificates (subCA certificates or end-user certificates when it's a edge CA).
+      Symlinks between the serialnumber and the hash are created for every certificate.
+* Files:
+    * index.txt(.old): The CA index
+    * index.txt.attr(.old): Extra attribtes for index.txt
+    * serial(.old): Current CA serial number
+    * crlnumber(.old): Current CRL serial number
+    * [CA NAME]-chain.cert.pem: The CA chain including the own CA certificate
+
+Example::
+    
+    Root_CA/
+    Root_CA/certs
+    Root_CA/certs/01.pem
+    Root_CA/certs/02.pem
+    Root_CA/certs/518c671c.0
+    Root_CA/certs/771a33d0.0
+    Root_CA/certs/Root_CA.cert.pem
+    Root_CA/crl
+    Root_CA/crl/Root_CA.crl.pem
+    Root_CA/crlnumber
+    Root_CA/crlnumber.old
+    Root_CA/index.txt
+    Root_CA/index.txt.attr
+    Root_CA/index.txt.attr.old
+    Root_CA/index.txt.old
+    Root_CA/private
+    Root_CA/private/Root_CA.key.pem
+    Root_CA/Root_CA-chain.cert.pem
+    Root_CA/serial
+    Root_CA/serial.old
+    _SELF_SIGNED_CERTIFICATES/
+    _SELF_SIGNED_CERTIFICATES/certs
+    _SELF_SIGNED_CERTIFICATES/certs/selfsigned1.cert.pem
+    _SELF_SIGNED_CERTIFICATES/certs/selfsigned1.key.pem
+

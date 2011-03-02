@@ -110,7 +110,7 @@ function onActionChange() {
         $("input[id=id_der_encoded]").parent().parent().css('background-color', '#fffcaa');
         
         // Enable pkcs12 when it's a certificate
-        if ( window.__pki_model__ == 'Certificate' ) {
+        if ( window.__pki_model__ == 'certificate' ) {
             
             enabled_fields['id_pkcs12_encoded'] = 1;
             enabled_fields['id_pkcs12_passphrase'] = 1;
@@ -128,9 +128,10 @@ function onActionChange() {
         
         // Set BG color for der_encoded to default
         $("input[id=id_der_encoded]").parent().parent().css('background-color', '#ffffff');
+        $("input[id=id_pkcs12_encoded]").parent().parent().css('background-color', '#ffffff');
         
         // Disable pkcs12 BG when it's a certificate
-        if ( window.__pki_model__ == 'Certificate' ) {
+        if ( window.__pki_model__ == 'certificate' ) {
             
             $("input[id=id_pkcs12_encoded]").parent().parent().css('background-color', '#ffffff');
         }
@@ -160,7 +161,7 @@ function onActionChange() {
         $("input[id=id_der_encoded]").parent().parent().css('background-color', '#fffcaa');
         
         // Enable pkcs12 when it's a certificate
-        if ( window.__pki_model__ == 'Certificate' ) {
+        if ( window.__pki_model__ == 'certificate' ) {
             
             enabled_fields['id_purpose'] = 1;
             enabled_fields['id_subjaltname'] = 1;
