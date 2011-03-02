@@ -41,6 +41,7 @@ Getting started
 
    installation/install.rst
    installation/configuration.rst
+   installation/upgrade.rst
 
 Tutorial
 ========

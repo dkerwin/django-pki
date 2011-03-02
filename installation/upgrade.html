@@ -1,0 +1,181 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>3. Upgrade instructions &mdash; django-pki v0.10.4.DEVELOPMENT documentation</title>
+    <link rel="stylesheet" href="../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.10.4.DEVELOPMENT',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="django-pki v0.10.4.DEVELOPMENT documentation" href="../index.html" />
+    <link rel="prev" title="2. Configuration" href="configuration.html" />
+ 
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-3008794-3']);
+  _gaq.push(['_trackPageview']);
+</script>
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="configuration.html" title="2. Configuration"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">django-pki v0.10.4.DEVELOPMENT documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="upgrade-instructions">
+<h1>3. Upgrade instructions<a class="headerlink" href="#upgrade-instructions" title="Permalink to this headline">¶</a></h1>
+<p>I you already used django-pki before version 0.20.0 you have to need to do some steps after updating your installation.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last"><strong>!! Backup your database and PKI directory BEFORE you start the upgrade !!</strong></p>
+</div>
+<div class="section" id="database-migration">
+<h2>3.1. Database migration<a class="headerlink" href="#database-migration" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p class="first">Install <a class="reference external" href="http://south.aeracode.org/">south</a>  and add it to INSTALLED_APPS in settings.py</p>
+</li>
+<li><p class="first">Run the initial migration as fake:</p>
+<div class="highlight-python"><pre>$ python manage.py migrate pki 0001 --fake
+- Soft matched migration 0001 to 0001_initial.
+Running migrations for pki:
+ - Migrating forwards to 0001_initial.
+ &gt; pki:0001_initial
+   (faked)</pre>
+</div>
+</li>
+<li><p class="first">Run the other migrations:</p>
+<div class="highlight-python"><pre>$ python manage.py migrate pki
+Running migrations for pki:
+ - Migrating forwards to 0012_auto__add_unique_keyusage_name__add_unique_extendedkeyusage_name.
+ &gt; pki:0002_auto__add_field_certificateauthority_crl_distribution
+ &gt; pki:0003_auto__add_pkichangelog
+ &gt; pki:0004_auto__add_keyusage__add_x509extension__add_extendedkeyusage__del_field
+ &gt; pki:0005_load_eku_and_ku_fixture
+Installing json fixture 'eku_and_ku' from '/Library/Python/2.6/site-packages/pki/fixtures'.
+Installed 25 object(s) from 1 fixture(s)
+ &gt; pki:0006_update_objects_to_x509_extensions
+ &gt; pki:0007_auto__del_field_certificateauthority_subcas_allowed
+ &gt; pki:0008_auto__del_field_certificate_cert_extension
+ &gt; pki:0009_auto__del_field_certificateauthority_type
+ &gt; pki:0010_auto__del_field_certificate_pem_encoded__del_field_certificateauthorit
+ &gt; pki:0011_add_pki_download_permission
+ &gt; pki:0012_auto__add_unique_keyusage_name__add_unique_extendedkeyusage_name
+ - Loading initial data for pki.
+No fixtures found.</pre>
+</div>
+</li>
+</ul>
+<p>Nice. Your database has been migrated.</p>
+</div>
+<div class="section" id="update-project-s-urls-py">
+<h2>3.2. Update project&#8217;s urls.py<a class="headerlink" href="#update-project-s-urls-py" title="Permalink to this headline">¶</a></h2>
+<p>It is no longer required to specify the django-pki urls before the admin urls but the django-pki entry has changed. Your urls.py must look like this:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">(</span><span class="s">r&#39;^admin/&#39;</span><span class="p">,</span> <span class="n">include</span><span class="p">(</span><span class="n">admin</span><span class="o">.</span><span class="n">site</span><span class="o">.</span><span class="n">urls</span><span class="p">)),</span>
+<span class="p">(</span><span class="s">r&#39;^&#39;</span><span class="p">,</span> <span class="n">include</span><span class="p">(</span><span class="s">&#39;pki.urls&#39;</span><span class="p">,</span> <span class="s">&#39;pki&#39;</span><span class="p">)),</span>
+</pre></div>
+</div>
+<p class="centered">
+<strong>The update procedure is complete!</strong></p></div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">3. Upgrade instructions</a><ul>
+<li><a class="reference internal" href="#database-migration">3.1. Database migration</a></li>
+<li><a class="reference internal" href="#update-project-s-urls-py">3.2. Update project&#8217;s urls.py</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="configuration.html"
+                        title="previous chapter">2. Configuration</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/installation/upgrade.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="configuration.html" title="2. Configuration"
+             >previous</a> |</li>
+        <li><a href="../index.html">django-pki v0.10.4.DEVELOPMENT documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="footer">
+        &copy; Copyright 2011, Daniel Kerwin.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.6.
+    </div>
+<div class="footer">This page uses <a href="http://analytics.google.com/">
+Google Analytics</a> to collect statistics. You can disable it by blocking
+the JavaScript coming from www.google-analytics.com.
+<script type="text/javascript">
+  (function() {
+    var ga = document.createElement('script');
+    ga.src = ('https:' == document.location.protocol ?
+              'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    ga.setAttribute('async', 'true');
+    document.documentElement.firstChild.appendChild(ga);
+  })();
+</script>
+</div>
+
+  </body>
+</html>
