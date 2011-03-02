@@ -14,7 +14,8 @@ class Migration(SchemaMigration):
         cas = []
         
         for obj in CertificateAuthority.objects.all():
-            if not obj.parent or obj.subcas_allowed: ## RootCA or IntermediateCA
+            as_saved = orm.CertificateAuthority.objects.get(pk=obj.pk)
+            if not obj.parent or as_saved.subcas_allowed: ## RootCA or IntermediateCA
                 obj.extension = x509Extension.objects.get(pk=1)
             else: ## Edge CA
                 obj.extension = x509Extension.objects.get(pk=2)
@@ -27,13 +28,15 @@ class Migration(SchemaMigration):
         ## Certificate migration
         for obj in Certificate.objects.all():
             if obj.parent: ## Not self-signed
-                if obj.cert_extension == "v3_server_cert": ## Server cert
+                as_saved = orm.Certificate.objects.get(pk=obj.pk)
+                if as_saved.cert_extension == "v3_server_cert": ## Server cert
                     obj.extension = x509Extension.objects.get(pk=3)
-                elif obj.cert_extension == "v3_client_cert": ## Client cert
+                elif as_saved.cert_extension == "v3_client_cert": ## Client cert
                     obj.extension = x509Extension.objects.get(pk=4)
             else:  ## Self-signed
                 obj.extension = x509Extension.objects.get(pk=5)
-    
+            
+            super(Certificate, obj).save()
     
     def backwards(self, orm):
         raise RuntimeError("Cannot reverse this migration.")

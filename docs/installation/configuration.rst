@@ -162,7 +162,7 @@ Configure projects urls.py
   ::
     
     (r'^admin/', include(admin.site.urls)),
-    (r'^', include('pki.urls')),
+    (r'^', include('pki.urls', 'pki')),
 
 4. If you want to serve static files with ``./manage.py runserver`` in DEBUG mode, add the following code:
     
