@@ -33,9 +33,6 @@ logger.setLevel(logging.DEBUG)
 def CreateCaChain():
     """Create a 3 level CA chain"""
     
-    from django.core.management import call_command
-    call_command("loaddata", "eku_and_ku.json", verbosity=0)
-    
     ## Reset PKI_DIR
     openssl.refresh_pki_metadata([])
     
@@ -63,8 +60,10 @@ def CreateCaChain():
                          der_encoded=False, parent=ica, parent_passphrase="1234567890", passphrase='1234567890', \
                          extension=x509Extension.objects.get(pk=2)).save()
     
-class CertificateAuthorityTestCase(unittest.TestCase):
+class CertificateAuthorityTestCase(TestCase):
     '''Testcase for a self-signed RootCA. Any affected function and the complete process (save+remove) are tested''' 
+    
+    fixtures = ["eku_and_ku.json"]
     
     def setUp(self):
         '''Create a self-signed RootCA'''
@@ -135,8 +134,10 @@ class CertificateAuthorityTestCase(unittest.TestCase):
         self.assertFalse(os.path.exists(self.eca_openssl.ca_dir))
         self.assertTrue(self.ica_openssl.get_revoke_status_from_cert())
     
-class CertificateTestCase(unittest.TestCase):
+class CertificateTestCase(TestCase):
     """Edge certificate testcases"""
+    
+    fixtures = ["eku_and_ku.json"]
     
     def setUp(self):
         
@@ -230,6 +231,17 @@ class CertificateTestCase(unittest.TestCase):
         self.srv.save()
         self.assertFalse(os.path.exists(self.srv_openssl.pkcs12))
 
+class x509ExtensionTestCase(TestCase):
+    
+    fixtures = ["eku_and_ku.json"]
+    
+    def test_Savex509Extension(self):
+        x = x509Extension.objects.get(pk=1)
+        desc = x.description
+        x.description = "CHANGED"
+        x.save()
+        self.assertNotEqual(desc, x.description)
+
 class EmailDeliveryTestCase(unittest.TestCase):
     
     def setUp(self): pass
@@ -242,27 +254,28 @@ class EmailDeliveryTestCase(unittest.TestCase):
 
 class HttpClientTestCase(TestCase):
     
-    def setUp(self):
-        from django.core.management import call_command
-        call_command("loaddata", "test_users.json", verbosity=0)
-        
-        self.c = Client()
+    fixtures = ["test_users.json", "eku_and_ku.json"]
     
-    def test_201_AddCertificateAuthority(self):
-        self.c.login(username="pki_user_1", password="admin")
-        r = self.c.post('/admin/pki/certificateauthority/add/', { 'common_name': 'Root CA', 'name': 'Root_CA', 'description': "unit test", \
-                                                             'country': 'DE', 'state': 'Bavaria', 'locality': 'Munich', 'organization': 'Bozo Clown Inc.', \
-                                                             'OU': 'IT', 'email': 'a@b.com', 'valid_days': 1000, 'key_length': 1024, 'expiry_date': '', \
-                                                             'created': '', 'revoked': '', 'active': '', 'serial': '', 'ca_chain': '', \
-                                                             'pem_encoded': True, 'der_encoded': False, 'parent': '', 'passphrase': '1234567890', \
-                                                             'subcas_allowed': True
-                                                           })
+    def setUp(self):
+        self.c = Client()
+        self.assertTrue(self.c.login(username="admin", password="admin"))
+    
+    def tearDown(self):
+        self.c.logout()
+
+    def test_AddRootCertificateAuthority(self):
+        r = self.c.post('/admin/pki/certificateauthority/add/', { 'action':'create', 'common_name':'Root CA', 'name':'Root_CA', 'description':"unit test", \
+                                                                  'country':'DE', 'state':'Bavaria', 'locality':'Munich', 'organization':'Bozo Clown Inc.', \
+                                                                  'OU':'IT', 'email':'a@b.com', 'valid_days':1000, 'key_length':1024, 'der_encoded':False, \
+                                                                  'parent':'', 'passphrase':'1234567890', 'passphrase_verify':'1234567890', 'policy':'policy_anything', \
+                                                                  'extension':x509Extension.objects.get(name="v3_root_or_intermediate_ca").pk,}, follow=True)
         
+        self.assertContains(r, 'added successfully')
         self.failUnlessEqual(r.status_code, 200)
     
-    def test_201_DownloadWithoutLogin(self):
-        r = self.c.get('/admin/pki/download/ca/1')
-        self.assertEqual(r.status_code, 404)
+    #def test_201_DownloadWithoutLogin(self):
+    #    r = self.c.get('/admin/pki/download/ca/1')
+    #    self.assertEqual(r.status_code, 404)
     
     #def test_209_AdminLogin(self):
     #    self.assertTrue(self.c.login(username="pki_user_1", password="admin"))

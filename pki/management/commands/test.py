@@ -1,3 +1,4 @@
+import os
 from pki import settings
 
 ## Patch PKI_DIR to prevent removal of production data
@@ -8,5 +9,6 @@ except AttributeError, e:
     raise(e)
 
 setattr(settings, 'PKI_DIR', PKI_DIR + '____TEST_RUN____')
+setattr(settings, 'PKI_OPENSSL_CONF', os.path.join(getattr(settings, 'PKI_DIR'), 'openssl.conf'))
 
 from south.management.commands.test import *

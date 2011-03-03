@@ -917,6 +917,12 @@ class x509Extension(models.Model):
     def __unicode__(self):
         return self.name
     
+    def save(self, *args, **kwargs):
+        """Save the x509 Extension object"""
+        
+        if not self.pk:
+            super(x509Extension, self).save(*args, **kwargs)
+    
     def key_usage_csv(self):
         r = []
         if self.key_usage_critical:
