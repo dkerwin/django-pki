@@ -427,32 +427,32 @@ class CertificateAuthority(CertificateBase):
                         prev.serial = action.get_serial_from_cert()
                         c_list.append("Serial number changed to %s" % prev.serial)
                         
-                        ## DB-revoke all related certs
-                        garbage = []
-                        id_dict = { 'cert': [], 'ca': [], }
+                    ## DB-revoke all related certs
+                    garbage = []
+                    id_dict = { 'cert': [], 'ca': [], }
+                    
+                    from pki.views import chain_recursion as r_chain_recursion
+                    r_chain_recursion(self.id, garbage, id_dict)
+                    
+                    for i in id_dict['cert']:
+                        x = Certificate.objects.get(pk=i)
+                        x.active         = False
+                        x.der_encoded    = False
+                        x.pkcs12_encoded = False
+                        x.revoked        = datetime.datetime.now()
                         
-                        from pki.views import chain_recursion as r_chain_recursion
-                        r_chain_recursion(self.id, garbage, id_dict)
+                        super(Certificate, x).save(*args, **kwargs)
+                        self.Update_Changelog(obj=x, user=c_user, action='broken', changes=(['Broken by %s of CA "%s"' % (c_action, self.common_name),]))
+                    
+                    for i in id_dict['ca']:
+                        x = CertificateAuthority.objects.get(pk=i)
+                        x.active      = False
+                        x.der_encoded = False
+                        x.revoked     = datetime.datetime.now()
                         
-                        for i in id_dict['cert']:
-                            x = Certificate.objects.get(pk=i)
-                            x.active         = False
-                            x.der_encoded    = False
-                            x.pkcs12_encoded = False
-                            x.revoked        = datetime.datetime.now()
-                            
-                            super(Certificate, x).save(*args, **kwargs)
+                        super(CertificateAuthority, x).save(*args, **kwargs)
+                        if x.pk != self.pk:
                             self.Update_Changelog(obj=x, user=c_user, action='broken', changes=(['Broken by %s of CA "%s"' % (c_action, self.common_name),]))
-                        
-                        for i in id_dict['ca']:
-                            x = CertificateAuthority.objects.get(pk=i)
-                            x.active      = False
-                            x.der_encoded = False
-                            x.revoked     = datetime.datetime.now()
-                            
-                            super(CertificateAuthority, x).save(*args, **kwargs)
-                            if x.pk != self.pk:
-                                self.Update_Changelog(obj=x, user=c_user, action='broken', changes=(['Broken by %s of CA "%s"' % (c_action, self.common_name),]))
                 
                 ## Update description. This is always allowed
                 if prev.description != self.description:
@@ -561,7 +561,7 @@ class CertificateAuthority(CertificateBase):
         def chain_recursion(r_id):
             
             ca = CertificateAuthority.objects.get(pk=r_id)
-            self.remove_chain.append(ca.name)
+            self.remove_chain.append(ca.pk)
             
             ## Search for related CA's
             child_cas = CertificateAuthority.objects.filter(parent=r_id)
@@ -572,10 +572,10 @@ class CertificateAuthority(CertificateBase):
         if not self.parent:
             logger.info( "No revoking of certitifcates. %s is a toplevel CA" % self.name )
             revoke_required = False
-        else:
-            ## Collect child CA's and certificates
-            chain_recursion(self.pk)
-            logger.info( "Full chain is %s and pf is %s" % (self.remove_chain, self.passphrase))
+        
+        ## Collect child CA's and certificates
+        chain_recursion(self.pk)
+        logger.info( "Full chain is %s and pf is %s" % (self.remove_chain, self.passphrase))
         
         ## Remoke first ca in the chain
         if revoke_required:
@@ -584,7 +584,7 @@ class CertificateAuthority(CertificateBase):
             a.generate_crl(ca=self.parent.name, pf=passphrase)
         
         ## Rebuild the ca metadata
-        self.rebuild_ca_metadata(modify=True, task='exclude')
+        self.rebuild_ca_metadata(modify=True, task='exclude', skip_list=self.remove_chain)
         
         ## Remove object history
         self.Delete_Changelog(obj=self)
@@ -596,7 +596,7 @@ class CertificateAuthority(CertificateBase):
     ## Helper functions
     ##---------------------------------##
     
-    def rebuild_ca_metadata(self, modify, task):
+    def rebuild_ca_metadata(self, modify, task, skip_list=[]):
         """Wrapper around refresh_pki_metadata"""
         
         if modify:
@@ -608,7 +608,7 @@ class CertificateAuthority(CertificateBase):
                 known_cas = list(CertificateAuthority.objects.exclude(pk=self.pk))
                 known_cas.append(self)
             elif task == 'exclude':
-                known_cas = list(CertificateAuthority.objects.exclude(pk=self.pk))
+                known_cas = list(CertificateAuthority.objects.exclude(pk__in=skip_list))
         else:
             known_cas = list(CertificateAuthority.objects.all())
         
@@ -787,6 +787,8 @@ class Certificate(CertificateBase):
                 ## Save the data
                 self = prev
                 self.action = 'update'
+            else:
+                raise Exception( 'Invalid action %s supplied' % self.action )
         else:
             ## Set creation data
             self.created = datetime.datetime.now()

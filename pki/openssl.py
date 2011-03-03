@@ -133,25 +133,25 @@ class Openssl():
             self.crl = os.path.join(PKI_DIR, self.i.name, 'crl', '%s.crl.pem' % self.i.name)
         
         if isinstance(instance, pki.models.CertificateAuthority):
-            ca_dir      = os.path.join(PKI_DIR, self.i.name)
-            self.key    = os.path.join(ca_dir, 'private', '%s.key.pem' % self.i.name)
+            self.ca_dir = os.path.join(PKI_DIR, self.i.name)
+            self.key    = os.path.join(self.ca_dir, 'private', '%s.key.pem' % self.i.name)
             self.pkcs12 = False
             self.i.subjaltname = ''
         elif isinstance(instance, pki.models.Certificate):
             if self.i.parent:
-                ca_dir = os.path.join(PKI_DIR, self.i.parent.name)
+                self.ca_dir = os.path.join(PKI_DIR, self.i.parent.name)
             else:
-                ca_dir = os.path.join(PKI_DIR, "_SELF_SIGNED_CERTIFICATES")
-                if not os.path.exists(ca_dir):
+                self.ca_dir = os.path.join(PKI_DIR, "_SELF_SIGNED_CERTIFICATES")
+                if not os.path.exists(self.ca_dir):
                     try:
                         os.mkdir(ca_dir, 0755)
-                        os.mkdir(os.path.join(ca_dir, "certs"))
+                        os.mkdir(os.path.join(self.ca_dir, "certs"))
                     except OSError, e:
-                        logger.exception("Failed to create directories for self-signed certificates %s" % ca_dir)
+                        logger.exception("Failed to create directories for self-signed certificates %s" % self.ca_dir)
                         raise
 
-            self.key    = os.path.join(ca_dir, 'certs', '%s.key.pem' % self.i.name)
-            self.pkcs12 = os.path.join(ca_dir, 'certs', '%s.cert.p12' % self.i.name)
+            self.key    = os.path.join(self.ca_dir, 'certs', '%s.key.pem' % self.i.name)
+            self.pkcs12 = os.path.join(self.ca_dir, 'certs', '%s.cert.p12' % self.i.name)
             
             if not self.i.subjaltname:
                 self.i.subjaltname = 'email:copy'
@@ -161,9 +161,9 @@ class Openssl():
         else:
             raise Exception( "Given object type is unknown!" )
         
-        self.csr  = os.path.join(ca_dir, 'certs', '%s.csr.pem'  % self.i.name)
-        self.crt  = os.path.join(ca_dir, 'certs', '%s.cert.pem' % self.i.name)
-        self.der  = os.path.join(ca_dir, 'certs', '%s.cert.der' % self.i.name)
+        self.csr  = os.path.join(self.ca_dir, 'certs', '%s.csr.pem'  % self.i.name)
+        self.crt  = os.path.join(self.ca_dir, 'certs', '%s.cert.pem' % self.i.name)
+        self.der  = os.path.join(self.ca_dir, 'certs', '%s.cert.der' % self.i.name)
         
         ## Generate a random string as ENV variable name
         self.env_pw = "".join(random.sample(string.letters+string.digits, 10))
