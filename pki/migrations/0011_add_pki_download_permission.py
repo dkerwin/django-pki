@@ -9,6 +9,10 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         from django.contrib.auth.models import Permission
         from django.contrib.contenttypes.models import ContentType
+        from django.contrib.contenttypes.management import update_all_contenttypes
+        
+        ## Update ContentType table. Otherwise pki tables are missing
+        update_all_contenttypes()
         
         for m in ('certificateauthority', 'certificate',):
             ct = ContentType.objects.get(model=m)

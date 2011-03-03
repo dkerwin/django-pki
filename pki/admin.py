@@ -51,8 +51,9 @@ admin.site.disable_action('delete_selected')
 class CertificateBaseAdmin(admin.ModelAdmin):
     """Base class for Certificate* Admin models"""
     
-    save_on_top = True
-    actions     = []
+    save_on_top   = True
+    actions       = []
+    list_per_page = 25
     
     class Media:
         js  = ( JQUERY_URL, 'pki/js/jquery.tipsy.js', 'pki/js/pki_admin.min.js', )
