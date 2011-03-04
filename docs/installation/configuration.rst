@@ -55,15 +55,17 @@ Edit project's settings.py
             'pki.middleware.PkiExceptionMiddleware',
         )
 
-4. Add 'django.contrib.admin' and 'pki' to INSTALLED_APPS:
-    
+4. Add 'django.contrib.admin', 'south' and 'pki' to INSTALLED_APPS:
+
+  .. warning:: Make sure **pki** is specified after **south** as unit tests won't work otherwise
+
   .. code-block:: python
         
         INSTALLED_APPS = (
             '...',
             'django.contrib.admin',
-            'pki',
             'south',
+            'pki',
         )
 
 5. Set MEDIA_URL and MEDIA_ROOT

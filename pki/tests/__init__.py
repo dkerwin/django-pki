@@ -171,11 +171,36 @@ class x509ExtensionModelTestCases(TestCase):
 ## OpenSSL function testcases
 ##-----------------------------------------##
 
-#class OpensslTestCases(TestCase):
-#    """Test Openssl library functions"""
-#    
-#    def test_refresh_pki_metadata(self):
-#        openssl.refresh_pki_metadata([])
+class OpensslTestCases(TestCase):
+    """Test Openssl library functions"""
+    
+    fixtures = ["eku_and_ku.json"]
+    
+    def setUp(self):
+        self.ca = CertificateAuthority(common_name='Root CA', name='Root_CA', description="unit test", country='DE', state='Bavaria', \
+                                       locality='Munich', organization='Bozo Clown Inc.', OU='IT', email='a@b.com', valid_days=1000, \
+                                       key_length=1024, expiry_date='', created='', revoked=None, active=None, serial=None, ca_chain=None, \
+                                       der_encoded=False, parent=None, passphrase='1234567890', extension=x509Extension.objects.get(pk=1))
+        self.ca_ssl = openssl.Openssl(self.ca)
+        openssl.refresh_pki_metadata([self.ca,])
+    
+    def tearDown(self):
+        openssl.refresh_pki_metadata([])
+    
+    def test_refresh_pki_metadata(self):
+        for d in ('certs', 'private', 'crl'):
+            self.assertTrue(os.path.exists(os.path.join(self.ca_ssl.ca_dir, d)))
+        for f in ('serial', 'index.txt', 'crlnumber'):
+            self.assertTrue(os.path.exists(os.path.join(self.ca_ssl.ca_dir, f)))
+    
+    def test_exec_openssl(self):
+        self.assertTrue(self.ca_ssl.exec_openssl(['version'], None))
+    
+    def test_generate_key(self):
+        for k in (1024, 2048, 4096):
+            self.ca_ssl.generate_key()
+            self.assertTrue(os.path.exists(self.ca_ssl.key))
+            os.unlink(self.ca_ssl.key)
 
 ##-----------------------------------------##
 ## Full operation testcases

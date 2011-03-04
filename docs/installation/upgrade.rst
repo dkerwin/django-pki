@@ -10,6 +10,19 @@ Database migration
 ==================
 
 * Install `south <http://south.aeracode.org/>`_  and add it to INSTALLED_APPS in settings.py
+    .. warning:: Make sure **pki** is specified after **south** as unit tests won't work otherwise
+    ::
+        
+        INSTALLED_APPS = (
+            'django.contrib.auth',
+            'django.contrib.contenttypes',
+            'django.contrib.sessions',
+            'django.contrib.sites',
+            'django.contrib.admin',
+            'south',
+            'pki',
+        )
+
 * Run the initial migration as fake::
     
     $ python manage.py migrate pki 0001 --fake
