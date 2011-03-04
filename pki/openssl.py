@@ -232,10 +232,6 @@ class Openssl():
             logger.error( e )
         
         env = { self.env_pw: str(self.i.passphrase), "S_A_N": self.i.subjaltname }
-        try:
-            env['C_D_P'] = self.i.crl_distribution
-        except:
-            pass
         
         self.exec_openssl( command, env_vars=env )
         

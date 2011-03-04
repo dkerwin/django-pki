@@ -3,18 +3,20 @@ import datetime
 import os
 import sys
 import logging
+import datetime
 
 from django.core.mail import get_connection
 from django.test.client import Client
 from django.test import TestCase
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 
 from windmill.authoring import djangotest 
 
-from pki.models import CertificateAuthority, Certificate, x509Extension
+from pki.models import CertificateAuthority, Certificate, x509Extension, PkiChangelog
 from pki import openssl
 from pki.helper import *
-from pki.settings import PKI_DIR, PKI_ENABLE_EMAIL
+from pki.settings import PKI_DIR, PKI_ENABLE_EMAIL, PKI_ENABLE_GRAPHVIZ, PKI_ENABLE_EMAIL
 
 if not os.path.exists(PKI_DIR):
     os.mkdir(PKI_DIR, 0700)
@@ -27,7 +29,156 @@ logger.addHandler(l_hdlr)
 logger.setLevel(logging.DEBUG)
 
 ##-----------------------------------------##
-## TestCases
+## Model function testcases
+##-----------------------------------------##
+
+class CertificateBaseModelTestCases(TestCase):
+    """Test abstract model CertificateBase functions"""
+    
+    def setUp(self):
+        self.obj = CertificateAuthority(common_name='Root CA', name='Root_CA', description="unittest", country='DE', state='Bavaria', \
+                                        locality='Munich', organization='Bozo Clown Inc.', OU='IT', email='a@b.com', valid_days=1000, \
+                                        key_length=1024, expiry_date=datetime.datetime(2021, 01, 01, 20, 00, 00).date(), \
+                                        created=datetime.datetime(2011, 01, 01, 20, 00, 00), \
+                                        revoked=datetime.datetime(2011, 01, 01, 20, 00, 00), active=None, serial=None, ca_chain=None, \
+                                        der_encoded=False, parent=None, passphrase='1234567890', id=999)
+    
+    def test_State(self):
+        self.assertTrue(self.obj.State().find("icon-yes.gif"))
+        self.obj.active = False
+        self.assertTrue(self.obj.State().find("icon-no.gif"))
+    
+    def test_Valid_center(self):
+        self.assertTrue(self.obj.Valid_center().find("icon-yes.gif"))
+        self.obj.active = False
+        self.assertTrue(self.obj.Valid_center().find("icon-no.gif"))
+    
+    def test_Serial_align_right(self):
+        self.assertTrue(self.obj.Serial_align_right().find('class="serial_align_right"'))
+    
+    def test_Description(self):
+        self.assertEqual(self.obj.Description(), "unittest")
+        self.obj.description = "1234567890123456789012345678901234567890"
+        self.assertEqual(self.obj.Description(), "123456789012345678901234567890...")
+    
+    def test_Creation_date(self):
+        self.assertEqual(self.obj.Creation_date(), '2011-01-01 20:00:00')
+    
+    def test_Revocation_date(self):
+        self.assertEqual(self.obj.Revocation_date(), '2011-01-01 20:00:00')
+    
+    def test_Expiry_date(self):
+        self.obj.expiry_date = datetime.datetime.now().date() + datetime.timedelta(15)
+        self.assertTrue(self.obj.Expiry_date().find('class="almods_expired"'))
+        self.obj.expiry_date = datetime.datetime.now().date() - datetime.timedelta(10)
+        self.assertTrue(self.obj.Expiry_date().find('class="expired"'))
+        self.obj.active = False
+        self.assertTrue(self.obj.Expiry_date().find('class="revoked"'))
+    
+    def test_Chain_link(self):
+        PKI_ENABLE_GRAPHVIZ = False
+        self.assertTrue(self.obj.Chain_link().find("Enable setting PKI_ENABLE_GRAPHVIZ"))
+        PKI_ENABLE_GRAPHVIZ = True
+        self.assertTrue(self.obj.Chain_link().find("Show object chain"))
+    
+    def test_Email_link(self):
+        PKI_ENABLE_EMAIL= False
+        self.assertTrue(self.obj.Email_link().find("Enable setting PKI_ENABLE_EMAIL"))
+        PKI_ENABLE_EMAIL = True
+        self.obj.active = False
+        self.assertTrue(self.obj.Email_link().find("Certificate is revoked"))
+        self.obj.active = True
+        self.obj.email = "a@b.com"
+        self.assertTrue(self.obj.Email_link().find("Send to"))
+        self.obj.email = None
+        self.assertTrue(self.obj.Email_link().find("Certificate has no email set. Disabled"))
+    
+    def test_Download_link(self):
+        self.obj.active = True
+        self.assertTrue(self.obj.Download_link().find("Download certificate zip"))
+        self.obj.active = False
+        self.assertTrue(self.obj.Download_link().find("Certificate is revoked. Disabled"))
+    
+    def test_Parent_link(self):
+        self.assertTrue(self.obj.Parent_link().find("self-signed"))
+    
+    def test_Certificate_Dump(self):
+        ## Requires real CRT. Skipped for now
+        pass
+    
+    def test_CA_Clock(self):
+        self.assertTrue(self.obj.CA_Clock().find("clock_container"))
+    
+class CertificateAuthorityModelTestCases(TestCase):
+    """Test model CertificateAuthority functions"""
+    
+    fixtures = ["eku_and_ku.json"]
+    
+    def setUp(self):
+        self.obj = CertificateAuthority(common_name='Root CA', name='Root_CA', description="unittest", country='DE', state='Bavaria', \
+                                        locality='Munich', organization='Bozo Clown Inc.', OU='IT', email='a@b.com', valid_days=1000, \
+                                        key_length=1024, expiry_date=datetime.datetime(2021, 01, 01, 20, 00, 00).date(), \
+                                        created=datetime.datetime(2011, 01, 01, 20, 00, 00), revoked=datetime.datetime(2011, 01, 01, 20, 00, 00), \
+                                        active=None, serial=None, ca_chain=None, der_encoded=False, parent=None, passphrase='1234567890', id=999)
+    
+    def tearDown(self):
+        openssl.refresh_pki_metadata([])
+    
+    def test_unicode(self):
+        self.assertEqual(self.obj.__unicode__(), "Root CA")
+    
+    def test_rebuild_ca_metadata(self):
+        self.obj_ssl = openssl.Openssl(self.obj)
+        self.obj.rebuild_ca_metadata(modify=True, task='append')
+        self.assertTrue(os.path.exists(self.obj_ssl.ca_dir))
+        self.obj.rebuild_ca_metadata(modify=True, task='exclude', skip_list=[self.obj.pk,])
+        self.assertFalse(os.path.exists(self.obj_ssl.ca_dir))
+    
+    def test_is_edge_ca(self):
+        self.obj.extension = x509Extension.objects.get(pk=1)
+        self.assertFalse(self.obj.is_edge_ca())
+        self.obj.extension = x509Extension.objects.get(pk=2)
+        self.assertTrue(self.obj.is_edge_ca())
+    
+    def test_Tree_link(self):
+        PKI_ENABLE_GRAPHVIZ = True
+        self.assertTrue(self.obj.Tree_link().find( "Show CA tree"))
+        PKI_ENABLE_GRAPHVIZ = False
+        self.assertTrue(self.obj.Tree_link().find( "Enable setting PKI_ENABLE_GRAPHVIZ"))
+    
+    def test_Child_certs(self):
+        self.obj.extension = x509Extension.objects.get(pk=1)
+        self.assertTrue(self.obj.Child_certs().find("No children"))
+        self.obj.extension = x509Extension.objects.get(pk=2)
+        self.assertTrue(self.obj.Child_certs().find("Show child certificates"))
+
+class x509ExtensionModelTestCases(TestCase):
+    """Test model x509Extension functions"""
+    
+    fixtures = ["eku_and_ku.json"]
+
+    def setUp(self):
+        self.ca   = x509Extension.objects.get(pk=1)
+        self.cert = x509Extension.objects.get(pk=3)
+
+    def test_key_usage_csv(self):
+        self.assertEqual(self.ca.key_usage_csv(), "critical,keyCertSign,cRLSign")
+    
+    def test_ext_key_usage_csv(self):
+        self.assertEqual(self.cert.ext_key_usage_csv(), "critical,serverAuth")
+
+##-----------------------------------------##
+## OpenSSL function testcases
+##-----------------------------------------##
+
+#class OpensslTestCases(TestCase):
+#    """Test Openssl library functions"""
+#    
+#    def test_refresh_pki_metadata(self):
+#        openssl.refresh_pki_metadata([])
+
+##-----------------------------------------##
+## Full operation testcases
 ##-----------------------------------------##
 
 def CreateCaChain():
@@ -85,6 +236,14 @@ class CertificateAuthorityTestCase(TestCase):
     
     def test_OpensslExec(self):
         self.assertTrue(self.rca_openssl.exec_openssl(['version'], None))
+    
+    def test_HistoryUpdated(self):
+        self.rca.action = "update"
+        self.rca.description = "UNIT_TEST_UPDATE"
+        self.rca.save()
+        self.assertEqual(PkiChangelog.objects.get(model_id=ContentType.objects.get_for_model(self.rca).pk, \
+                                                  object_id=self.rca.pk, changes="Updated description to \"UNIT_TEST_UPDATE\"").changes, \
+                                                  "Updated description to \"UNIT_TEST_UPDATE\"")
     
     def test_GenerateSelfSignedCertificateAuthority(self):
         self.assertTrue(os.path.exists(self.rca_openssl.key))
@@ -170,6 +329,14 @@ class CertificateTestCase(TestCase):
         CertificateAuthority.objects.all().delete()
         Certificate.objects.all().delete()
     
+    def test_HistoryUpdated(self):
+        self.srv.action = "update"
+        self.srv.description = "UNIT_TEST_UPDATE"
+        self.srv.save()
+        self.assertEqual(PkiChangelog.objects.get(model_id=ContentType.objects.get_for_model(self.srv).pk, \
+                                                  object_id=self.srv.pk, changes="Updated description to \"UNIT_TEST_UPDATE\"").changes, \
+                                                  "Updated description to \"UNIT_TEST_UPDATE\"")
+    
     def test_CreateEdgeCertificate(self):
         self.assertTrue(self.srv.active)
         self.assertTrue(self.usr.active)
@@ -242,6 +409,10 @@ class x509ExtensionTestCase(TestCase):
         x.save()
         self.assertNotEqual(desc, x.description)
 
+##-----------------------------------------##
+## Email testcases
+##-----------------------------------------##
+
 class EmailDeliveryTestCase(unittest.TestCase):
     
     def setUp(self): pass
@@ -252,26 +423,102 @@ class EmailDeliveryTestCase(unittest.TestCase):
         else:
             self.assertTrue(True)
 
+##-----------------------------------------##
+## HTTP testcases
+##-----------------------------------------##
+
 class HttpClientTestCase(TestCase):
     
     fixtures = ["test_users.json", "eku_and_ku.json"]
     
     def setUp(self):
+        openssl.refresh_pki_metadata([])
+        self.post_data_rca = {'action':'create', 'common_name':'Root CA', 'name':'Root_CA', 'description':"unit test", \
+                              'country':'DE', 'state':'Bavaria', 'locality':'Munich', 'organization':'Bozo Clown Inc.', \
+                              'OU':'IT', 'email':'a@b.com', 'valid_days':1000, 'key_length':1024, 'der_encoded':False, \
+                              'parent':'', 'passphrase':'1234567890', 'passphrase_verify':'1234567890', 'policy':'policy_anything', \
+                              'extension':x509Extension.objects.get(name="v3_root_or_intermediate_ca").pk,}
+        self.post_data_ica = {'action':'create', 'common_name':'Intermediate CA', 'name':'Intermediate_CA', 'description':"unit test", \
+                              'country':'DE', 'state':'Bavaria', 'locality':'Munich', 'organization':'Bozo Clown Inc.', \
+                              'OU':'IT', 'email':'a@b.com', 'valid_days':1000, 'key_length':1024, 'der_encoded':False, \
+                              'parent':'1', 'passphrase':'1234567890', 'passphrase_verify':'1234567890', 'parent_passphrase':'1234567890', \
+                              'policy':'policy_anything', 'extension':x509Extension.objects.get(name="v3_root_or_intermediate_ca").pk,}
+        self.post_data_eca = {'action':'create', 'common_name':'Edge CA', 'name':'Edge', 'description':"unit test", \
+                              'country':'DE', 'state':'Bavaria', 'locality':'Munich', 'organization':'Bozo Clown Inc.', \
+                              'OU':'IT', 'email':'a@b.com', 'valid_days':1000, 'key_length':1024, 'der_encoded':False, \
+                              'parent':'2', 'passphrase':'1234567890', 'passphrase_verify':'1234567890', 'parent_passphrase':'1234567890', \
+                              'policy':'policy_anything', 'extension':x509Extension.objects.get(name="v3_edge_ca").pk,}
+        
+        #self.post_data_srv = {'action':'create', 'common_name':'Edge CA', 'name':'Edge', 'description':"unit test", \
+        #                      'country':'DE', 'state':'Bavaria', 'locality':'Munich', 'organization':'Bozo Clown Inc.', \
+        #                      'OU':'IT', 'email':'a@b.com', 'valid_days':1000, 'key_length':1024, 'der_encoded':False, \}
+        
         self.c = Client()
         self.assertTrue(self.c.login(username="admin", password="admin"))
+        
+        r = self.c.post('/admin/pki/certificateauthority/add/', self.post_data_rca, follow=True)
+        self.assertContains(r, 'was added successfully')
+        self.failUnlessEqual(r.status_code, 200)
+        
+        r = self.c.post('/admin/pki/certificateauthority/add/', self.post_data_ica, follow=True)
+        self.assertContains(r, 'was added successfully')
+        self.failUnlessEqual(r.status_code, 200)
+        
+        r = self.c.post('/admin/pki/certificateauthority/add/', self.post_data_eca, follow=True)
+        self.assertContains(r, 'was added successfully')
+        self.failUnlessEqual(r.status_code, 200)
     
     def tearDown(self):
         self.c.logout()
+        openssl.refresh_pki_metadata([])
 
-    def test_AddRootCertificateAuthority(self):
-        r = self.c.post('/admin/pki/certificateauthority/add/', { 'action':'create', 'common_name':'Root CA', 'name':'Root_CA', 'description':"unit test", \
-                                                                  'country':'DE', 'state':'Bavaria', 'locality':'Munich', 'organization':'Bozo Clown Inc.', \
-                                                                  'OU':'IT', 'email':'a@b.com', 'valid_days':1000, 'key_length':1024, 'der_encoded':False, \
-                                                                  'parent':'', 'passphrase':'1234567890', 'passphrase_verify':'1234567890', 'policy':'policy_anything', \
-                                                                  'extension':x509Extension.objects.get(name="v3_root_or_intermediate_ca").pk,}, follow=True)
-        
-        self.assertContains(r, 'added successfully')
+    def test_RevokeEdgeCertificateAuthority(self):
+        self.post_data_eca['action'] = 'revoke'
+        self.post_data_eca['parent_passphrase'] = '1234567890'
+        r = self.c.post('/admin/pki/certificateauthority/3/', self.post_data_eca, follow=True)
+        self.assertContains(r, 'was changed successfully')
         self.failUnlessEqual(r.status_code, 200)
+        eca_obj = CertificateAuthority.objects.get(pk=3)
+        eca_ssl = openssl.Openssl(eca_obj)
+        self.assertFalse(eca_obj.active)
+        self.assertTrue(eca_ssl.get_revoke_status_from_cert())
+    
+    def test_RevokeIntermediateCertificateAuthority(self):
+        self.post_data_ica['action'] = 'revoke'
+        self.post_data_ica['parent_passphrase'] = '1234567890'
+        r = self.c.post('/admin/pki/certificateauthority/2/', self.post_data_ica, follow=True)
+        self.assertContains(r, 'was changed successfully')
+        self.failUnlessEqual(r.status_code, 200)
+        ica_obj = CertificateAuthority.objects.get(pk=2)
+        ica_ssl = openssl.Openssl(ica_obj)
+        self.assertFalse(ica_obj.active)
+        self.assertTrue(ica_ssl.get_revoke_status_from_cert())
+        for ca in ica_obj.certificateauthority_set.all():
+            self.assertFalse(ca.active)
+    
+    def test_DeleteEdgeCertificateAuthority(self):
+        eca_obj = CertificateAuthority.objects.get(pk=3)
+        eca_ssl = openssl.Openssl(eca_obj)
+        r = self.c.post('/admin/pki/certificateauthority/3/delete/', {'_model':'certificateauthority', '_id':3, 'passphrase':'1234567890'}, follow=True)
+        self.assertContains(r, 'was deleted successfully')
+        self.failUnlessEqual(r.status_code, 200)
+        self.assertEqual(len(CertificateAuthority.objects.filter(pk=3)), 0)
+        self.assertTrue(eca_ssl.get_revoke_status_from_cert())
+        self.assertFalse(os.path.exists(eca_ssl.ca_dir))
+    
+    def test_DeleteRootCertificateAuthority(self):
+        rca_obj = CertificateAuthority.objects.get(pk=1)
+        rca_ssl = openssl.Openssl(rca_obj)
+        r = self.c.post('/admin/pki/certificateauthority/1/delete/', {'_model':'certificateauthority', '_id':1, 'passphrase':'1234567890'}, follow=True)
+        self.assertContains(r, 'was deleted successfully')
+        self.failUnlessEqual(r.status_code, 200)
+        self.assertEqual(len(CertificateAuthority.objects.filter(pk=1)), 0)
+        self.assertFalse(os.path.exists(rca_ssl.ca_dir))
+        for ca in rca_obj.certificateauthority_set.all():
+            self.assertEqual(len(CertificateAuthority.objects.filter(pk=ca.pk)), 0)
+            self.assertFalse(os.path.exists(rca_ssl.ca_dir)) 
+    
+    
     
     #def test_201_DownloadWithoutLogin(self):
     #    r = self.c.get('/admin/pki/download/ca/1')
@@ -280,7 +527,3 @@ class HttpClientTestCase(TestCase):
     #def test_209_AdminLogin(self):
     #    self.assertTrue(self.c.login(username="pki_user_1", password="admin"))
 
-#class TestProjectWindmillTest(djangotest.WindmillDjangoUnitTest):
-#    fixtures = ["test_users.json"]
-#    test_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'windmilltests')
-#    browser  = 'firefox'

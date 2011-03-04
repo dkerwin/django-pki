@@ -188,7 +188,6 @@ class CertificateBase(models.Model):
         now = datetime.datetime.now().date()        
         diff = self.expiry_date - now
         
-        
         if not self.active:
             return '<span class="revoked">%s (%sd)</span>' % (self.expiry_date, diff.days)
         
