@@ -8,7 +8,7 @@ Prequisites
 ===========
 
 * Python (tested on 2.5 and 2.6)
-* Django framework (>=1.2 is recommended)
+* Django framework (>= 1.2)
 * A RDBMS of your choice (MySQL, PostgreSQL, SQLite, Oracle)
 * `OpenSSL <http://openssl.org/>`_
 * Optional `jQuery library <http://jquery.com/>`_ (djago-pki already shipped with built-in jquery-1.5)
