@@ -10,8 +10,9 @@ Database migration
 ==================
 
 * Install `south <http://south.aeracode.org/>`_  and add it to INSTALLED_APPS in settings.py
-    .. warning:: Make sure **pki** is specified after **south** as unit tests won't work otherwise
-    ::
+
+  .. warning:: Make sure **pki** is specified after **south** as unit tests won't work otherwise
+  ::
         
         INSTALLED_APPS = (
             'django.contrib.auth',
@@ -58,7 +59,11 @@ Nice. Your database has been migrated.
 Update project's urls.py
 ========================
 
-It is no longer required to specify the django-pki urls before the admin urls but the django-pki entry has changed. Your urls.py must look like this::
+It is no longer required to specify the django-pki urls before the admin urls but the django-pki entry has changed. Your urls.py must look like this
+
+.. warning:: Make sure you add the pki namespace to the include statement. (r'^', include('pki.urls')) **~>** (r'^', include('pki.urls', 'pki'))
+
+::
     
     (r'^admin/', include(admin.site.urls)),
     (r'^', include('pki.urls', 'pki')),

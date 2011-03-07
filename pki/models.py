@@ -1,15 +1,18 @@
 import os
+import re
 import datetime
 from logging import getLogger
-from shutil import rmtree
 
 from django.db import models
 from django.core import urlresolvers
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.models import User
+from django.core.validators import MinLengthValidator, MinValueValidator, RegexValidator, URLValidator
+from django.core.exceptions import ValidationError
 
 from pki.openssl import Openssl, md5_constructor, refresh_pki_metadata
-from pki.settings import ADMIN_MEDIA_PREFIX, MEDIA_URL, PKI_BASE_URL, PKI_DEFAULT_COUNTRY, PKI_ENABLE_GRAPHVIZ, PKI_ENABLE_EMAIL
+from pki.settings import MEDIA_URL, PKI_BASE_URL, PKI_DEFAULT_COUNTRY, PKI_ENABLE_GRAPHVIZ, \
+                         PKI_ENABLE_EMAIL, PKI_PASSPHRASE_MIN_LENGTH
 
 logger = getLogger("pki")
 
@@ -63,6 +66,44 @@ COUNTRY    = ( ('AD', 'AD'),('AE', 'AE'),('AF', 'AF'),('AG', 'AG'),('AI', 'AI'),
               )
 
 ##------------------------------------------------------------------##
+## Custom field validators
+##------------------------------------------------------------------##
+
+def validate_subject_altname(value):
+    allowed = { 'email': '^copy|[\w\-\.]+\@[\w\-\.]+\.\w{2,4}$',
+                'IP'   : '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$',
+                'DNS'  : '^[a-zA-Z0-9\-\.\*]+$',
+              }
+    
+    items = value.split(',')
+    
+    for i in items:
+        if not re.match('^\s*(email|IP|DNS)\s*:\s*.+$', i):
+            raise ValidationError(u'Item "%s" doesn\'t match specification' % i)
+        else:
+            kv  = i.split(':')
+            key = kv[0].lstrip().rstrip()
+            val = kv[1].lstrip().rstrip()
+            
+            if key in allowed:
+                if not re.match( allowed[key], val ):
+                    raise ValidationError(u'Invalid subjAltName value "%s" for key "%s" supplied' % (val, key))
+            else:
+                raise ValidationError(u'Invalid subjAltName key supplied: "%s" (supported are %s)' % (key, ', '.join(allowed.keys())))
+
+def validate_crl_dp(value):
+    items = value.split(',')
+    
+    for i in items:
+        m = re.match('^\s*(?P<uri_key>(URI))\s*:\s*(?P<uri_value>\S+)$', i)
+        if not m.group('uri_key') or not m.group('uri_value'):
+            raise ValidationError(u'Item "%s" doesn\'t match specification' % i)
+        try:
+            URLValidator(verify_exists=False)(m.group('uri_value'))
+        except ValidationError:
+            raise ValidationError('Given URI "%s" doesn\'t match the specification' % m.group('uri_value'))
+
+##------------------------------------------------------------------##
 ## Base DB classes
 ##------------------------------------------------------------------##
 
@@ -76,7 +117,7 @@ class CertificateBase(models.Model):
     organization = models.CharField(max_length=64)
     OU           = models.CharField(max_length=64,blank=True, null=True)
     email        = models.EmailField(blank=True, null=True)
-    valid_days   = models.IntegerField()
+    valid_days   = models.IntegerField(validators=[MinValueValidator(1)])
     key_length   = models.IntegerField(choices=KEY_LENGTH, default=2048)
     expiry_date  = models.DateField(blank=True,null=True)
     created      = models.DateTimeField(blank=True,null=True)
@@ -320,18 +361,18 @@ class CertificateAuthority(CertificateBase):
     ##---------------------------------##
     
     common_name       = models.CharField(max_length=64, unique=True)
-    name              = models.CharField(max_length=64, unique=True, help_text="Only change the suggestion if you really know what you're doing")
+    name              = models.CharField(max_length=64, unique=True, validators=[RegexValidator("[a-zA-Z0-9-_\.]+", message='Name may only contain characters in range a-Z0-9_-.')], \
+                                         help_text="Only change the suggestion if you really know what you're doing")
     parent            = models.ForeignKey('self', blank=True, null=True)
-    passphrase        = models.CharField(max_length=255, blank=True, help_text="At least 8 characters. Remeber this passphrase - <font color='red'> \
+    passphrase        = models.CharField(max_length=255, blank=True, validators=[MinLengthValidator(PKI_PASSPHRASE_MIN_LENGTH)],  help_text="At least 8 characters. Remeber this passphrase - <font color='red'> \
                                                                     <strong>IT'S NOT RECOVERABLE</strong></font><br>Will be shown as md5 encrypted string")
     parent_passphrase = models.CharField(max_length=255, null=True, blank=True, help_text="Leave empty if this is a top-level CA")
     policy            = models.CharField(max_length=50, choices=POLICY, default='policy_anything', help_text='policy_match: All subject settings must \
                                                                                                               match the signing CA<br> \
                                                                                                               policy_anything: Nothing has to match the \
                                                                                                               signing CA')
-    crl_distribution  = models.CharField(max_length=255, verbose_name='CRL Distribution Points', null=True, blank=True, help_text='Comma seperated list of URI elements \
-                                                                                                                                   just like subjectAltName. Example: \
-                                                                                                                                   URI:http://ca.local/ca.crl,...')
+    crl_distribution  = models.CharField(max_length=255, verbose_name='CRL Distribution Points', null=True, blank=True, validators=[validate_crl_dp], \
+                                         help_text='Comma seperated list of URI elements. Example: URI:http://ca.local/ca.crl,...')
 
     class Meta:
         db_table            = 'pki_certificateauthority'
@@ -655,13 +696,14 @@ class Certificate(CertificateBase):
     """Certificate model"""
     
     common_name       = models.CharField(max_length=64)
-    name              = models.CharField(max_length=64, help_text="Only change the suggestion if you really know what you're doing")
+    name              = models.CharField(max_length=64, validators=[RegexValidator("[a-zA-Z0-9-_\.]+", message='Name may only contain characters in range a-Z0-9_-.')], \
+                                         help_text="Only change the suggestion if you really know what you're doing")
     parent            = models.ForeignKey('CertificateAuthority', blank=True, null=True, help_text='Leave blank to generate self-signed certificate')
-    passphrase        = models.CharField(max_length=255, null=True, blank=True)
+    passphrase        = models.CharField(max_length=255, null=True, blank=True, validators=[MinLengthValidator(PKI_PASSPHRASE_MIN_LENGTH)])
     parent_passphrase = models.CharField(max_length=255, blank=True, null=True)
     pkcs12_encoded    = models.BooleanField(default=False, verbose_name="PKCS#12 encoding")
-    pkcs12_passphrase = models.CharField(max_length=255, verbose_name="PKCS#12 passphrase", blank=True, null=True)
-    subjaltname       = models.CharField(max_length=255, blank=True, null=True, verbose_name="SubjectAltName", \
+    pkcs12_passphrase = models.CharField(max_length=255, verbose_name="PKCS#12 passphrase", blank=True, null=True, validators=[MinLengthValidator(8)])
+    subjaltname       = models.CharField(max_length=255, blank=True, null=True, verbose_name="SubjectAltName", validators=[validate_subject_altname], \
                                          help_text='Comma seperated list of alt names. Valid are DNS:www.xyz.com, IP:1.2.3.4 and email:a@b.com in any \
                                          combination. Refer to the official openssl documentation for details' )
 
@@ -883,7 +925,9 @@ class x509Extension(models.Model):
                                  ('CA:TRUE,pathlen:0', 'Edge CA (CA:TRUE, pathlen:0)'),
                                  ('CA:FALSE', 'Enduser Certificate (CA:FALSE)'), )
     
-    name                        = models.CharField(max_length=255, unique=True)
+    name                        = models.CharField(max_length=255, unique=True, \
+                                                   validators=[RegexValidator("[a-zA-Z0-9-_\.]+", \
+                                                                              message='Name may only contain characters in range a-Z0-9_-.')])
     description                 = models.CharField(max_length=255)
     created                     = models.DateTimeField(auto_now_add=True)
     basic_constraints           = models.CharField(max_length=255, choices=BASIC_CONSTRAINTS, verbose_name="basicConstraints")

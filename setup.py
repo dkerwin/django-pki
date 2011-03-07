@@ -45,7 +45,9 @@ setup(
     long_description=get_file_contents('README.markdown'),
     author='Daniel Kerwin',
     author_email='daniel@linuxaddicted.de',
-    url='http://www.github.com/dkerwin/django-pki/',
+    maintainer='Daniel Kerwin',
+    maintainer_email='daniel@linuxaddicted.de',
+    url='http://dkerwin.github.com/django-pki/',
     license='GPL',
     download_url='http://pypi.python.org/packages/source/d/django-pki/django-pki-%s.tar.gz' % version,
     classifiers=[
@@ -67,4 +69,5 @@ setup(
     packages = ['pki', 'pki.templatetags'],
     data_files = list_data_files('pki/media') + list_data_files('pki/templates'),
     cmdclass = cmdclasses,
+    requires=['Django (>=1.2.0)'],
 )

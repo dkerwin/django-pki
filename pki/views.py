@@ -10,7 +10,7 @@ from django.template import RequestContext
 from django.core import urlresolvers
 
 from pki.settings import PKI_LOG, MEDIA_URL, PKI_ENABLE_GRAPHVIZ, PKI_ENABLE_EMAIL
-from pki.models import CertificateAuthority, Certificate, x509Extension
+from pki.models import CertificateAuthority, Certificate
 from pki.forms import DeleteForm
 from pki.graphviz import ObjectChain, ObjectTree
 from pki.email import SendCertificateData
@@ -75,7 +75,8 @@ def pki_chain(request, model, id):
     """
     
     if PKI_ENABLE_GRAPHVIZ is not True:
-        raise Exception( "Chain view is inoperable unless PKI_ENABLE_GRAPHVIZ is enabled" )
+        messages.warning(request, "Chain view is disabled unless setting PKI_ENABLE_GRAPHVIZ is set to True")
+        return HttpResponseRedirect(urlresolvers.reverse('admin:pki_%s_changelist' % model))
     
     if model == "certificateauthority":
         obj = get_object_or_404(CertificateAuthority, pk=id)
@@ -83,7 +84,6 @@ def pki_chain(request, model, id):
         obj = get_object_or_404(Certificate, pk=id)
     
     png = generate_temp_file()
-
     ObjectChain(obj, png)
     
     try:
@@ -91,7 +91,6 @@ def pki_chain(request, model, id):
             f = open(png)
             x = f.read()
             f.close()
-            
             os.remove(png)
     except OSError,e:
         logger.error( "Failed to load depency tree: %s" % e)
@@ -109,7 +108,8 @@ def pki_tree(request, id):
     """
     
     if PKI_ENABLE_GRAPHVIZ is not True:
-        raise Exception( "Tree view is inoperable unless PKI_ENABLE_GRAPHVIZ is enabled!" )
+        messages.warning(request, "Tree view is disabled unless setting PKI_ENABLE_GRAPHVIZ is set to True")
+        return HttpResponseRedirect(urlresolvers.reverse('admin:pki_certificateauthority_changelist' % model))
     
     obj = get_object_or_404(CertificateAuthority, pk=id)
     png = generate_temp_file()
@@ -143,14 +143,13 @@ def pki_email(request, model, id):
     """
     
     if PKI_ENABLE_EMAIL is not True:
-        raise Exception( "Email sending is inoperable unless PKI_ENABLE_EMAIL is enabled!" )
+        messages.warning(request, "Email delivery is disabled unless setting PKI_ENABLE_EMAIL is set to True")
+        return HttpResponseRedirect(urlresolvers.reverse('admin:pki_%s_changelist' % model))
     
     if model == "certificateauthority":
         obj  = get_object_or_404(CertificateAuthority, pk=id)
     elif model == "certificate":
         obj = get_object_or_404(Certificate, pk=id)
-    
-    back = request.META.get('HTTP_REFERER', None) or '/'
     
     if obj.email and obj.active:
         SendCertificateData(obj, request)
@@ -158,7 +157,7 @@ def pki_email(request, model, id):
         raise Http404
     
     messages.info(request, 'Email to "%s" was sent successfully.' % obj.email)
-    return HttpResponseRedirect(back)
+    return HttpResponseRedirect(urlresolvers.reverse('admin:pki_%s_changelist' % model))
 
 ##------------------------------------------------------------------##
 ## Management views
@@ -196,9 +195,9 @@ def admin_history(request, model, id):
     changelogs = PkiChangelog.objects.filter(model_id=ct.pk).filter(object_id=id)
     
     return render_to_response('admin/pki/object_changelogs.html', { 'changelogs': changelogs, 'title': "Change history: %s" % obj.common_name,
-                                                                 'app_label': model_obj._meta.app_label, 'object': obj,
-                                                                 'module_name': model_obj._meta.verbose_name_plural,
-                                                                }, RequestContext(request))
+                                                                    'app_label': model_obj._meta.app_label, 'object': obj,
+                                                                    'module_name': model_obj._meta.verbose_name_plural,
+                                                                  }, RequestContext(request))
 
 @login_required
 def admin_delete(request, model, id):
@@ -257,7 +256,7 @@ def admin_delete(request, model, id):
         if form.is_valid():
             item.delete(request.POST['passphrase'])
             messages.info(request, 'The %s "%s" was deleted successfully.' % (opts.verbose_name, object))
-            return HttpResponseRedirect("../../")
+            return HttpResponseRedirect(urlresolvers.reverse('admin:pki_%s_changelist' % model))
     else:
         form = DeleteForm()
         
@@ -269,6 +268,10 @@ def admin_delete(request, model, id):
                                                                       'auth_object': auth_object, 'parent_object_name': parent_object_name,
                                                                       'title': title,
                                                                     }, RequestContext(request))
+
+##------------------------------------------------------------------##
+## Exception viewer
+##------------------------------------------------------------------##
 
 @login_required
 def show_exception(request):

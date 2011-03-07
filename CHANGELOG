@@ -1,3 +1,8 @@
+0.10.5
+======
+575fb80 - switch version to 0.10.5
+5c92813 - Include key in pkcs12 archives. Fixes webserver auth
+
 0.10.4
 ======
 88fe64f - tests.py -> tests/

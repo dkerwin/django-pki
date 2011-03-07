@@ -1,15 +1,12 @@
+import os
+
 from django import forms
 from django.forms.util import ErrorList
-from django.utils.safestring import mark_safe
 from django.shortcuts import get_object_or_404
 
 from pki.models import *
 from pki.settings import PKI_DIR
-
-from openssl import md5_constructor
-
-import os
-import re
+from pki.openssl import md5_constructor
 
 ##------------------------------------------------------------------##
 ## Form validation
@@ -26,34 +23,26 @@ class CertificateAuthorityForm(forms.ModelForm):
         model = CertificateAuthority
     
     def clean(self):
-        """Verify crucial fields"""
+        """Verify fields"""
         
         cleaned_data = self.cleaned_data
         
+        name = cleaned_data.get('name')
         action = cleaned_data.get('action')
         parent = cleaned_data.get('parent')
         pf = cleaned_data.get('passphrase')
         pf_v = cleaned_data.get('passphrase_verify')
+        p_pf = cleaned_data.get('parent_passphrase')
+        
         enc_p_pf = None
-
+        
         if action in ('create', 'renew'):
-            
-            ## Check if name contains invalid chars
-            name = cleaned_data.get('name')
-            
-            if name != None and re.search('[^a-zA-Z0-9-_\.]', name):
-                self._errors['name'] = ErrorList(['Name may only contain characters in range a-Z0-9_-.'])
-            
-            ## Verify passphrase length
             if action == 'create':
-                if pf and len(pf) < 8:
-                    self._errors['passphrase'] = ErrorList(['Passphrase has to be at least 8 characters long'])
-                
                 if not pf_v or pf != pf_v:
-                    self.errors['passphrase_verify'] = ErrorList(['Passphrase mismtach detected'])
+                    self.errors['passphrase_verify'] = ErrorList(['Passphrase mismtach!'])
                 
                 ## Verify that we're not creating a certificate that already exists
-                if os.path.exists(os.path.join(PKI_DIR, name)):
+                if name and os.path.isdir(os.path.join(PKI_DIR, name)):
                     self._errors['name'] = ErrorList(['Name "%s" is already in use!' % name])
             
             ## Take care that parent is active when action is revoke
@@ -66,13 +55,13 @@ class CertificateAuthorityForm(forms.ModelForm):
                     return cleaned_data
                 
                 ## Compare passphrase
-                if not pf or ca.passphrase != md5_constructor(pf).hexdigest():
+                if not pf or (ca.passphrase != md5_constructor(pf).hexdigest()):
                     self._errors['passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA "%s"' % cleaned_data.get('common_name')])
             
             if parent:                
                 ca = CertificateAuthority.objects.get(name='%s' % parent.name)
-                p_pf = cleaned_data.get('parent_passphrase')
-                if p_pf: enc_p_pf = md5_constructor(p_pf).hexdigest()
+                if p_pf:
+                    enc_p_pf = md5_constructor(p_pf).hexdigest()
                 
                 ## Check if parent allows sub CA
                 if ca.is_edge_ca():
@@ -99,9 +88,7 @@ class CertificateForm(forms.ModelForm):
     
     passphrase        = forms.CharField(widget=forms.PasswordInput, required=False)
     passphrase_verify = forms.CharField(widget=forms.PasswordInput, required=False)
-    
     parent_passphrase = forms.CharField(widget=forms.PasswordInput, required=False)
-    
     pkcs12_passphrase = forms.CharField(widget=forms.PasswordInput, required=False)
     pkcs12_passphrase_verify = forms.CharField(widget=forms.PasswordInput, required=False)
     
@@ -113,29 +100,17 @@ class CertificateForm(forms.ModelForm):
         
         cleaned_data = self.cleaned_data
         
+        name = cleaned_data.get('name')
         action = cleaned_data.get('action')
         parent = cleaned_data.get('parent')
         pf = cleaned_data.get('passphrase')
         pf_v = cleaned_data.get('passphrase_verify')
         p_pf = cleaned_data.get('parent_passphrase')
-        subjaltname = cleaned_data.get('subjaltname')
-        pkcs12_passphrase = cleaned_data.get('pkcs12_passphrase')
-        pkcs12_encoded = cleaned_data.get('pkcs12_encoded')
         
         enc_p_pf = None
         
         if action in ('create', 'renew'):
-            ## Check if name contains invalid chars
-            name = cleaned_data.get('name')
-            
-            if name != None and re.search('[^a-zA-Z0-9-_\.]', name):
-                self._errors['name'] = ErrorList(['Name may only contain characters in range a-Z0-9'])
-            
-            ## Verify passphrase length
             if action == 'create':
-                if pf and len(pf) < 8:
-                    self._errors['passphrase'] = ErrorList(['Passphrase has to be at least 8 characters long'])
-                
                 if (pf and not pf_v) or pf != pf_v:
                     self.errors['passphrase_verify'] = ErrorList(['Passphrase mismtach detected'])
                 
@@ -146,10 +121,6 @@ class CertificateForm(forms.ModelForm):
                 else:
                     if os.path.exists(os.path.join(PKI_DIR, '_SELF_SIGNED_CERTIFICATES', 'certs', '%s.key.pem' % name)):
                         self._errors['name'] = ErrorList(['Name "%s" is already in use!' % name])
-            
-            ## Verify that pkcs12 passphrase isn't empty when encoding is requested
-            if pkcs12_encoded and len(pkcs12_passphrase) < 8:
-                self._errors['pkcs12_passphrase'] = ErrorList(['PKCS12 passphrase has to be at least 8 characters long'])
             
             ## Take care that parent is active when action is revoke
             if action == 'renew':
@@ -166,28 +137,6 @@ class CertificateForm(forms.ModelForm):
                 ## Check parent passphrase
                 if ca.passphrase != enc_p_pf:
                     self._errors['parent_passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA "%s"' % parent])
-            
-            ## Verify subjAltName
-            if subjaltname and len(subjaltname) > 0:
-                allowed = { 'email': '^copy|[\w\-\.]+\@[\w\-\.]+\.\w{2,4}$',
-                            'IP'   : '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$',
-                            'DNS'  : '^[a-zA-Z0-9\-\.\*]+$',
-                          }
-                items = subjaltname.split(',')
-                
-                for i in items:
-                    if not re.match( '^\s*(email|IP|DNS)\s*:\s*.+$', i):
-                        self._errors['subjaltname'] = ErrorList(['Item "%s" doesn\'t match specification' % i])
-                    else:
-                        kv  = i.split(':')
-                        key = kv[0].lstrip().rstrip()
-                        val = kv[1].lstrip().rstrip()
-                        
-                        if key in allowed:
-                            if not re.match( allowed[key], val ):
-                                self._errors['subjaltname'] = ErrorList(['Invalid subjAltName value supplied: \"%s\"' % i])
-                        else:
-                            self._errors['subjaltname'] = ErrorList(['Invalid subjAltName key supplied: "%s" (supported are %s)' % (key, ', '.join(allowed.keys()))])
         elif action == 'revoke':
             if parent:
                 ca = CertificateAuthority.objects.get(name='%s' % parent.name)
@@ -198,11 +147,6 @@ class CertificateForm(forms.ModelForm):
                     self._errors['parent_passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA "%s"' % parent])
             else:
                 self._errors['action'] = ErrorList(['You cannot revoke a self-signed certificate as there\'s no CA to revoke against. Delete it instead!'])
-
-        elif action == 'update':
-            ## Verify that pkcs12 passphrase isn't empty when encoding is requested
-            if pkcs12_encoded and len(pkcs12_passphrase) < 8:
-                self._errors['pkcs12_passphrase'] = ErrorList(['PKCS12 passphrase has to be at least 8 characters long'])
         
         return cleaned_data
 
@@ -222,9 +166,6 @@ class x509ExtensionForm(forms.ModelForm):
         ku    = cleaned_data.get('key_usage')
         eku   = cleaned_data.get('extended_key_usage')
         eku_c = cleaned_data.get('extended_key_usage_critical')
-        
-        if name and re.search('[^a-zA-Z0-9-_\.]', name):
-                self._errors['name'] = ErrorList(['Name may only contain characters in range "a-zA-Z0-9-_\."'])
         
         if bc in ('root_ca', 'edge_ca'):
             if len(eku) > 0:

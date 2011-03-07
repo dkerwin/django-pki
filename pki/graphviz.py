@@ -45,7 +45,6 @@ def ObjectChain(object, target):
     
     ## Get parents if any
     if object.parent != None:
-        
         ## Set p to objects parent
         p = object.parent
         
@@ -61,7 +60,6 @@ def ObjectChain(object, target):
         edges.append( [p.common_name, object.common_name] )
         
         while p != None:
-            
             if p.active:
                 col = "green3"
             else:
@@ -104,7 +102,6 @@ def ObjectTree(object, target):
             x = [c]
         
         for ca in x:
-            
             if graph != None:
                 if ca.active is True:
                     col = "green3"
@@ -126,7 +123,6 @@ def ObjectTree(object, target):
                     subgraph_list = [ ca.common_name ]
                     
                     for cert in certs:
-                        
                         subgraph_list.append( cert.common_name )
                         
                         if graph != None:

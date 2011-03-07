@@ -116,6 +116,9 @@ You can use any combination of the following parameters:
 **PKI_DEFAULT_COUNTRY** (*Default = DE; Type = Python String*)
     The default country (as 2-letter code) selected (http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
 
+**PKI_PASSPHRASE_MIN_LENGTH** (*Default = 8; Type = Python Number*)
+    The minimum length for passphrases
+
 **PKI_ENABLE_GRAPHVIZ** (*Default = False; Type = Python Boolean*)
     Enable graphviz support (see requirements)
 
@@ -137,6 +140,7 @@ You can use any combination of the following parameters:
     JQUERY_URL = 'http://static.company.com/js/jquery.js'
     PKI_SELF_SIGNED_SERIAL = 0x0
     PKI_DEFAULT_COUNTRY = 'UK'
+    PKI_PASSPHRASE_MIN_LENGTH = 12
     PKI_ENABLE_GRAPHVIZ = True
     PKI_GRAPHVIZ_DIRECTION = 'TD'
     PKI_ENABLE_EMAIL = True

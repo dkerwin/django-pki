@@ -1,6 +1,5 @@
 import os
 import tempfile
-import string
 import random
 import zipfile
 import logging
