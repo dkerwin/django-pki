@@ -6,13 +6,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>2. Configuration &mdash; django-pki v0.10.4.DEVELOPMENT documentation</title>
+    <title>2. Configuration &mdash; django-pki v0.20.0 documentation</title>
     <link rel="stylesheet" href="../_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.10.4.DEVELOPMENT',
+        VERSION:     '0.20.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -21,7 +21,7 @@
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <link rel="top" title="django-pki v0.10.4.DEVELOPMENT documentation" href="../index.html" />
+    <link rel="top" title="django-pki v0.20.0 documentation" href="../index.html" />
     <link rel="next" title="3. Upgrade instructions" href="upgrade.html" />
     <link rel="prev" title="1. Installation" href="install.html" />
  
@@ -45,7 +45,7 @@
         <li class="right" >
           <a href="install.html" title="1. Installation"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">django-pki v0.10.4.DEVELOPMENT documentation</a> &raquo;</li> 
+        <li><a href="../index.html">django-pki v0.20.0 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -110,14 +110,18 @@
 </div>
 </blockquote>
 <ol class="arabic simple" start="4">
-<li>Add &#8216;django.contrib.admin&#8217; and &#8216;pki&#8217; to INSTALLED_APPS:</li>
+<li>Add &#8216;django.contrib.admin&#8217;, &#8216;south&#8217; and &#8216;pki&#8217; to INSTALLED_APPS:</li>
 </ol>
 <blockquote>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Make sure <strong>pki</strong> is specified after <strong>south</strong> as unit tests won&#8217;t work otherwise</p>
+</div>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">INSTALLED_APPS</span> <span class="o">=</span> <span class="p">(</span>
     <span class="s">&#39;...&#39;</span><span class="p">,</span>
     <span class="s">&#39;django.contrib.admin&#39;</span><span class="p">,</span>
-    <span class="s">&#39;pki&#39;</span><span class="p">,</span>
     <span class="s">&#39;south&#39;</span><span class="p">,</span>
+    <span class="s">&#39;pki&#39;</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -163,6 +167,8 @@ MEDIA_URL is the URL part where the media files can be accessed. Here are some e
 <dd>The serial of self-signed certificates. Set to 0 or 0x0 to get a random number (0xabc = HEX; 123 = DEC)</dd>
 <dt><strong>PKI_DEFAULT_COUNTRY</strong> (<em>Default = DE; Type = Python String</em>)</dt>
 <dd>The default country (as 2-letter code) selected (<a class="reference external" href="http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2</a>)</dd>
+<dt><strong>PKI_PASSPHRASE_MIN_LENGTH</strong> (<em>Default = 8; Type = Python Number</em>)</dt>
+<dd>The minimum length for passphrases</dd>
 <dt><strong>PKI_ENABLE_GRAPHVIZ</strong> (<em>Default = False; Type = Python Boolean</em>)</dt>
 <dd>Enable graphviz support (see requirements)</dd>
 <dt><strong>PKI_GRAPHVIZ_DIRECTION</strong> (<em>Default = LR; Type = Python String</em>)</dt>
@@ -180,6 +186,7 @@ MEDIA_URL is the URL part where the media files can be accessed. Here are some e
 <span class="n">JQUERY_URL</span> <span class="o">=</span> <span class="s">&#39;http://static.company.com/js/jquery.js&#39;</span>
 <span class="n">PKI_SELF_SIGNED_SERIAL</span> <span class="o">=</span> <span class="mh">0x0</span>
 <span class="n">PKI_DEFAULT_COUNTRY</span> <span class="o">=</span> <span class="s">&#39;UK&#39;</span>
+<span class="n">PKI_PASSPHRASE_MIN_LENGTH</span> <span class="o">=</span> <span class="mi">12</span>
 <span class="n">PKI_ENABLE_GRAPHVIZ</span> <span class="o">=</span> <span class="bp">True</span>
 <span class="n">PKI_GRAPHVIZ_DIRECTION</span> <span class="o">=</span> <span class="s">&#39;TD&#39;</span>
 <span class="n">PKI_ENABLE_EMAIL</span> <span class="o">=</span> <span class="bp">True</span>
@@ -414,7 +421,7 @@ _SELF_SIGNED_CERTIFICATES/certs/selfsigned1.key.pem</pre>
         <li class="right" >
           <a href="install.html" title="1. Installation"
              >previous</a> |</li>
-        <li><a href="../index.html">django-pki v0.10.4.DEVELOPMENT documentation</a> &raquo;</li> 
+        <li><a href="../index.html">django-pki v0.20.0 documentation</a> &raquo;</li> 
       </ul>
     </div>
 

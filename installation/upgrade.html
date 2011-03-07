@@ -6,13 +6,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>3. Upgrade instructions &mdash; django-pki v0.10.4.DEVELOPMENT documentation</title>
+    <title>3. Upgrade instructions &mdash; django-pki v0.20.0 documentation</title>
     <link rel="stylesheet" href="../_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.10.4.DEVELOPMENT',
+        VERSION:     '0.20.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -21,7 +21,7 @@
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <link rel="top" title="django-pki v0.10.4.DEVELOPMENT documentation" href="../index.html" />
+    <link rel="top" title="django-pki v0.20.0 documentation" href="../index.html" />
     <link rel="prev" title="2. Configuration" href="configuration.html" />
  
 <script type="text/javascript">
@@ -41,7 +41,7 @@
         <li class="right" >
           <a href="configuration.html" title="2. Configuration"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">django-pki v0.10.4.DEVELOPMENT documentation</a> &raquo;</li> 
+        <li><a href="../index.html">django-pki v0.20.0 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -61,6 +61,21 @@
 <h2>3.1. Database migration<a class="headerlink" href="#database-migration" title="Permalink to this headline">¶</a></h2>
 <ul>
 <li><p class="first">Install <a class="reference external" href="http://south.aeracode.org/">south</a>  and add it to INSTALLED_APPS in settings.py</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Make sure <strong>pki</strong> is specified after <strong>south</strong> as unit tests won&#8217;t work otherwise</p>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">INSTALLED_APPS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s">&#39;django.contrib.auth&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.contrib.contenttypes&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.contrib.sessions&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.contrib.sites&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.contrib.admin&#39;</span><span class="p">,</span>
+    <span class="s">&#39;south&#39;</span><span class="p">,</span>
+    <span class="s">&#39;pki&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
 </li>
 <li><p class="first">Run the initial migration as fake:</p>
 <div class="highlight-python"><pre>$ python manage.py migrate pki 0001 --fake
@@ -97,7 +112,11 @@ No fixtures found.</pre>
 </div>
 <div class="section" id="update-project-s-urls-py">
 <h2>3.2. Update project&#8217;s urls.py<a class="headerlink" href="#update-project-s-urls-py" title="Permalink to this headline">¶</a></h2>
-<p>It is no longer required to specify the django-pki urls before the admin urls but the django-pki entry has changed. Your urls.py must look like this:</p>
+<p>It is no longer required to specify the django-pki urls before the admin urls but the django-pki entry has changed. Your urls.py must look like this</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Make sure you add the pki namespace to the include statement. (r&#8217;^&#8217;, include(&#8216;pki.urls&#8217;)) <strong>~&gt;</strong> (r&#8217;^&#8217;, include(&#8216;pki.urls&#8217;, &#8216;pki&#8217;))</p>
+</div>
 <div class="highlight-python"><div class="highlight"><pre><span class="p">(</span><span class="s">r&#39;^admin/&#39;</span><span class="p">,</span> <span class="n">include</span><span class="p">(</span><span class="n">admin</span><span class="o">.</span><span class="n">site</span><span class="o">.</span><span class="n">urls</span><span class="p">)),</span>
 <span class="p">(</span><span class="s">r&#39;^&#39;</span><span class="p">,</span> <span class="n">include</span><span class="p">(</span><span class="s">&#39;pki.urls&#39;</span><span class="p">,</span> <span class="s">&#39;pki&#39;</span><span class="p">)),</span>
 </pre></div>
@@ -155,7 +174,7 @@ No fixtures found.</pre>
         <li class="right" >
           <a href="configuration.html" title="2. Configuration"
              >previous</a> |</li>
-        <li><a href="../index.html">django-pki v0.10.4.DEVELOPMENT documentation</a> &raquo;</li> 
+        <li><a href="../index.html">django-pki v0.20.0 documentation</a> &raquo;</li> 
       </ul>
     </div>
 
