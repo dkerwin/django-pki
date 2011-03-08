@@ -165,6 +165,8 @@ MEDIA_URL is the URL part where the media files can be accessed. Here are some e
 <dd>Alternative jQuery url</dd>
 <dt><strong>PKI_SELF_SIGNED_SERIAL</strong> (<em>Default = 0x0; Type = Python Number</em>)</dt>
 <dd>The serial of self-signed certificates. Set to 0 or 0x0 to get a random number (0xabc = HEX; 123 = DEC)</dd>
+<dt><strong>PKI_DEFAULT_KEY_LENGTH</strong> (<em>Default = 1024; Type = Python Number</em>)</dt>
+<dd>The default key length</dd>
 <dt><strong>PKI_DEFAULT_COUNTRY</strong> (<em>Default = DE; Type = Python String</em>)</dt>
 <dd>The default country (as 2-letter code) selected (<a class="reference external" href="http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2</a>)</dd>
 <dt><strong>PKI_PASSPHRASE_MIN_LENGTH</strong> (<em>Default = 8; Type = Python Number</em>)</dt>
@@ -185,6 +187,7 @@ MEDIA_URL is the URL part where the media files can be accessed. Here are some e
 <span class="n">PKI_LOGLEVEL</span> <span class="o">=</span> <span class="s">&#39;error&#39;</span>
 <span class="n">JQUERY_URL</span> <span class="o">=</span> <span class="s">&#39;http://static.company.com/js/jquery.js&#39;</span>
 <span class="n">PKI_SELF_SIGNED_SERIAL</span> <span class="o">=</span> <span class="mh">0x0</span>
+<span class="n">PKI_DEFAULT_KEY_LENGTH</span> <span class="o">=</span> <span class="mi">2048</span>
 <span class="n">PKI_DEFAULT_COUNTRY</span> <span class="o">=</span> <span class="s">&#39;UK&#39;</span>
 <span class="n">PKI_PASSPHRASE_MIN_LENGTH</span> <span class="o">=</span> <span class="mi">12</span>
 <span class="n">PKI_ENABLE_GRAPHVIZ</span> <span class="o">=</span> <span class="bp">True</span>
