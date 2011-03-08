@@ -39,6 +39,9 @@ PKI_BASE_URL = getattr(settings, 'PKI_BASE_URL', get_script_prefix())
 # self_signed_serial; The serial a self signed CA starts with. Set to 0 or 0x0 for a random number
 PKI_SELF_SIGNED_SERIAL = getattr(settings, 'PKI_SELF_SIGNED_SERIAL', 0x0)
 
+# default key length: The pre-selected key length
+PKI_DEFAULT_KEY_LENGTH = getattr(settings, 'PKI_DEFAULT_KEY_LENGTH', 1024)
+
 # default_country: The default country selected (2-letter country code)
 PKI_DEFAULT_COUNTRY = getattr(settings, 'PKI_DEFAULT_COUNTRY', 'DE')
 

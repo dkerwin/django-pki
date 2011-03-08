@@ -113,6 +113,9 @@ You can use any combination of the following parameters:
 **PKI_SELF_SIGNED_SERIAL** (*Default = 0x0; Type = Python Number*)
     The serial of self-signed certificates. Set to 0 or 0x0 to get a random number (0xabc = HEX; 123 = DEC)
 
+**PKI_DEFAULT_KEY_LENGTH** (*Default = 1024; Type = Python Number*)
+    The default key length
+
 **PKI_DEFAULT_COUNTRY** (*Default = DE; Type = Python String*)
     The default country (as 2-letter code) selected (http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
 
@@ -139,6 +142,7 @@ You can use any combination of the following parameters:
     PKI_LOGLEVEL = 'error'
     JQUERY_URL = 'http://static.company.com/js/jquery.js'
     PKI_SELF_SIGNED_SERIAL = 0x0
+    PKI_DEFAULT_KEY_LENGTH = 2048
     PKI_DEFAULT_COUNTRY = 'UK'
     PKI_PASSPHRASE_MIN_LENGTH = 12
     PKI_ENABLE_GRAPHVIZ = True

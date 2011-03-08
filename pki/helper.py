@@ -3,6 +3,7 @@ import tempfile
 import random
 import zipfile
 import logging
+import string
 
 from django.utils.safestring import mark_safe
 from django.core import urlresolvers
@@ -19,11 +20,11 @@ def files_for_object(obj):
     chain, crl, pem, csr, der, pkcs12 and key
     """
     
-    if isinstance( obj, pki.models.CertificateAuthority):
+    if isinstance(obj, pki.models.CertificateAuthority):
         chain   = c_name = obj.name
         ca_dir  = os.path.join(PKI_DIR, obj.name)
         key_loc = os.path.join(ca_dir, 'private')
-    elif isinstance( obj, pki.models.Certificate):
+    elif isinstance(obj, pki.models.Certificate):
         if obj.parent:
             chain  = obj.parent.name
             ca_dir = os.path.join(PKI_DIR, obj.parent.name)

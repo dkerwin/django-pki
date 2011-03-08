@@ -12,7 +12,7 @@ from django.core.exceptions import ValidationError
 
 from pki.openssl import Openssl, md5_constructor, refresh_pki_metadata
 from pki.settings import MEDIA_URL, PKI_BASE_URL, PKI_DEFAULT_COUNTRY, PKI_ENABLE_GRAPHVIZ, \
-                         PKI_ENABLE_EMAIL, PKI_PASSPHRASE_MIN_LENGTH
+                         PKI_ENABLE_EMAIL, PKI_PASSPHRASE_MIN_LENGTH, PKI_DEFAULT_KEY_LENGTH
 
 logger = getLogger("pki")
 
@@ -118,7 +118,7 @@ class CertificateBase(models.Model):
     OU           = models.CharField(max_length=64,blank=True, null=True)
     email        = models.EmailField(blank=True, null=True)
     valid_days   = models.IntegerField(validators=[MinValueValidator(1)])
-    key_length   = models.IntegerField(choices=KEY_LENGTH, default=2048)
+    key_length   = models.IntegerField(choices=KEY_LENGTH, default=PKI_DEFAULT_KEY_LENGTH)
     expiry_date  = models.DateField(blank=True,null=True)
     created      = models.DateTimeField(blank=True,null=True)
     revoked      = models.DateTimeField(blank=True,null=True)

@@ -30,7 +30,7 @@ def pki_download(request, model, id):
     Type (ca/cert) and ID are used to determine the object to download.
     """
     
-    if not request.user.has_perm('can_download'):
+    if not request.user.has_perm('pki.can_download'):
         messages.error(request, "Permission denied!")
         return HttpResponseRedirect(urlresolvers.reverse('admin:pki_%s_changelist' % model))
     
@@ -109,7 +109,7 @@ def pki_tree(request, id):
     
     if PKI_ENABLE_GRAPHVIZ is not True:
         messages.warning(request, "Tree view is disabled unless setting PKI_ENABLE_GRAPHVIZ is set to True")
-        return HttpResponseRedirect(urlresolvers.reverse('admin:pki_certificateauthority_changelist' % model))
+        return HttpResponseRedirect(urlresolvers.reverse('admin:pki_certificateauthority_changelist'))
     
     obj = get_object_or_404(CertificateAuthority, pk=id)
     png = generate_temp_file()

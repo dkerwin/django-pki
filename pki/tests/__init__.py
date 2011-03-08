@@ -10,6 +10,7 @@ from django.test.client import Client
 from django.test import TestCase
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.models import User, Permission
 
 from windmill.authoring import djangotest 
 
@@ -201,6 +202,39 @@ class OpensslTestCases(TestCase):
             self.ca_ssl.generate_key()
             self.assertTrue(os.path.exists(self.ca_ssl.key))
             os.unlink(self.ca_ssl.key)
+
+##-----------------------------------------##
+## Helper function testcases
+##-----------------------------------------##
+
+class HelperTestCase(TestCase):
+    """Testcase for helper functions"""
+    
+    fixtures = ["test_users.json", "eku_and_ku.json"]
+    
+    def setUp(self):
+        CertificateAuthority(common_name='Root CA', name='Root_CA', description="unit test", country='DE', state='Bavaria', \
+                             locality='Munich', organization='Bozo Clown Inc.', OU='IT', email='a@b.com', valid_days=1000, \
+                             key_length=1024, expiry_date='', created='', revoked=None, active=None, serial=None, ca_chain=None, \
+                             der_encoded=False, parent=None, passphrase='1234567890', extension=x509Extension.objects.get(pk=1)).save()
+        
+        self.obj = CertificateAuthority.objects.get(pk=1)
+    
+    def test_files_for_object(self):
+        f = files_for_object(self.obj)
+        for i in ('chain', 'crl', 'pem', 'csr', 'der', 'pkcs12', 'key'):
+            self.assertTrue(f[i])
+    
+    def test_subject_for_object(self):
+        self.assertEqual(subject_for_object(self.obj), '/CN=%s/C=%s/ST=%s/localityName=%s/O=%s/organizationalUnitName=%s/emailAddress=%s' %
+                                                        (self.obj.common_name, self.obj.country, self.obj.state, self.obj.locality,
+                                                         self.obj.organization, self.obj.OU, self.obj.email))
+    
+    ## TODO: Testcase for chain_recursion and build_delete_item
+    ## TODO: Testcase for build_zip_for_object. Fake of request is required
+    
+    def test_generate_temp_file(self):
+        self.assertFalse(os.path.exists(generate_temp_file()))
 
 ##-----------------------------------------##
 ## Full operation testcases
@@ -474,9 +508,17 @@ class HttpClientTestCase(TestCase):
                               'parent':'2', 'passphrase':'1234567890', 'passphrase_verify':'1234567890', 'parent_passphrase':'1234567890', \
                               'policy':'policy_anything', 'extension':x509Extension.objects.get(name="v3_edge_ca").pk,}
         
-        #self.post_data_srv = {'action':'create', 'common_name':'Edge CA', 'name':'Edge', 'description':"unit test", \
-        #                      'country':'DE', 'state':'Bavaria', 'locality':'Munich', 'organization':'Bozo Clown Inc.', \
-        #                      'OU':'IT', 'email':'a@b.com', 'valid_days':1000, 'key_length':1024, 'der_encoded':False, \}
+        self.post_data_srv = {'action':'create', 'common_name':'Server cert', 'name':'Server_cert', 'description':"unit test", \
+                              'country':'DE', 'state':'Bavaria', 'locality':'Munich', 'organization':'Bozo Clown Inc.', \
+                              'OU':'IT', 'email':'a@b.com', 'valid_days':1000, 'key_length':1024, 'der_encoded':False, \
+                              'parent':'3', 'passphrase':'1234567890', 'passphrase_verify':'1234567890', 'parent_passphrase':'1234567890', \
+                              'extension':x509Extension.objects.get(name="v3_edge_cert_server").pk,}
+        
+        self.post_data_usr = {'action':'create', 'common_name':'User cert', 'name':'User_cert', 'description':"unit test", \
+                              'country':'DE', 'state':'Bavaria', 'locality':'Munich', 'organization':'Bozo Clown Inc.', \
+                              'OU':'IT', 'email':'a@b.com', 'valid_days':1000, 'key_length':1024, 'der_encoded':False, \
+                              'parent':'3', 'passphrase':'1234567890', 'passphrase_verify':'1234567890', 'parent_passphrase':'1234567890', \
+                              'extension':x509Extension.objects.get(name="v3_edge_cert_client").pk,}
         
         self.c = Client()
         self.assertTrue(self.c.login(username="admin", password="admin"))
@@ -492,6 +534,14 @@ class HttpClientTestCase(TestCase):
         r = self.c.post('/admin/pki/certificateauthority/add/', self.post_data_eca, follow=True)
         self.assertContains(r, 'was added successfully')
         self.failUnlessEqual(r.status_code, 200)
+        
+        r = self.c.post('/admin/pki/certificate/add/', self.post_data_srv, follow=True)
+        self.assertContains(r, 'was added successfully')
+        self.failUnlessEqual(r.status_code, 200)
+        
+        #r = self.c.post('/admin/pki/certificate/add/', self.post_data_usr, follow=True)
+        #self.assertContains(r, 'was added successfully')
+        #self.failUnlessEqual(r.status_code, 200)
     
     def tearDown(self):
         self.c.logout()
@@ -543,12 +593,38 @@ class HttpClientTestCase(TestCase):
             self.assertEqual(len(CertificateAuthority.objects.filter(pk=ca.pk)), 0)
             self.assertFalse(os.path.exists(rca_ssl.ca_dir)) 
     
+    def test_DownloadCertificateAuthority(self):
+        self.c.logout()
+        ct = model_id=ContentType.objects.get(model='certificateauthority')
+        user = User.objects.create_user('pki_user_1', 'a@b.com', 'pki')
+        user.is_staff = True
+        user.user_permissions.add(Permission.objects.get(codename="change_certificateauthority", content_type=ct))
+        user.save()
+        self.c.login(username="pki_user_1", password="pki")
+        r = self.c.get('/pki/download/certificateauthority/1/', follow=True)
+        self.failUnlessEqual(r.status_code, 200)
+        self.assertContains(r, 'Permission denied!')
+        user.user_permissions.add(Permission.objects.get(codename="can_download", content_type=ct))
+        user.save()
+        r = self.c.get('/pki/download/certificateauthority/1/', follow=True)
+        self.failUnlessEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], 'application/force-download')
+    
+    def test_DownloadCertificate(self):
+        self.c.logout()
+        ct = model_id=ContentType.objects.get(model='certificate')
+        user = User.objects.create_user('pki_user_1', 'a@b.com', 'pki')
+        user.is_staff = True
+        user.user_permissions.add(Permission.objects.get(codename="change_certificate", content_type=ct))
+        user.save()
+        self.c.login(username="pki_user_1", password="pki")
+        r = self.c.get('/pki/download/certificate/1/', follow=True)
+        self.failUnlessEqual(r.status_code, 200)
+        self.assertContains(r, 'Permission denied!')
+        user.user_permissions.add(Permission.objects.get(codename="can_download", content_type=ct))
+        user.save()
+        r = self.c.get('/pki/download/certificate/1/', follow=True)
+        self.failUnlessEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], 'application/force-download')
     
     
-    #def test_201_DownloadWithoutLogin(self):
-    #    r = self.c.get('/admin/pki/download/ca/1')
-    #    self.assertEqual(r.status_code, 404)
-    
-    #def test_209_AdminLogin(self):
-    #    self.assertTrue(self.c.login(username="pki_user_1", password="admin"))
-
