@@ -7,39 +7,27 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        from pki.models import CertificateAuthority, Certificate, x509Extension
-        from pki.openssl import refresh_pki_metadata
         
-        ## CertificateAuthority migration
-        cas = []
-        
-        for obj in orm.CertificateAuthority.objects.all():
-            as_saved = orm.CertificateAuthority.objects.get(pk=obj.pk)
-            if not obj.parent or as_saved.subcas_allowed: ## RootCA or IntermediateCA
-                obj.extension = x509Extension.objects.get(pk=1)
-            else: ## Edge CA
-                obj.extension = x509Extension.objects.get(pk=2)
-            
-            super(CertificateAuthority, obj).save()
-            cas.append(obj)
-        
-        refresh_pki_metadata(cas)
-        
-        ## Certificate migration
-        for obj in orm.Certificate.objects.all():
-            if obj.parent: ## Not self-signed
-                as_saved = orm.Certificate.objects.get(pk=obj.pk)
-                if as_saved.cert_extension == "v3_server_cert": ## Server cert
-                    obj.extension = x509Extension.objects.get(pk=3)
-                elif as_saved.cert_extension == "v3_client_cert": ## Client cert
-                    obj.extension = x509Extension.objects.get(pk=4)
-            else:  ## Self-signed
-                obj.extension = x509Extension.objects.get(pk=5)
-            
-            super(Certificate, obj).save()
-    
+        # Adding field 'Certificate.crl_dpoints'
+        db.add_column('pki_certificate', 'crl_dpoints', self.gf('django.db.models.fields.CharField')(max_length=255, null=True, blank=True), keep_default=False)
+
+        # Deleting field 'CertificateAuthority.crl_distribution'
+        db.delete_column('pki_certificateauthority', 'crl_distribution')
+
+        # Adding field 'CertificateAuthority.crl_dpoints'
+        db.add_column('pki_certificateauthority', 'crl_dpoints', self.gf('django.db.models.fields.CharField')(max_length=255, null=True, blank=True), keep_default=False)
+
+
     def backwards(self, orm):
-        raise RuntimeError("Cannot reverse this migration.")
+        
+        # Deleting field 'Certificate.crl_dpoints'
+        db.delete_column('pki_certificate', 'crl_dpoints')
+
+        # Adding field 'CertificateAuthority.crl_distribution'
+        db.add_column('pki_certificateauthority', 'crl_distribution', self.gf('django.db.models.fields.CharField')(max_length=255, null=True, blank=True), keep_default=False)
+
+        # Deleting field 'CertificateAuthority.crl_dpoints'
+        db.delete_column('pki_certificateauthority', 'crl_dpoints')
 
 
     models = {
@@ -85,24 +73,23 @@ class Migration(SchemaMigration):
             'action': ('django.db.models.fields.CharField', [], {'default': "'create'", 'max_length': '32'}),
             'active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'ca_chain': ('django.db.models.fields.CharField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
-            'cert_extension': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'common_name': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'country': ('django.db.models.fields.CharField', [], {'default': "'DE'", 'max_length': '2'}),
             'created': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
+            'crl_dpoints': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'}),
             'der_encoded': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'description': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
             'email': ('django.db.models.fields.EmailField', [], {'max_length': '75', 'null': 'True', 'blank': 'True'}),
             'expiry_date': ('django.db.models.fields.DateField', [], {'null': 'True', 'blank': 'True'}),
             'extension': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['pki.x509Extension']", 'null': 'True', 'blank': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'key_length': ('django.db.models.fields.IntegerField', [], {'default': '2048'}),
+            'key_length': ('django.db.models.fields.IntegerField', [], {'default': '1024'}),
             'locality': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'organization': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'parent': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['pki.CertificateAuthority']", 'null': 'True', 'blank': 'True'}),
             'parent_passphrase': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'}),
             'passphrase': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'}),
-            'pem_encoded': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'pkcs12_encoded': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'pkcs12_passphrase': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'}),
             'revoked': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
@@ -120,38 +107,35 @@ class Migration(SchemaMigration):
             'common_name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'}),
             'country': ('django.db.models.fields.CharField', [], {'default': "'DE'", 'max_length': '2'}),
             'created': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'crl_distribution': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'}),
+            'crl_dpoints': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'}),
             'der_encoded': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'description': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
             'email': ('django.db.models.fields.EmailField', [], {'max_length': '75', 'null': 'True', 'blank': 'True'}),
             'expiry_date': ('django.db.models.fields.DateField', [], {'null': 'True', 'blank': 'True'}),
             'extension': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['pki.x509Extension']", 'null': 'True', 'blank': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'key_length': ('django.db.models.fields.IntegerField', [], {'default': '2048'}),
+            'key_length': ('django.db.models.fields.IntegerField', [], {'default': '1024'}),
             'locality': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
             'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'}),
             'organization': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'parent': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['pki.CertificateAuthority']", 'null': 'True', 'blank': 'True'}),
             'parent_passphrase': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'}),
             'passphrase': ('django.db.models.fields.CharField', [], {'max_length': '255', 'blank': 'True'}),
-            'pem_encoded': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'policy': ('django.db.models.fields.CharField', [], {'default': "'policy_anything'", 'max_length': '50'}),
             'revoked': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'serial': ('django.db.models.fields.CharField', [], {'max_length': '64', 'null': 'True', 'blank': 'True'}),
             'state': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
-            'subcas_allowed': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'type': ('django.db.models.fields.CharField', [], {'default': "'RootCA'", 'max_length': '32', 'null': 'True'}),
             'valid_days': ('django.db.models.fields.IntegerField', [], {})
         },
         'pki.extendedkeyusage': {
             'Meta': {'object_name': 'ExtendedKeyUsage'},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '64'})
+            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'})
         },
         'pki.keyusage': {
             'Meta': {'object_name': 'KeyUsage'},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '64'})
+            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'})
         },
         'pki.pkichangelog': {
             'Meta': {'ordering': "['-action_time']", 'object_name': 'PkiChangelog', 'db_table': "'pki_changelog'"},

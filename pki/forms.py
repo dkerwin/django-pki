@@ -33,6 +33,8 @@ class CertificateAuthorityForm(forms.ModelForm):
         pf = cleaned_data.get('passphrase')
         pf_v = cleaned_data.get('passphrase_verify')
         p_pf = cleaned_data.get('parent_passphrase')
+        extension = cleaned_data.get('extension')
+        crl_dpoints = cleaned_data.get('crl_dpoints')
         
         enc_p_pf = None
         
@@ -70,6 +72,11 @@ class CertificateAuthorityForm(forms.ModelForm):
                 ## Check parent passphrase if not RootCA
                 if ca.passphrase != enc_p_pf:
                     self._errors['parent_passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA "%s"' % parent])
+            
+            ## Verify CRL distribution settings
+            x509 = get_object_or_404(x509Extension, name=extension)
+            if x509.crl_distribution_point and not crl_dpoints:
+                self._errors['crl_dpoints'] = ErrorList(['CRL Distribution Points are required by x509 extension "%s"' % extension])
         elif action == 'revoke':
             if parent:
                 ca = CertificateAuthority.objects.get(name='%s' % parent.name)
@@ -106,6 +113,8 @@ class CertificateForm(forms.ModelForm):
         pf = cleaned_data.get('passphrase')
         pf_v = cleaned_data.get('passphrase_verify')
         p_pf = cleaned_data.get('parent_passphrase')
+        extension = cleaned_data.get('extension')
+        crl_dpoints = cleaned_data.get('crl_dpoints')
         
         enc_p_pf = None
         
@@ -137,6 +146,11 @@ class CertificateForm(forms.ModelForm):
                 ## Check parent passphrase
                 if ca.passphrase != enc_p_pf:
                     self._errors['parent_passphrase'] = ErrorList(['Passphrase is wrong. Enter correct passphrase for CA "%s"' % parent])
+            
+            ## Verify CRL distribution settings
+            x509 = get_object_or_404(x509Extension, name=extension)
+            if x509.crl_distribution_point and not crl_dpoints:
+                self._errors['crl_dpoints'] = ErrorList(['CRL Distribution Points are required by x509 extension "%s"' % extension])
         elif action == 'revoke':
             if parent:
                 ca = CertificateAuthority.objects.get(name='%s' % parent.name)

@@ -4,8 +4,8 @@
 
 HOME = $ENV::PKI_DIR
 RANDFILE = $HOME/.rnd
-S_A_N = "XXX"
-C_D_P = "XXX"
+S_A_N = "undefined"
+C_D_P = "undefined"
 
 ###############################################################
 ## CA definitions
@@ -124,4 +124,6 @@ keyUsage = {{ x509.key_usage_csv }}
 subjectKeyIdentifier = {{ x509.subject_key_identifier }}
 authorityKeyIdentifier = {{ x509.authority_key_identifier }}
 {% if x509.ext_key_usage_csv %}extendedKeyUsage = {{ x509.ext_key_usage_csv }}{% endif %}
+{% if not x509.ca %}subjectAltName = ${ENV::S_A_N}{% endif %}
+{% if x509.crl_distribution_point %}crlDistributionPoints = ${ENV::C_D_P}{% endif %}
 {% endfor %}

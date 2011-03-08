@@ -2,6 +2,7 @@ import unittest
 import datetime
 import os
 import sys
+import re
 import logging
 import datetime
 
@@ -370,13 +371,13 @@ class CertificateTestCase(TestCase):
                     state='Bavaria', locality='Munich', organization='Bozo Clown Inc.', OU='IT', email='a@b.com', valid_days=365, \
                     key_length=1024, expiry_date='', created='', revoked=None, active=None, serial=None, ca_chain=None, \
                     der_encoded=False, pkcs12_encoded=False, pkcs12_passphrase=None, parent=self.eca, parent_passphrase="1234567890", passphrase=None, \
-                    extension=x509Extension.objects.get(pk=3)).save()
+                    extension=x509Extension.objects.get(pk=3), subjaltname="IP:1.2.3.4, DNS:www1.company.com").save()
         
         Certificate(common_name='User Edge Certificate', name='User_Edge_Certificate', description="unit test user edge certificate", country='DE', \
                     state='Bavaria', locality='Munich', organization='Bozo Clown Inc.', OU='IT', email='a@b.com', valid_days=365, \
                     key_length=1024, expiry_date='', created='', revoked=None, active=None, serial=None, ca_chain=None, \
                     der_encoded=False, pkcs12_encoded=False, pkcs12_passphrase=None, parent=self.eca, parent_passphrase="1234567890", passphrase=None, \
-                    extension=x509Extension.objects.get(pk=4)).save()
+                    extension=x509Extension.objects.get(pk=4), crl_dpoints="URI:https://ca.company.com/ca.crl").save()
         
         self.srv = Certificate.objects.get(pk=1)
         self.usr = Certificate.objects.get(pk=2)
@@ -456,6 +457,15 @@ class CertificateTestCase(TestCase):
         self.srv.pkcs12_encoded = False
         self.srv.save()
         self.assertFalse(os.path.exists(self.srv_openssl.pkcs12))
+    
+    def test_ParseRawCertificate(self):
+        f = open(self.srv_openssl.crt, 'rb')
+        c = f.read()
+        f.close()
+        
+        self.assertTrue(re.search('X509v3 Basic Constraints: critical\s*\n\s*CA:FALSE', c))
+        self.assertTrue(re.search('X509v3 Subject Alternative Name:\s*\n\s*IP Address:1.2.3.4, DNS:www1.company.com', c))
+        self.assertTrue(re.search('X509v3 Extended Key Usage: critical\s*\n\s*TLS Web Server Authentication', c))
 
 class x509ExtensionTestCase(TestCase):
     
@@ -538,10 +548,6 @@ class HttpClientTestCase(TestCase):
         r = self.c.post('/admin/pki/certificate/add/', self.post_data_srv, follow=True)
         self.assertContains(r, 'was added successfully')
         self.failUnlessEqual(r.status_code, 200)
-        
-        #r = self.c.post('/admin/pki/certificate/add/', self.post_data_usr, follow=True)
-        #self.assertContains(r, 'was added successfully')
-        #self.failUnlessEqual(r.status_code, 200)
     
     def tearDown(self):
         self.c.logout()
@@ -626,5 +632,3 @@ class HttpClientTestCase(TestCase):
         r = self.c.get('/pki/download/certificate/1/', follow=True)
         self.failUnlessEqual(r.status_code, 200)
         self.assertEqual(r['Content-Type'], 'application/force-download')
-    
-    

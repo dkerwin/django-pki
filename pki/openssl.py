@@ -101,8 +101,16 @@ def refresh_pki_metadata(ca_list):
                 else:
                     logger.warning('Directory %s does not contain any metadata, preserving it' % d)
         
+        x509_list =[]
+        for x509 in pki.models.x509Extension.objects.all():
+            if x509.is_ca():
+                x509.ca = True
+            else:
+                x509.ca = False
+            x509_list.append(x509)
+        
         # render template and save result to openssl.conf
-        conf = render_to_string(PKI_OPENSSL_TEMPLATE, {'ca_list': ca_list, 'x509_extensions': pki.models.x509Extension.objects.all(),})
+        conf = render_to_string(PKI_OPENSSL_TEMPLATE, {'ca_list': ca_list, 'x509_extensions': x509_list,})
         
         f = open(PKI_OPENSSL_CONF, 'wb')
         f.write(conf)
@@ -148,17 +156,17 @@ class Openssl():
                     except OSError, e:
                         logger.exception("Failed to create directories for self-signed certificates %s" % self.ca_dir)
                         raise
-
+            
             self.key    = os.path.join(self.ca_dir, 'certs', '%s.key.pem' % self.i.name)
             self.pkcs12 = os.path.join(self.ca_dir, 'certs', '%s.cert.p12' % self.i.name)
             
             if not self.i.subjaltname:
-                self.i.subjaltname = 'email:copy'
-            
-            if self.i.parent and self.i.parent.crl_distribution:
-                self.i.crl_distribution = self.i.parent.crl_distribution
+                self.i.subjaltname = 'email:copy'            
         else:
             raise Exception( "Given object type is unknown!" )
+        
+        if not self.i.crl_dpoints:
+            self.i.crl_dpoints = ''
         
         self.csr  = os.path.join(self.ca_dir, 'certs', '%s.csr.pem'  % self.i.name)
         self.crt  = os.path.join(self.ca_dir, 'certs', '%s.cert.pem' % self.i.name)
@@ -230,7 +238,7 @@ class Openssl():
             logger.error( "Not setting inital serial number to %s. Fallback to random number" % PKI_SELF_SIGNED_SERIAL )
             logger.error( e )
         
-        env = { self.env_pw: str(self.i.passphrase), "S_A_N": self.i.subjaltname }
+        env = { self.env_pw: str(self.i.passphrase), "S_A_N": self.i.subjaltname, "C_D_P": self.i.crl_dpoints }
         
         self.exec_openssl( command, env_vars=env )
         
@@ -314,7 +322,7 @@ class Openssl():
         Certificate signing and hash creation in CA's certificate directory
         """
         
-        env = { self.env_pw: str(self.i.parent_passphrase), "S_A_N": self.i.subjaltname, }
+        env = { self.env_pw: str(self.i.parent_passphrase), "S_A_N": self.i.subjaltname, "C_D_P": self.i.crl_dpoints}
         
         command = 'ca -config %s -name %s -batch -in %s -out %s -days %d -extensions %s -passin env:%s' % \
                   ( PKI_OPENSSL_CONF, self.i.parent.name, self.csr, self.crt, self.i.valid_days, self.i.extension, self.env_pw)

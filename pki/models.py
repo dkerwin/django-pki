@@ -96,7 +96,7 @@ def validate_crl_dp(value):
     
     for i in items:
         m = re.match('^\s*(?P<uri_key>(URI))\s*:\s*(?P<uri_value>\S+)$', i)
-        if not m.group('uri_key') or not m.group('uri_value'):
+        if not m or (not m.group('uri_key') or not m.group('uri_value')):
             raise ValidationError(u'Item "%s" doesn\'t match specification' % i)
         try:
             URLValidator(verify_exists=False)(m.group('uri_value'))
@@ -128,6 +128,8 @@ class CertificateBase(models.Model):
     der_encoded  = models.BooleanField(default=False, verbose_name="DER encoding")
     action       = models.CharField(max_length=32, choices=ACTIONS, default='create', help_text="Yellow fields can/have to be modified!")
     extension    = models.ForeignKey(to="x509Extension", blank=True, null=True, verbose_name="x509 Extension")
+    crl_dpoints  = models.CharField(max_length=255, verbose_name='CRL Distribution Points', null=True, blank=True, validators=[validate_crl_dp], \
+                                    help_text='Comma seperated list of URI elements. Example: URI:http://ca.local/ca.crl,...')
     
     class Meta:
         abstract = True
@@ -371,9 +373,7 @@ class CertificateAuthority(CertificateBase):
                                                                                                               match the signing CA<br> \
                                                                                                               policy_anything: Nothing has to match the \
                                                                                                               signing CA')
-    crl_distribution  = models.CharField(max_length=255, verbose_name='CRL Distribution Points', null=True, blank=True, validators=[validate_crl_dp], \
-                                         help_text='Comma seperated list of URI elements. Example: URI:http://ca.local/ca.crl,...')
-
+    
     class Meta:
         db_table            = 'pki_certificateauthority'
         verbose_name_plural = 'Certificate Authorities'
@@ -952,7 +952,7 @@ class x509Extension(models.Model):
     extended_key_usage_critical = models.BooleanField(verbose_name="Make extendedKeyUsage critical")
     subject_key_identifier      = models.CharField(max_length=255, choices=SUBJECT_KEY_IDENTIFIER, default="hash", verbose_name="subjectKeyIdentifier")
     authority_key_identifier    = models.CharField(max_length=255, choices=AUTHORITY_KEY_IDENTIFIER, default="keyid:always,issuer:always", verbose_name="authorityKeyIdentifier")
-    crl_distribution_point      = models.BooleanField(verbose_name="Require CRL Distribution Point", help_text="All objects using will require a CRLDistributionPoint set")
+    crl_distribution_point      = models.BooleanField(verbose_name="Require CRL Distribution Point", help_text="All objects using this x509 extension will require a CRLDistributionPoint")
     
     class Meta:
         db_table = 'pki_x509extension'
@@ -965,6 +965,12 @@ class x509Extension(models.Model):
         
         if not self.pk:
             super(x509Extension, self).save(*args, **kwargs)
+            refresh_pki_metadata(CertificateAuthority.objects.all())
+    
+    def is_ca(self):
+        """Return true if this is a CA extension (CA: TRUE)"""
+        
+        return "CA:TRUE" in self.basic_constraints.upper()
     
     def key_usage_csv(self):
         r = []
