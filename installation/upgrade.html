@@ -77,6 +77,25 @@
 </pre></div>
 </div>
 </li>
+<li><p class="first">Create south tables:</p>
+<div class="highlight-python"><pre>$ python manage.py syncdb
+Syncing...
+Creating table south_migrationhistory
+No fixtures found.
+
+Synced:
+ &gt; django.contrib.auth
+ &gt; django.contrib.contenttypes
+ &gt; django.contrib.sessions
+ &gt; django.contrib.sites
+ &gt; django.contrib.admin
+ &gt; south
+
+Not synced (use migrations):
+ - pki
+(use ./manage.py migrate to migrate these)</pre>
+</div>
+</li>
 <li><p class="first">Run the initial migration as fake:</p>
 <div class="highlight-python"><pre>$ python manage.py migrate pki 0001 --fake
 - Soft matched migration 0001 to 0001_initial.

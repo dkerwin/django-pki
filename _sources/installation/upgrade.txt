@@ -24,6 +24,25 @@ Database migration
             'pki',
         )
 
+* Create south tables::
+    
+    $ python manage.py syncdb
+    Syncing...
+    Creating table south_migrationhistory
+    No fixtures found.
+    
+    Synced:
+     > django.contrib.auth
+     > django.contrib.contenttypes
+     > django.contrib.sessions
+     > django.contrib.sites
+     > django.contrib.admin
+     > south
+    
+    Not synced (use migrations):
+     - pki
+    (use ./manage.py migrate to migrate these)
+
 * Run the initial migration as fake::
     
     $ python manage.py migrate pki 0001 --fake
