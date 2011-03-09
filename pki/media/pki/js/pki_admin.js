@@ -43,9 +43,6 @@ $(document).ready( function() {
                                 $('#certificateauthority_form :input:not(:submit), #certificate_form :input:not(:submit)').each( function( i, el ) {
                                                 $(el).removeAttr("disabled");
                                 });
-                                $('#x509extension_form :input:not(:submit, :hidden)').each( function( i, el ) {
-                                                $(el).removeAttr("disabled");
-                                });
             });
         }
         else {
@@ -75,7 +72,12 @@ $(document).ready( function() {
             $('#x509extension_form :input:not(:submit, :hidden)').each( function( i, el ) {
                                             $(el).attr("disabled", "disabled");
                                             $(el).css('background-color', '#F2F2F2')
-                            });
+                                            });
+            
+            // Enable all elements on submit
+            $("form").submit(function() { $('#x509extension_form :input:not(:submit)').each( function( i, el ) {
+                                            $(el).removeAttr("disabled"); });
+                                        });
         }
     }
 });

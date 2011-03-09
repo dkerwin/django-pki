@@ -8,6 +8,9 @@ from django.core.urlresolvers import get_script_prefix
 
 PKI_APP_DIR = os.path.abspath(os.path.dirname(__file__))
 
+# blacklisted CA names
+PKI_CA_NAME_BLACKLIST = ('_SELF_SIGNED_CERTIFICATES',)
+
 # base directory for pki storage (should be writable), defaults to PKI_APP_DIR/PKI
 PKI_DIR = getattr(settings, 'PKI_DIR', os.path.join(PKI_APP_DIR, 'PKI'))
 

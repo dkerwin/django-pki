@@ -5,7 +5,7 @@ from django.forms.util import ErrorList
 from django.shortcuts import get_object_or_404
 
 from pki.models import *
-from pki.settings import PKI_DIR
+from pki.settings import PKI_DIR, PKI_CA_NAME_BLACKLIST
 from pki.openssl import md5_constructor
 
 ##------------------------------------------------------------------##
@@ -37,6 +37,10 @@ class CertificateAuthorityForm(forms.ModelForm):
         crl_dpoints = cleaned_data.get('crl_dpoints')
         
         enc_p_pf = None
+        
+        if name in PKI_CA_NAME_BLACKLIST:
+            self._errors['name'] = ErrorList(['Name "%s" is blacklisted!' % name])
+            return cleaned_data
         
         if action in ('create', 'renew'):
             if action == 'create':

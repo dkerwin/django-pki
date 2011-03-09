@@ -9,9 +9,10 @@ from logging import getLogger
 
 from django.template.loader import render_to_string
 
-from pki.settings import PKI_OPENSSL_BIN, PKI_OPENSSL_CONF, PKI_DIR, PKI_OPENSSL_TEMPLATE, PKI_SELF_SIGNED_SERIAL
-from pki.helper import subject_for_object
 import pki.models
+from pki.helper import subject_for_object
+from pki.settings import PKI_OPENSSL_BIN, PKI_OPENSSL_CONF, PKI_DIR, PKI_OPENSSL_TEMPLATE, \
+                         PKI_SELF_SIGNED_SERIAL, PKI_CA_NAME_BLACKLIST
 
 try:
     # available in python-2.5 and greater
@@ -131,6 +132,10 @@ class Openssl():
         
         self.i    = instance
         self.subj = subject_for_object(self.i)
+        
+        if self.i.name in PKI_CA_NAME_BLACKLIST:
+            logger.error("Instance name '%s' is blacklisted!" % self.i.name)
+            raise
         
         if self.i.parent != None:
             self.parent_certs = os.path.join(PKI_DIR, self.i.parent.name, 'certs')

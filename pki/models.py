@@ -42,9 +42,6 @@ class x509ExtensionFilterSpec(RelatedFilterSpec):
                 self.lookup_choices = set([(i.pk, i.name) for i in x509Extension.objects.filter(basic_constraints__startswith="CA:TRUE")])
             elif str(model._meta) == 'pki.certificate':
                 self.lookup_choices = set([(i.pk, i.name) for i in x509Extension.objects.exclude(extended_key_usage=None)])
-        elif str(f.name) == 'parent':
-            print "PARENT"
-            self.lookup_choices = f.get_choices(include_blank=True)
         else:
             self.lookup_choices = f.get_choices(include_blank=False)
 
