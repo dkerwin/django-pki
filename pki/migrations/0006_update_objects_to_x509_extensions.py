@@ -5,7 +5,7 @@ from south.v2 import SchemaMigration
 from django.db import models
 
 class Migration(SchemaMigration):
-
+    
     def forwards(self, orm):
         from pki.models import CertificateAuthority, Certificate, x509Extension
         from pki.openssl import refresh_pki_metadata
@@ -16,13 +16,11 @@ class Migration(SchemaMigration):
         for obj in orm.CertificateAuthority.objects.all():
             as_saved = orm.CertificateAuthority.objects.get(pk=obj.pk)
             if not obj.parent or as_saved.subcas_allowed: ## RootCA or IntermediateCA
-                obj.extension = x509Extension.objects.get(pk=1)
+                obj.extension = orm.x509Extension.objects.get(pk=1)
             else: ## Edge CA
-                obj.extension = x509Extension.objects.get(pk=2)
-            
-            super(CertificateAuthority, obj).save()
+                obj.extension = orm.x509Extension.objects.get(pk=2)
+            obj.save()
             cas.append(obj)
-        
         refresh_pki_metadata(cas)
         
         ## Certificate migration
@@ -30,13 +28,13 @@ class Migration(SchemaMigration):
             if obj.parent: ## Not self-signed
                 as_saved = orm.Certificate.objects.get(pk=obj.pk)
                 if as_saved.cert_extension == "v3_server_cert": ## Server cert
-                    obj.extension = x509Extension.objects.get(pk=3)
+                    obj.extension = orm.x509Extension.objects.get(pk=3)
                 elif as_saved.cert_extension == "v3_client_cert": ## Client cert
-                    obj.extension = x509Extension.objects.get(pk=4)
+                    obj.extension = orm.x509Extension.objects.get(pk=4)
             else:  ## Self-signed
-                obj.extension = x509Extension.objects.get(pk=5)
-            
-            super(Certificate, obj).save()
+                obj.extension = orm.x509Extension.objects.get(pk=5)
+            obj.save()
+
     
     def backwards(self, orm):
         raise RuntimeError("Cannot reverse this migration.")

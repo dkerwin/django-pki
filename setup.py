@@ -67,7 +67,7 @@ setup(
         'Topic :: System :: Systems Administration',
     ],
     packages = ['pki', 'pki.templatetags'],
-    data_files = list_data_files('pki/media') + list_data_files('pki/templates'),
+    data_files = list_data_files('pki/media') + list_data_files('pki/templates') + list_data_files('pki/migrations') + list_data_files('pki/fixtures')  + list_data_files('pki/templatetags') + list_data_files('pki/management') + list_data_files('pki/tests'),
     cmdclass = cmdclasses,
     requires=['Django (>=1.2.0)'],
 )
