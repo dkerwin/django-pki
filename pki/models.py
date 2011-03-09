@@ -9,12 +9,46 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.models import User
 from django.core.validators import MinLengthValidator, MinValueValidator, RegexValidator, URLValidator
 from django.core.exceptions import ValidationError
+from django.contrib.admin.filterspecs import FilterSpec, RelatedFilterSpec
 
+from pki.helper import get_pki_icon_html
 from pki.openssl import Openssl, md5_constructor, refresh_pki_metadata
-from pki.settings import MEDIA_URL, PKI_BASE_URL, PKI_DEFAULT_COUNTRY, PKI_ENABLE_GRAPHVIZ, \
+from pki.settings import MEDIA_URL, PKI_DEFAULT_COUNTRY, PKI_ENABLE_GRAPHVIZ, \
                          PKI_ENABLE_EMAIL, PKI_PASSPHRASE_MIN_LENGTH, PKI_DEFAULT_KEY_LENGTH
 
 logger = getLogger("pki")
+
+##------------------------------------------------------------------##
+## Custom filters
+##------------------------------------------------------------------##
+
+class x509ExtensionFilterSpec(RelatedFilterSpec):
+    """
+    Based on http://djangosnippets.org/snippets/1051/
+    Custom filter to display on x509 extensions that are valid for the given model
+    """
+    
+    def __init__(self, f, request, params, model, model_admin):
+        super(RelatedFilterSpec, self).__init__(f, request, params, model, model_admin)
+        if isinstance(f, models.ManyToManyField):
+            self.lookup_title = f.rel.to._meta.verbose_name
+        else:
+            self.lookup_title = f.verbose_name
+        rel_name = f.rel.get_related_field().name
+        self.lookup_kwarg = '%s__%s__exact' % (f.name, rel_name)
+        self.lookup_val = request.GET.get(self.lookup_kwarg, None)
+        if str(f.name) == 'extension':
+            if str(model._meta) == 'pki.certificateauthority':
+                self.lookup_choices = set([(i.pk, i.name) for i in x509Extension.objects.filter(basic_constraints__startswith="CA:TRUE")])
+            elif str(model._meta) == 'pki.certificate':
+                self.lookup_choices = set([(i.pk, i.name) for i in x509Extension.objects.exclude(extended_key_usage=None)])
+        elif str(f.name) == 'parent':
+            print "PARENT"
+            self.lookup_choices = f.get_choices(include_blank=True)
+        else:
+            self.lookup_choices = f.get_choices(include_blank=False)
+
+FilterSpec.filter_specs.insert(0, (lambda f: getattr(f, 'x509extension_filter', False), x509ExtensionFilterSpec))
 
 ##------------------------------------------------------------------##
 ## Choices
@@ -131,26 +165,10 @@ class CertificateBase(models.Model):
     crl_dpoints  = models.CharField(max_length=255, verbose_name='CRL Distribution Points', null=True, blank=True, validators=[validate_crl_dp], \
                                     help_text='Comma seperated list of URI elements. Example: URI:http://ca.local/ca.crl,...')
     
+    extension.x509extension_filter = True
+    
     class Meta:
         abstract = True
-    
-    ##------------------------------------------------------------------##
-    ## Helper functions
-    ##------------------------------------------------------------------##
-    
-    def get_pki_icon_html(self, img, title="", css="centered", id=""):
-        """Return HTML for given image.
-        
-        Can add optional alt and title parameters.
-        """
-        
-        if css:
-            css_class = 'class=%s' % css
-        else:
-            css_class = ''
-        
-        img_path = os.path.join(PKI_BASE_URL, MEDIA_URL, 'pki/img', img)
-        return '<img id="%s" %s src="%s" alt="%s" title="%s"/>' % (id, css_class, img_path, title, title)
     
     ##------------------------------------------------------------------##
     ## Changelist list_display functions
@@ -163,9 +181,9 @@ class CertificateBase(models.Model):
             return ""
         
         if self.active is True:
-            return self.get_pki_icon_html('icon-yes.gif', "Certificate is valid", css="") + " <strong>/ valid</strong>"
+            return get_pki_icon_html('icon-yes.gif', "Certificate is valid", css="") + " <strong>/ valid</strong>"
         else:
-            return self.get_pki_icon_html('icon-no.gif', "Certificate is revoked", css="") + " <strong>/ revoked</strong>"
+            return get_pki_icon_html('icon-no.gif', "Certificate is revoked", css="") + " <strong>/ revoked</strong>"
     
     State.allow_tags = True
     State.short_description = 'State'
@@ -174,9 +192,9 @@ class CertificateBase(models.Model):
         """Overwrite the Booleanfield admin for admin's changelist"""
         
         if self.active is True:
-            return self.get_pki_icon_html('icon-yes.gif', "Certificate is valid", id="active_%d" % self.pk)
+            return get_pki_icon_html('icon-yes.gif', "Certificate is valid", id="active_%d" % self.pk)
         else:
-            return self.get_pki_icon_html('icon-no.gif', "Certificate is revoked", id="active_%d" % self.pk)
+            return get_pki_icon_html('icon-no.gif', "Certificate is revoked", id="active_%d" % self.pk)
     
     Valid_center.allow_tags = True
     Valid_center.short_description = 'Valid'
@@ -262,9 +280,9 @@ class CertificateBase(models.Model):
         
         if PKI_ENABLE_GRAPHVIZ:
             return '<a href="%s" target="_blank">%s</a>' % (urlresolvers.reverse('pki:chain', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
-                                            self.get_pki_icon_html('chain.png', "Show object chain", id="chain_link_%d" % self.pk))
+                                            get_pki_icon_html('chain.png', "Show object chain", id="chain_link_%d" % self.pk))
         else:
-            return self.get_pki_icon_html("chain.png", "Enable setting PKI_ENABLE_GRAPHVIZ")
+            return get_pki_icon_html("chain.png", "Enable setting PKI_ENABLE_GRAPHVIZ")
     
     Chain_link.allow_tags = True
     Chain_link.short_description = 'Chain'
@@ -278,16 +296,16 @@ class CertificateBase(models.Model):
         """
         
         if not PKI_ENABLE_EMAIL:
-            return self.get_pki_icon_html("mail--arrow_bw.png", "Enable setting PKI_ENABLE_EMAIL", id="email_delivery_%d" % self.pk)
+            return get_pki_icon_html("mail--arrow_bw.png", "Enable setting PKI_ENABLE_EMAIL", id="email_delivery_%d" % self.pk)
         elif not self.active:
-            return self.get_pki_icon_html("mail--arrow_bw.png", "Certificate is revoked. Disabled", id="email_delivery_%d" % self.pk)
+            return get_pki_icon_html("mail--arrow_bw.png", "Certificate is revoked. Disabled", id="email_delivery_%d" % self.pk)
         else:
             if self.email:
                 return '<a href="%s">%s</a>' % (urlresolvers.reverse('pki:email', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
-                                                self.get_pki_icon_html("mail--arrow.png", "Send to '<strong>%s</strong>'" % self.email, \
+                                                get_pki_icon_html("mail--arrow.png", "Send to '<strong>%s</strong>'" % self.email, \
                                                                        id="email_delivery_%d" % self.pk))
             else:
-                return self.get_pki_icon_html("mail--exclamation.png", "Certificate has no email set. Disabled", id="email_delivery_%d" % self.pk)
+                return get_pki_icon_html("mail--exclamation.png", "Certificate has no email set. Disabled", id="email_delivery_%d" % self.pk)
     
     Email_link.allow_tags = True
     Email_link.short_description = 'Delivery'
@@ -300,9 +318,9 @@ class CertificateBase(models.Model):
         
         if self.active:
             return '<a href="%s">%s</a>' % (urlresolvers.reverse('pki:download', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
-                                            self.get_pki_icon_html("drive-download.png", "Download certificate zip", id="download_link_%d" % self.pk))
+                                            get_pki_icon_html("drive-download.png", "Download certificate zip", id="download_link_%d" % self.pk))
         else:
-            return self.get_pki_icon_html("drive-download_bw.png", "Certificate is revoked. Disabled", id="download_link_%d" % self.pk)
+            return get_pki_icon_html("drive-download_bw.png", "Certificate is revoked. Disabled", id="download_link_%d" % self.pk)
     
     Download_link.allow_tags = True
     Download_link.short_description = 'Download'
@@ -668,9 +686,9 @@ class CertificateAuthority(CertificateBase):
         
         if PKI_ENABLE_GRAPHVIZ:
             return '<a href="%s" target="_blank">%s</a>' % (urlresolvers.reverse('pki:tree', kwargs={'id': self.pk}), \
-                                                            self.get_pki_icon_html("tree.png", "Show CA tree", id="tree_link_%d" % self.pk))
+                                                            get_pki_icon_html("tree.png", "Show CA tree", id="tree_link_%d" % self.pk))
         else:
-            return self.get_pki_icon_html("tree_disabled.png", "Enable setting PKI_ENABLE_GRAPHVIZ")
+            return get_pki_icon_html("tree_disabled.png", "Enable setting PKI_ENABLE_GRAPHVIZ")
     
     Tree_link.allow_tags = True
     Tree_link.short_description = 'Tree'
@@ -679,10 +697,10 @@ class CertificateAuthority(CertificateBase):
         """Show associated client certificates"""
         
         if not self.is_edge_ca():
-            return self.get_pki_icon_html("blue-document-tree_bw.png", "No children", id="show_child_certs_%d" % self.pk)
+            return get_pki_icon_html("blue-document-tree_bw.png", "No children", id="show_child_certs_%d" % self.pk)
         else:
             return "<a href=\"%s\" target=\"_blank\">%s</a>" % ('?'.join([urlresolvers.reverse('admin:pki_certificate_changelist'), 'parent__id__exact=%d' % self.pk]), \
-                                                                self.get_pki_icon_html("blue-document-tree.png", "Show child certificates", \
+                                                                get_pki_icon_html("blue-document-tree.png", "Show child certificates", \
                                                                                        id="show_child_certs_%d" % self.pk))
     
     Child_certs.allow_tags = True
@@ -967,6 +985,16 @@ class x509Extension(models.Model):
             super(x509Extension, self).save(*args, **kwargs)
             refresh_pki_metadata(CertificateAuthority.objects.all())
     
+    def CrlDpoint_center(self):
+        if self.crl_distribution_point:
+            return get_pki_icon_html('icon-yes.gif', "CRL Distribution Point is required", id="crl_dpoint_%d" % self.pk)
+        else:
+            return get_pki_icon_html('icon-no.gif', "CRL Distribution Points are disabled ", id="crl_dpoint_%d" % self.pk)
+    
+    CrlDpoint_center.allow_tags = True
+    CrlDpoint_center.short_description = 'CRL'
+    CrlDpoint_center.admin_order_field = 'crl_distribution_point'
+    
     def is_ca(self):
         """Return true if this is a CA extension (CA: TRUE)"""
         
@@ -980,6 +1008,8 @@ class x509Extension(models.Model):
             r.append(x.name)
         return ",".join(r)
     
+    key_usage_csv.short_description = 'Key Usage'
+    
     def ext_key_usage_csv(self):
         r = []
         if self.extended_key_usage_critical:
@@ -987,6 +1017,8 @@ class x509Extension(models.Model):
         for x in self.extended_key_usage.all():
             r.append(x.name)
         return ",".join(r)
+    
+    ext_key_usage_csv.short_description = "Extended Key Usage"
     
 class KeyUsage(models.Model):
     """Container table for KeyUsage"""

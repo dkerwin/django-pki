@@ -8,10 +8,24 @@ import string
 from django.utils.safestring import mark_safe
 from django.core import urlresolvers
 
-from pki.settings import PKI_DIR, MEDIA_URL
+from pki.settings import PKI_DIR, PKI_BASE_URL, MEDIA_URL
 import pki.models
 
 logger = logging.getLogger("pki")
+
+def get_pki_icon_html(img, title="", css="centered", id=""):
+        """Return HTML for given image.
+        
+        Can add optional alt and title parameters.
+        """
+        
+        if css:
+            css_class = 'class=%s' % css
+        else:
+            css_class = ''
+        
+        img_path = os.path.join(PKI_BASE_URL, MEDIA_URL, 'pki/img', img)
+        return '<img id="%s" %s src="%s" alt="%s" title="%s"/>' % (id, css_class, img_path, title, title)
 
 def files_for_object(obj):
     """Return files associated to object.

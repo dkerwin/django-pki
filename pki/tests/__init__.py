@@ -353,6 +353,10 @@ class CertificateAuthorityTestCase(TestCase):
         self.assertFalse(os.path.exists(self.eca_openssl.ca_dir))
         self.assertTrue(self.ica_openssl.get_revoke_status_from_cert())
     
+    def test_ParseRawCertificate(self):
+        self.assertTrue(re.search('X509v3 Basic Constraints: critical\s*\n\s*CA:TRUE', self.rca_openssl.dump_certificate()))
+        self.assertTrue(re.search('X509v3 Basic Constraints: critical\s*\n\s*CA:TRUE, pathlen:0', self.eca_openssl.dump_certificate()))
+
 class CertificateTestCase(TestCase):
     """Edge certificate testcases"""
     
@@ -459,10 +463,7 @@ class CertificateTestCase(TestCase):
         self.assertFalse(os.path.exists(self.srv_openssl.pkcs12))
     
     def test_ParseRawCertificate(self):
-        f = open(self.srv_openssl.crt, 'rb')
-        c = f.read()
-        f.close()
-        
+        c = self.srv_openssl.dump_certificate()
         self.assertTrue(re.search('X509v3 Basic Constraints: critical\s*\n\s*CA:FALSE', c))
         self.assertTrue(re.search('X509v3 Subject Alternative Name:\s*\n\s*IP Address:1.2.3.4, DNS:www1.company.com', c))
         self.assertTrue(re.search('X509v3 Extended Key Usage: critical\s*\n\s*TLS Web Server Authentication', c))

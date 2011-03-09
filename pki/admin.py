@@ -72,7 +72,7 @@ class Certificate_Authority_Admin(CertificateBaseAdmin):
     list_display       = ( 'id', 'common_name', 'Serial_align_right', 'Valid_center', 'Chain_link', 'Tree_link', 'Parent_link',
                            'Expiry_date', 'Description', 'Creation_date', 'Revocation_date', 'Child_certs', 'Download_link', 'Email_link', )
     list_display_links = ( 'common_name', )
-    list_filter        = ( 'parent', 'active', )
+    list_filter        = ( 'parent', 'active', 'extension', )
     radio_fields       = { "action": admin.VERTICAL }
     search_fields      = [ 'name', 'common_name', 'description' ]
     date_hierarchy     = 'created'
@@ -131,7 +131,7 @@ class Certificate_Admin(CertificateBaseAdmin):
                            'Expiry_date', 'Description', 'Creation_date', 'Revocation_date', 'Download_link', 'Email_link' )
     list_display_links = ( 'common_name', )
     radio_fields       = { "action": admin.VERTICAL }
-    list_filter        = ( 'parent', 'active', )
+    list_filter        = ( 'parent', 'active', 'extension', )
     search_fields      = [ 'name', 'description' ]
     date_hierarchy     = 'created'
     readonly_fields    = ( 'Expiry_date', 'Creation_date', 'Revocation_date', 'serial', 'Chain', 'Certificate_Dump', 'CA_Clock', 'State', )
@@ -198,7 +198,7 @@ class x509Extension_Admin(CertificateBaseAdmin):
     """Admin instance for x509 extensions"""
     
     form               = x509ExtensionForm
-    list_display       = ( 'id', 'name', 'description', 'created', 'basic_constraints', 'subject_key_identifier', 'authority_key_identifier', 'crl_distribution_point', )
+    list_display       = ( 'id', 'name', 'description', 'basic_constraints', 'key_usage_csv', 'ext_key_usage_csv', 'created', 'CrlDpoint_center', )
     list_display_links = ( 'name', )
     search_fields      = [ 'name', 'description', ]
     date_hierarchy     = 'created'

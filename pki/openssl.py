@@ -151,7 +151,7 @@ class Openssl():
                 self.ca_dir = os.path.join(PKI_DIR, "_SELF_SIGNED_CERTIFICATES")
                 if not os.path.exists(self.ca_dir):
                     try:
-                        os.mkdir(ca_dir, 0755)
+                        os.mkdir(self.ca_dir, 0755)
                         os.mkdir(os.path.join(self.ca_dir, "certs"))
                     except OSError, e:
                         logger.exception("Failed to create directories for self-signed certificates %s" % self.ca_dir)
