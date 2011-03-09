@@ -54,8 +54,8 @@ def files_for_object(obj):
     files = { 'chain' : { 'path': os.path.join(ca_dir, '%s-chain.cert.pem' % chain),
                           'name': '%s-chain.cert.pem' % chain,
                         },
-              'crl'   : { 'path': os.path.join(ca_dir, 'crl', '%s.crl.pem' % c_name),
-                          'name': '%s.crl.pem' % c_name,
+              'crl'   : { 'path': os.path.join(ca_dir, 'crl', '%s.crl.pem' % chain),
+                          'name': '%s.crl.pem' % chain,
                         },
               'pem'   : { 'path': os.path.join(ca_dir, 'certs', '%s.cert.pem' % c_name),
                           'name': '%s.cert.pem' % c_name,
@@ -154,38 +154,31 @@ def build_zip_for_object(obj, request):
     """
     
     try:
-        ## Create the ZIP archive
         base_folder = 'PKI_DATA_%s' % obj.name
         files       = files_for_object(obj)
         zip_f       = generate_temp_file()
         
         c_zip = zipfile.ZipFile(zip_f, 'w')
         
-        ## Private key is only included if user has permission
-        if not request.user.has_perm('pki.can_download_%s' % type):
-            logger.error( "Permission denied: Private key is excluded" )
-        else:
-            logger.debug( "Access granted. User is allowed to download private key" )
-            c_zip.write( files['key']['path'], files['key']['name'] )
+        c_zip.write(files['key']['path'], files['key']['name'])
+        c_zip.write(files['pem']['path'], files['pem']['name'])
         
-        c_zip.write( files['pem']['path'], files['pem']['name'] )
-        
-        if obj.parent:
-            c_zip.write( files['chain']['path'], files['chain']['name'])
+        if isinstance(obj, pki.models.CertificateAuthority) or obj.parent:
+            c_zip.write(files['chain']['path'], files['chain']['name'])
+            c_zip.write(files['crl']['path'], files['crl']['name'])
         
         try:
             if obj.pkcs12_encoded:
-                c_zip.write( files['pkcs12']['path'], files['pkcs12']['name'] )
+                c_zip.write(files['pkcs12']['path'], files['pkcs12']['name'])
         except AttributeError:
             pass
         
         if obj.der_encoded:
-            c_zip.write( files['der']['path'], files['der']['name'] )
+            c_zip.write(files['der']['path'], files['der']['name'])
         
         c_zip.close()
     except Exception, e:
-        logger.error( "Exception during zip file creation: %s" % e )
-        raise Exception( e )
+        logger.error("Exception during zip file creation: %s" % e)
+        raise Exception(e)
     
     return zip_f
-
