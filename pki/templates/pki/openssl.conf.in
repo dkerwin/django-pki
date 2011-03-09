@@ -48,7 +48,7 @@ crldir                   = $dir/crl
 crlnumber                = $dir/crlnumber
 crl                      = $crldir/{{ ca.name }}.crl.pem
 RANDFILE                 = $dir/private/.rnd
-x509_extensions          = {% if ca.subcas_allowed %}v3_ca{% else %}v3_sub_ca{% endif %}
+x509_extensions          = {{ ca.extension }}
 copy_extensions          = copy
 name_opt                 = ca_default
 cert_opt                 = ca_default
@@ -116,40 +116,14 @@ emailAddress_max                = 64
 ## x509 extensions
 ###############################################################
 
-[ v3_ca ]
-basicConstraints                = critical,CA:TRUE
-subjectKeyIdentifier            = hash
-authorityKeyIdentifier          = keyid:always,issuer:always
-keyUsage                        = critical,keyCertSign,cRLSign
-nsComment                       = "django-pki generated RootCA certificate"
-nsCertType                      = sslCA,objCA,emailCA
-#crlDistributionPoints           = ${ENV::C_D_P}
-
-[ v3_sub_ca ]
-basicConstraints                = critical,CA:TRUE, pathen:0
-nsComment                       = "django-pki generated intermediate CA certificate"
-subjectKeyIdentifier            = hash
-authorityKeyIdentifier          = keyid:always,issuer:always
-keyUsage                        = critical,keyCertSign,cRLSign
-#crlDistributionPoints           = ${ENV::C_D_P}
-
-[ v3_server_cert ]
-basicConstraints                = CA:FALSE, pathlen:0
-keyUsage                        = nonRepudiation, digitalSignature, keyEncipherment
-extendedKeyUsage                = serverAuth
-nsCertType                      = server
-nsComment                       = "django-pki generated server sertificate"
-subjectKeyIdentifier            = hash
-authorityKeyIdentifier          = keyid,issuer:always
-subjectAltName                  = ${ENV::S_A_N}
-#crlDistributionPoints           = ${ENV::C_D_P}
-
-[ v3_client_cert ]
-basicConstraints                = CA:FALSE, pathlen:0
-keyUsage                        = nonRepudiation, digitalSignature, keyEncipherment
-extendedKeyUsage                = clientAuth,emailProtection
-nsCertType                      = client
-nsComment                       = "django-pki generated client certificate"
-subjectKeyIdentifier            = hash
-authorityKeyIdentifier          = keyid,issuer:always
-subjectAltName                  = email:copy
+{% for x509 in x509_extensions %}
+## {{ x509.description }}
+[ {{ x509.name }} ]
+basicConstraints = {% if x509.basic_constraints_critical %}critical,{% endif %}{{ x509.basic_constraints }}
+keyUsage = {{ x509.key_usage_csv }}
+subjectKeyIdentifier = {{ x509.subject_key_identifier }}
+authorityKeyIdentifier = {{ x509.authority_key_identifier }}
+{% if x509.ext_key_usage_csv %}extendedKeyUsage = {{ x509.ext_key_usage_csv }}{% endif %}
+{% if not x509.ca %}subjectAltName = ${ENV::S_A_N}{% endif %}
+{% if x509.crl_distribution_point %}crlDistributionPoints = ${ENV::C_D_P}{% endif %}
+{% endfor %}

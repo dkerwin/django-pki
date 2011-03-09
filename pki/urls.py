@@ -2,9 +2,9 @@ from django.conf.urls.defaults import *
 from pki.views import *
 
 urlpatterns = patterns('',
-    (r'admin/pki/(?P<model>certificate|certificateauthority)/(?P<id>[0-9]+)/delete/', admin_delete),
-    (r'^pki/download/(?P<type>ca|cert)/(?P<id>\d+)/$', pki_download),
-    (r'^pki/chain/(?P<type>ca|cert)/(?P<id>\d+)/$', pki_chain),
-    (r'^pki/tree/(?P<id>\d+)/$', pki_tree),
-    (r'^pki/email/(?P<type>ca|cert)/(?P<id>\d+)/$', pki_email),
+    url(r'^pki/download/(?P<model>certificate|certificateauthority)/(?P<id>\d+)/$', pki_download, name="download"),
+    url(r'^pki/chain/(?P<model>certificate|certificateauthority)/(?P<id>\d+)/$', pki_chain, name="chain"),
+    url(r'^pki/tree/(?P<id>\d+)/$', pki_tree, name="tree"),
+    url(r'^pki/email/(?P<model>certificate|certificateauthority)/(?P<id>\d+)/$', pki_email, name="email"),
+    url(r'^pki/refresh_metadata/$', pki_refresh_metadata, name="refresh_metadata"),
 )

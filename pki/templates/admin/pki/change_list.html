@@ -1,36 +1,6 @@
 {% extends "admin/change_list.html" %}
+{% load pkinav %}
 
-{% block extrahead %}
-<style type="text/css">
-  
-  a.pkinav { float: right; 
-	     font-weight: bold;
-  	     margin-bottom: -20px; 
-             margin-left: 0px;
-	     margin-right: 200px;
-	     margin-top: -24px;
-	     padding-bottom: 0px;
-	     padding-left: 0px;
-	     padding-right: 20px;
-	     padding-top: 0px;
-	     position: relative;
-		 width: 200px;
-	   };
-</style>
-
+{% block nav-global %}
+    {% pkinav %}
 {% endblock %}
-
-    {% block object-tools %}
-      
-	    {% ifequal cl.opts.verbose_name 'certificate' %}
-            <a href="../certificateauthority" class="pkinav">&rarr; Certificate Authorities
-            {% else %}
-            <a href="../certificate/" class="pkinav">&rarr; Certificates
-            {% endifequal %}
-            </a>
-            
-	    {{ block.super }} 
-
-    {% endblock %}
-
-

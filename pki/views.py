@@ -1,18 +1,21 @@
 import os
 import logging
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponse, Http404, HttpResponseRedirect, HttpResponseBadRequest
 from django.utils.safestring import mark_safe
 from django.template import RequestContext
+from django.core import urlresolvers
 
 from pki.settings import PKI_LOG, MEDIA_URL, PKI_ENABLE_GRAPHVIZ, PKI_ENABLE_EMAIL
 from pki.models import CertificateAuthority, Certificate
-from pki.forms import CaPassphraseForm
+from pki.forms import DeleteForm
 from pki.graphviz import ObjectChain, ObjectTree
 from pki.email import SendCertificateData
 from pki.helper import files_for_object, chain_recursion, build_delete_item, generate_temp_file, build_zip_for_object
+from pki.openssl import refresh_pki_metadata
 
 logger = logging.getLogger("pki")
 
@@ -21,15 +24,19 @@ logger = logging.getLogger("pki")
 ##------------------------------------------------------------------##
 
 @login_required
-def pki_download(request, type, id):
+def pki_download(request, model, id):
     """Download PKI data.
     
     Type (ca/cert) and ID are used to determine the object to download.
     """
     
-    if type == "ca":
+    if not request.user.has_perm('pki.can_download'):
+        messages.error(request, "Permission denied!")
+        return HttpResponseRedirect(urlresolvers.reverse('admin:pki_%s_changelist' % model))
+    
+    if model == "certificateauthority":
         c = get_object_or_404(CertificateAuthority, pk=id)
-    elif type == "cert":
+    elif model == "certificate":
         c = get_object_or_404(Certificate, pk=id)
     else:
         logger.error( "Unsupported type %s requested!" % type )
@@ -60,7 +67,7 @@ def pki_download(request, type, id):
 ##------------------------------------------------------------------##
 
 @login_required
-def pki_chain(request, type, id):
+def pki_chain(request, model, id):
     """Display the CA chain as PNG.
     
     Requires PKI_ENABLE_GRAPHVIZ set to true. Type (ca/cert) and ID are used to determine the object.
@@ -68,15 +75,15 @@ def pki_chain(request, type, id):
     """
     
     if PKI_ENABLE_GRAPHVIZ is not True:
-        raise Exception( "Chain view is inoperable unless PKI_ENABLE_GRAPHVIZ is enabled" )
+        messages.warning(request, "Chain view is disabled unless setting PKI_ENABLE_GRAPHVIZ is set to True")
+        return HttpResponseRedirect(urlresolvers.reverse('admin:pki_%s_changelist' % model))
     
-    if type == "ca":
+    if model == "certificateauthority":
         obj = get_object_or_404(CertificateAuthority, pk=id)
-    elif type == "cert":
+    elif model == "certificate":
         obj = get_object_or_404(Certificate, pk=id)
     
     png = generate_temp_file()
-
     ObjectChain(obj, png)
     
     try:
@@ -84,7 +91,6 @@ def pki_chain(request, type, id):
             f = open(png)
             x = f.read()
             f.close()
-            
             os.remove(png)
     except OSError,e:
         logger.error( "Failed to load depency tree: %s" % e)
@@ -102,7 +108,8 @@ def pki_tree(request, id):
     """
     
     if PKI_ENABLE_GRAPHVIZ is not True:
-        raise Exception( "Tree view is inoperable unless PKI_ENABLE_GRAPHVIZ is enabled!" )
+        messages.warning(request, "Tree view is disabled unless setting PKI_ENABLE_GRAPHVIZ is set to True")
+        return HttpResponseRedirect(urlresolvers.reverse('admin:pki_certificateauthority_changelist'))
     
     obj = get_object_or_404(CertificateAuthority, pk=id)
     png = generate_temp_file()
@@ -128,7 +135,7 @@ def pki_tree(request, id):
 ##------------------------------------------------------------------##
 
 @login_required
-def pki_email(request, type, id):
+def pki_email(request, model, id):
     """Send email with certificate data attached.
     
     Requires PKI_ENABLE_EMAIL set to true. Type (ca/cert) and ID are used to determine the object.
@@ -136,26 +143,61 @@ def pki_email(request, type, id):
     """
     
     if PKI_ENABLE_EMAIL is not True:
-        raise Exception( "Email sending is inoperable unless PKI_ENABLE_EMAIL is enabled!" )
+        messages.warning(request, "Email delivery is disabled unless setting PKI_ENABLE_EMAIL is set to True")
+        return HttpResponseRedirect(urlresolvers.reverse('admin:pki_%s_changelist' % model))
     
-    if type == "ca":
+    if model == "certificateauthority":
         obj  = get_object_or_404(CertificateAuthority, pk=id)
-    elif type == "cert":
+    elif model == "certificate":
         obj = get_object_or_404(Certificate, pk=id)
-    
-    back = request.META.get('HTTP_REFERER', None) or '/'
     
     if obj.email and obj.active:
         SendCertificateData(obj, request)
     else:
         raise Http404
     
-    request.user.message_set.create(message='Email to "%s" was sent successfully.' % obj.email)
+    messages.info(request, 'Email to "%s" was sent successfully.' % obj.email)
+    return HttpResponseRedirect(urlresolvers.reverse('admin:pki_%s_changelist' % model))
+
+##------------------------------------------------------------------##
+## Management views
+##------------------------------------------------------------------##
+
+@login_required
+def pki_refresh_metadata(request):
+    """Rebuild PKI metadate.
+    
+    Renders openssl.conf template and cleans PKI_DIR.
+    """
+    
+    ca_objects = list(CertificateAuthority.objects.all())
+    refresh_pki_metadata(ca_objects)
+    messages.info(request, 'Successfully refreshed PKI metadata (%d certificate authorities)' % len(ca_objects))
+    
+    back = request.META.get('HTTP_REFERER', None) or '/'
     return HttpResponseRedirect(back)
 
 ##------------------------------------------------------------------##
 ## Admin views
 ##------------------------------------------------------------------##
+
+@login_required
+def admin_history(request, model, id):
+    """Overwrite the default admin history view"""
+    
+    from django.contrib.contenttypes.models import ContentType
+    from pki.models import PkiChangelog
+    
+    ct  = ContentType.objects.get(model=model)
+    model_obj = ct.model_class()
+    obj = model_obj.objects.get(pk=id)
+    
+    changelogs = PkiChangelog.objects.filter(model_id=ct.pk).filter(object_id=id)
+    
+    return render_to_response('admin/pki/object_changelogs.html', { 'changelogs': changelogs, 'title': "Change history: %s" % obj.common_name,
+                                                                    'app_label': model_obj._meta.app_label, 'object': obj,
+                                                                    'module_name': model_obj._meta.verbose_name_plural,
+                                                                  }, RequestContext(request))
 
 @login_required
 def admin_delete(request, model, id):
@@ -171,17 +213,17 @@ def admin_delete(request, model, id):
         chain_recursion(item.id, deleted_objects, id_dict={ 'cert': [], 'ca': [], })
         
         ## Fill the required data for delete_confirmation.html template
-        opts               = CertificateAuthority._meta
-        object             = item.name
-        initial_ca_id      = False
+        opts       = CertificateAuthority._meta
+        object     = item.name
+        initial_id = False
         
         ## Set the CA to verify the passphrase against
         if item.parent_id:
-            initial_ca_id = item.parent_id
+            initial_id = item.parent_id
             auth_object   = CertificateAuthority.objects.get(pk=item.parent_id).name
         else:
-            initial_ca_id = item.pk
-            auth_object   = item.name
+            initial_id  = item.pk
+            auth_object = item.name
     elif model == 'certificate':
         ## Fetch the certificate data
         try:
@@ -189,33 +231,47 @@ def admin_delete(request, model, id):
         except:
             raise Http404
         
+        if not item.parent_id:
+            parent_object_name = "self-signed certificate"
+            initial_id = item.id
+            authentication_obj = item.name
+        else:
+            initial_id = item.parent_id
+            authentication_obj = item.parent.name
+        
         div_content = build_delete_item(item)
-        deleted_objects.append( mark_safe('Certificate: <a href="../../../certificate/%d/">%s</a> <img src="%spki/img/plus.png" class="switch" /><div class="details">%s</div>' % (item.pk, item.name, MEDIA_URL, div_content)) )
+        deleted_objects.append( mark_safe('Certificate: <a href="%s">%s</a> <img src="%spki/img/plus.png" class="switch" /><div class="details">%s</div>' % \
+                                          (urlresolvers.reverse('admin:pki_certificate_change', args=(item.pk,)), item.name, MEDIA_URL, div_content)) )
         
         ## Fill the required data for delete_confirmation.html template
-        opts               = Certificate._meta
-        object             = item.name
-        initial_ca_id      = item.parent_id
+        opts   = Certificate._meta
+        object = item.name
         
         ## Set the CA to verify the passphrase against
-        auth_object = item.parent.name
+        auth_object = authentication_obj
     
     if request.method == 'POST':
-        form = CaPassphraseForm(request.POST)
+        form = DeleteForm(request.POST)
         
         if form.is_valid():
             item.delete(request.POST['passphrase'])
-            request.user.message_set.create(message='The %s "%s" was deleted successfully.' % (opts.verbose_name, object))
-            return HttpResponseRedirect("../../")
+            messages.info(request, 'The %s "%s" was deleted successfully.' % (opts.verbose_name, object))
+            return HttpResponseRedirect(urlresolvers.reverse('admin:pki_%s_changelist' % model))
     else:
-        form = CaPassphraseForm()
-        form.fields['ca_id'].initial = initial_ca_id
+        form = DeleteForm()
+        
+        form.fields['_model'].initial = model
+        form.fields['_id'].initial    = id
     
     return render_to_response('admin/pki/delete_confirmation.html', { 'deleted_objects': deleted_objects, 'object_name': opts.verbose_name,
                                                                       'app_label': opts.app_label, 'opts': opts, 'object': object, 'form': form,
                                                                       'auth_object': auth_object, 'parent_object_name': parent_object_name,
                                                                       'title': title,
                                                                     }, RequestContext(request))
+
+##------------------------------------------------------------------##
+## Exception viewer
+##------------------------------------------------------------------##
 
 @login_required
 def show_exception(request):

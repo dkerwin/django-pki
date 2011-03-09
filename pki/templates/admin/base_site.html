@@ -1,8 +1,15 @@
 {% extends "admin/base.html" %}
 {% load version %}
+{% load model %}
 {% load i18n %}
 
 {% block title %}{{ title }} | {% trans 'Django PKI administration' %}{% endblock %}
+
+{% block extrahead %}
+
+{% if add %}<script type="text/javascript">window.__pki_add__ = "{{ add }}";</script>{% endif %}
+{% if content_type_id %}<script type="text/javascript">window.__pki_model__ = "{{ content_type_id|model_for_content_type }}";</script>{% endif %}
+{% endblock %}
 
 {% block branding %}
 <h1 id="site-name">{% trans 'Django PKI administration' %}</h1>

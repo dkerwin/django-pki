@@ -45,18 +45,21 @@ def ObjectChain(object, target):
     
     ## Get parents if any
     if object.parent != None:
-        
         ## Set p to objects parent
         p = object.parent
         
         ## Add parent node to graph
-        G.add_node(p.common_name, shape="folder", color="green3", style="bold")
+        if p.active:
+            p_color = "green3"
+        else:
+            p_color = "red"
+        
+        G.add_node(p.common_name, shape="folder", color=p_color, style="bold")
         
         ## Set initial edge between requested onject and it's parent
         edges.append( [p.common_name, object.common_name] )
         
         while p != None:
-            
             if p.active:
                 col = "green3"
             else:
@@ -93,42 +96,45 @@ def ObjectTree(object, target):
         
         c = CertificateAuthority.objects.get(id=r_id)
         
-        if c.subcas_allowed == True:
+        if not c.is_edge_ca():
             x = CertificateAuthority.objects.filter(parent__id=c.pk)
-            
-            for ca in x:
-                
-                if graph != None:
-                    if ca.active is True:
-                        col = "green3"
-                    else:
-                        col = "red"
-                    
-                    graph.add_node(ca.common_name, shape='folder', color=col, style="bold")
-                    graph.add_edge(c.common_name, ca.common_name, color="black", weight="4.5")
-                
-                if ca.subcas_allowed == True:
-                    TraverseToBottom(ca.pk, graph)
+        else:
+            x = [c]
+        
+        for ca in x:
+            if graph != None:
+                if ca.active is True:
+                    col = "green3"
                 else:
-                    certs = Certificate.objects.filter(parent__id=ca.pk)
+                    col = "red"
+                
+                graph.add_node(ca.common_name, shape='folder', color=col, style="bold")
+                
+                ## Prevent link to self when this is a toplevel edge rootca
+                if ca != c:
+                    graph.add_edge(c.common_name, ca.common_name, color="black", weight="4.5")
+            
+            if not ca.is_edge_ca():
+                TraverseToBottom(ca.pk, graph)
+            else:
+                certs = Certificate.objects.filter(parent__id=ca.pk)
+                
+                if certs:
+                    subgraph_list = [ ca.common_name ]
                     
-                    if certs:
-                        subgraph_list = [ ca.common_name ]
+                    for cert in certs:
+                        subgraph_list.append( cert.common_name )
                         
-                        for cert in certs:
+                        if graph != None:
+                            if cert.active:
+                                col = "green3"
+                            else:
+                                col = "red"
                             
-                            subgraph_list.append( cert.common_name )
-                            
-                            if graph != None:
-                                if cert.active:
-                                    col = "green3"
-                                else:
-                                    col = "red"
-                                
-                                graph.add_node(str(cert.common_name), shape='note', color=col, style="bold")
-                                graph.add_edge(ca.common_name, cert.common_name, color="black", weight="4.5")
-                        
-                        sg = graph.subgraph(nbunch=subgraph_list, name="cluster_%d" % ca.pk, style='bold', color='black', label="")
+                            graph.add_node(str(cert.common_name), shape='note', color=col, style="bold")
+                            graph.add_edge(ca.common_name, cert.common_name, color="black", weight="4.5")
+                    
+                    sg = graph.subgraph(nbunch=subgraph_list, name="cluster_%d" % ca.pk, style='bold', color='black', label="")
     
     ##-------------------------------------##
     ## Object tree starts here

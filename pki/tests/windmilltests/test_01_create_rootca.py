@@ -33,5 +33,5 @@ def test_AddRootCA():
     client.check(id=u'id_subcas_allowed')
     client.click(xpath=u"//form[@id='certificateauthority_form']/div[2]/div[2]/input[1]")
     client.waits.forPageLoad(timeout=u'20000')
-    client.asserts.assertTextIn(xpath=u"//div[@id='container']/ul/li", validator=u'The certificate authority "Root_CA" was added successfully.')
+    client.asserts.assertTextIn(xpath=u"//div[@id='container']/ul/li", validator=u'The certificate authority "Root CA" was added successfully.')
 

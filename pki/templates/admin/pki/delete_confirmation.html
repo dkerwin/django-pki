@@ -1,47 +1,51 @@
 {% extends "admin/delete_confirmation.html" %}
 {% load i18n %}
+{% load pkinav %}
+{% load media_url %}
 
 {% block extrahead %}
-<script language="javascript">var MEDIA_URL = "{{ MEDIA_URL }}";</script>
-<script type="text/javascript" src="{{ MEDIA_URL }}pki/jquery-1.3.2.min.js"></script> 
-<script type="text/javascript" src="{{ MEDIA_URL }}pki/delete_detail.js"></script>
+<script type="text/javascript">var MEDIA_URL = "{% media_url %}";</script>
+<script type="text/javascript" src="{% media_url %}pki/js/jquery-1.5.min.js"></script> 
+<script type="text/javascript" src="{% media_url %}pki/js/delete_detail.min.js"></script>
+<link href="{% media_url %}pki/css/pki.css" type="text/css" media="screen" rel="stylesheet" /> 
+{% endblock %}
 
-<style type="text/css">
-
-div.details { margin: 5px 5px 5px 20px; }
-div.details ul { position: absoulte; display: inline-block; padding:5px 50px 5px 5px; background-color: #ffffff; border: 1px dotted #91bfe6; list-style-type: none; width: auto; }
-div.details li { list-style-type: none; }
-
-</style>
+{% block nav-global %}
+    {% pkinav %}
 {% endblock %}
 
 {% block content %}
-{% if perms_lacking %}
-    <p>{% blocktrans with object as escaped_object %}Deleting the {{ object_name }} '{{ escaped_object }}' would result in deleting related objects, but your account doesn't have permission to delete the following types of objects:{% endblocktrans %}</p>
-    <ul>
-    {% for obj in perms_lacking %}
-        <li>{{ obj }}</li>
-    {% endfor %}
-    </ul>
+
+{% if opts.module_name == "certificateauthority" or opts.module_name == "certificate" %}
+    {% if perms_lacking %}
+        <p>{% blocktrans with object as escaped_object %}Deleting the {{ object_name }} '{{ escaped_object }}' would result in deleting related objects, but your account doesn't have permission to delete the following types of objects:{% endblocktrans %}</p>
+        <ul>
+        {% for obj in perms_lacking %}
+            <li>{{ obj }}</li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>{% blocktrans with object as escaped_object %}Are you sure you want to delete the {{ object_name }} "{{ escaped_object }}"? All of the following related items will be deleted:{% endblocktrans %}</p>
+        <ul>{{ deleted_objects|unordered_list }}</ul>
+        
+        <hr />
+        
+        <form action="" method="post">{% csrf_token %}
+        <div>
+        
+        <h3>{% blocktrans with auth_object as escaped_object %}Please enter the passphrase for the {{ parent_object_name }} "<strong>{{ escaped_object }}</strong>":{% endblocktrans %}</h3>
+        <p />{{ form.as_p }}
+        
+        </div>
+        
+        <input type="hidden" name="post" value="yes" />
+        <input type="submit" value="{% trans "Yes, I'm sure" %}" />
+        &nbsp;|&nbsp;<a href="../../">No, back to changelist</a>
+        </div>
+        </form>
+    {% endif %}
 {% else %}
-    <p>{% blocktrans with object as escaped_object %}Are you sure you want to delete the {{ object_name }} "{{ escaped_object }}"? All of the following related items will be deleted:{% endblocktrans %}</p>
-    <ul>{{ deleted_objects|unordered_list }}</ul>
-
-    <hr />
-
-    <form action="" method="post">{% csrf_token %}
-    <div>
-
-    <h3>{% blocktrans with auth_object as escaped_object %}Please enter the passphrase for the {{ parent_object_name }} "<strong>{{ escaped_object }}</strong>":{% endblocktrans %}</h3>
-    <p />{{ form.as_p }}
-    
-    </div>
-
-    <input type="hidden" name="post" value="yes" />
-    <input type="submit" value="{% trans "Yes, I'm sure" %}" />
-    &nbsp;|&nbsp;<a href="../../">No, back to changelist</a>
-    </div>
-    </form>
+    {{ block.super }}
 {% endif %}
 {% endblock %}
 

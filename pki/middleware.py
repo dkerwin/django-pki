@@ -5,8 +5,6 @@ from django.conf import settings
 from logging import getLogger
 from django.core.urlresolvers import RegexURLResolver 
 
-from pki.settings import PKI_BASE_URL
-
 import sys
 
 logger = getLogger("pki")
@@ -70,7 +68,6 @@ class PkiExceptionMiddleware(object):
         logger.error( 'HTTP_USER_AGENT: %s' % request.META.get('HTTP_USER_AGENT') )
         logger.error( '' )
         logger.error( _get_traceback(exc_info) )
-        #logger.error( 'REQUEST_URI: %s' % repr(request) )
 
 def _get_traceback(self, exc_info=None):
     """Helper function to return the traceback as a string"""

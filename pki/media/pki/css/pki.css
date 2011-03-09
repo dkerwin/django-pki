@@ -1,0 +1,29 @@
+/* Image alignment */
+img.centered { margin-left: auto; margin-right: auto; display: block; vertical-align: middle; }
+
+/* Text alignment */
+div.serial_align_right { text-align: right; }
+
+/* Expiry text decoration */
+span.almost_expired { color: #f19d09; font-weight: bold; }
+span.expired { color: red; font-weight: bold; }
+span.revoked { text-decoration: line-through; }
+
+/* Navigation */
+#pkinav ul { list-style:none; text-align:center; }
+#pkinav ul li { display: inline; font-weight: bold; }
+#pkinav ul li:not(:first-child)::before { content: "| "; }
+
+/* Delete confirmation details */
+div.details { margin: 5px 5px 5px 20px; }
+div.details ul { display: inline-block; padding:5px 50px 5px 5px; background-color: #ffffff; border: 1px dotted #91bfe6; list-style-type: none; width: auto; }
+div.details li { list-style-type: none; }
+
+/* Textarea */
+#certdump { width: 700px; height: 500px; }
+
+/* CA clock */
+#clock { font-weight: bold; }
+
+/* Footer */
+#footer { text-align: center; font-style: italic; font-size: 10px; margin-bottom: 20px; }

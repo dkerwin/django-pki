@@ -1,6 +1,5 @@
 import os
 import re
-import sys
 import string
 import random
 
@@ -10,9 +9,10 @@ from logging import getLogger
 
 from django.template.loader import render_to_string
 
-from pki.settings import PKI_OPENSSL_BIN, PKI_OPENSSL_CONF, PKI_DIR, PKI_OPENSSL_TEMPLATE, PKI_SELF_SIGNED_SERIAL
-from pki.helper import subject_for_object
 import pki.models
+from pki.helper import subject_for_object
+from pki.settings import PKI_OPENSSL_BIN, PKI_OPENSSL_CONF, PKI_DIR, PKI_OPENSSL_TEMPLATE, \
+                         PKI_SELF_SIGNED_SERIAL, PKI_CA_NAME_BLACKLIST
 
 try:
     # available in python-2.5 and greater
@@ -23,19 +23,12 @@ except ImportError:
 
 logger = getLogger("pki")
 
-##------------------------------------------------------------------##
-## OpenSSLConfig: Config related stuff
-##------------------------------------------------------------------##
-
 def refresh_pki_metadata(ca_list):
     """Refresh pki metadata (PKI storage directories and openssl configuration files)
 
     Each ca_list element is a dictionary:
     'name': CA name
-    'subcas_allowed': sub CAs allowed (boolean)
     """
-    
-    status = True
     
     # refresh directory structure
     dirs = { 'certs'  : 0755,
@@ -46,7 +39,7 @@ def refresh_pki_metadata(ca_list):
     try:
         # create base PKI directory if necessary
         if not os.path.exists(PKI_DIR):
-            logger.info('Creating base PKI directory')
+            logger.info('Creating base PKI directory %s' % PKI_DIR)
             os.mkdir(PKI_DIR, 0700)
         
         # list of old CA directories for possible purging
@@ -55,12 +48,11 @@ def refresh_pki_metadata(ca_list):
         
         # loop over CAs and create necessary filesystem objects
         for ca in ca_list:
-            
             ca_dir = os.path.join(PKI_DIR, ca.name)
             
             # create CA directory if necessary
             if not ca_dir in purge_dirs:
-                logger.info('Creating base directory for CA %s' % ca.name)
+                logger.info("Creating base directory for new CA %s" % ca.name)
                 os.mkdir(ca_dir)
                 
                 # create nested directories for key storage with proper permissions
@@ -85,6 +77,8 @@ def refresh_pki_metadata(ca_list):
                 s.write(h2s)
                 s.close()
                 
+                logger.info("Initial serial number set to %s" % h2s)
+                
                 # initialize CRL serial number
                 s = open(os.path.join(ca_dir, 'crlnumber'), 'wb')
                 s.write('01')
@@ -104,36 +98,30 @@ def refresh_pki_metadata(ca_list):
                 # probably can be removed when debugging will be finished
                 if os.path.isfile(os.path.join(d, 'crlnumber')):
                     logger.debug("Purging CA directory tree %s" % d)
-                    rmtree(d) # FIXME: commented for debugging purposes
+                    rmtree(d)
                 else:
                     logger.warning('Directory %s does not contain any metadata, preserving it' % d)
         
-    except OSError, e: # FIXME: probably catch any exception here, not just OS
-        status = False
-        logger.error("Refreshing directory structure failed: %s" % e)
-    
-    # prepare context for template rendering
-    ctx = {'ca_list': ca_list}
-
-    # render template and save result to openssl.conf
-    try:
-        conf = render_to_string(PKI_OPENSSL_TEMPLATE, ctx)
+        x509_list =[]
+        for x509 in pki.models.x509Extension.objects.all():
+            if x509.is_ca():
+                x509.ca = True
+            else:
+                x509.ca = False
+            x509_list.append(x509)
+        
+        # render template and save result to openssl.conf
+        conf = render_to_string(PKI_OPENSSL_TEMPLATE, {'ca_list': ca_list, 'x509_extensions': x509_list,})
         
         f = open(PKI_OPENSSL_CONF, 'wb')
         f.write(conf)
         f.close()
+    except Exception, e:
+        logger.exception("Refreshing PKI metadata failed: %s" % e)
+    
+    logger.info("Successfully finished PKI metadata refresh")
 
-    except:
-        raise Exception( 'Failed to render OpenSSL template' )
-        status = False
-
-    return status # is it used somewhere?
-
-##------------------------------------------------------------------##
-## OpenSSLActions: All non config related actions
-##------------------------------------------------------------------##
-
-class OpensslActions():
+class Openssl():
     """OpenSSL command and task wrapper class
     
     instance must be a CertificateAuthority or Certificate object.
@@ -145,6 +133,10 @@ class OpensslActions():
         self.i    = instance
         self.subj = subject_for_object(self.i)
         
+        if self.i.name in PKI_CA_NAME_BLACKLIST:
+            logger.error("Instance name '%s' is blacklisted!" % self.i.name)
+            raise
+        
         if self.i.parent != None:
             self.parent_certs = os.path.join(PKI_DIR, self.i.parent.name, 'certs')
             self.crl = os.path.join(PKI_DIR, self.i.parent.name, 'crl', '%s.crl.pem' % self.i.parent.name)
@@ -153,25 +145,37 @@ class OpensslActions():
             self.crl = os.path.join(PKI_DIR, self.i.name, 'crl', '%s.crl.pem' % self.i.name)
         
         if isinstance(instance, pki.models.CertificateAuthority):
-            ca_dir      = os.path.join(PKI_DIR, self.i.name)
-            self.key    = os.path.join(ca_dir, 'private', '%s.key.pem' % self.i.name)
-            self.ext    = ''
+            self.ca_dir = os.path.join(PKI_DIR, self.i.name)
+            self.key    = os.path.join(self.ca_dir, 'private', '%s.key.pem' % self.i.name)
             self.pkcs12 = False
             self.i.subjaltname = ''
         elif isinstance(instance, pki.models.Certificate):
-            ca_dir      = os.path.join(PKI_DIR, self.i.parent.name)
-            self.key    = os.path.join(ca_dir, 'certs', '%s.key.pem' % self.i.name)
-            self.ext    = '-extensions v3_cert'
-            self.pkcs12 = os.path.join(ca_dir, 'certs', '%s.cert.p12' % self.i.name)
+            if self.i.parent:
+                self.ca_dir = os.path.join(PKI_DIR, self.i.parent.name)
+            else:
+                self.ca_dir = os.path.join(PKI_DIR, "_SELF_SIGNED_CERTIFICATES")
+                if not os.path.exists(self.ca_dir):
+                    try:
+                        os.mkdir(self.ca_dir, 0755)
+                        os.mkdir(os.path.join(self.ca_dir, "certs"))
+                    except OSError, e:
+                        logger.exception("Failed to create directories for self-signed certificates %s" % self.ca_dir)
+                        raise
+            
+            self.key    = os.path.join(self.ca_dir, 'certs', '%s.key.pem' % self.i.name)
+            self.pkcs12 = os.path.join(self.ca_dir, 'certs', '%s.cert.p12' % self.i.name)
             
             if not self.i.subjaltname:
-                self.i.subjaltname = 'email:copy'
+                self.i.subjaltname = 'email:copy'            
         else:
             raise Exception( "Given object type is unknown!" )
         
-        self.csr  = os.path.join(ca_dir, 'certs', '%s.csr.pem'  % self.i.name)
-        self.crt  = os.path.join(ca_dir, 'certs', '%s.cert.pem' % self.i.name)
-        self.der  = os.path.join(ca_dir, 'certs', '%s.cert.der' % self.i.name)
+        if not self.i.crl_dpoints:
+            self.i.crl_dpoints = ''
+        
+        self.csr  = os.path.join(self.ca_dir, 'certs', '%s.csr.pem'  % self.i.name)
+        self.crt  = os.path.join(self.ca_dir, 'certs', '%s.cert.pem' % self.i.name)
+        self.der  = os.path.join(self.ca_dir, 'certs', '%s.cert.der' % self.i.name)
         
         ## Generate a random string as ENV variable name
         self.env_pw = "".join(random.sample(string.letters+string.digits, 10))
@@ -218,6 +222,8 @@ class OpensslActions():
         
         command = 'genrsa %s -out %s %s %s %s' % (key_type, self.key, po, pf, self.i.key_length)
         self.exec_openssl(command.split(), env_vars={ self.env_pw: str(self.i.passphrase) } )
+        
+        logger.debug("Finished %s bit private key generation" % self.i.key_length)
     
     def generate_self_signed_cert(self):
         """Generate a self signed root certificate.
@@ -225,10 +231,10 @@ class OpensslActions():
         Serial is set to user specified value when PKI_SELF_SIGNED_SERIAL > 0
         """
         
-        logger.info( 'Generating self-signed root certificate' )
+        logger.info("Generating new self-signed certificate (CN=%s, x509 extension=%s)" % (self.i.common_name, self.i.extension))
         
         command = ['req', '-config', PKI_OPENSSL_CONF, '-verbose', '-batch', '-new', '-x509', '-subj', self.subj, '-days', str(self.i.valid_days), \
-                   '-extensions', 'v3_ca', '-key', self.key, '-out', self.crt, '-passin', 'env:%s' % self.env_pw]
+                   '-extensions', str(self.i.extension), '-key', self.key, '-out', self.crt, '-passin', 'env:%s' % self.env_pw]
         
         try:
             if PKI_SELF_SIGNED_SERIAL and int(PKI_SELF_SIGNED_SERIAL) > 0:
@@ -237,12 +243,16 @@ class OpensslActions():
             logger.error( "Not setting inital serial number to %s. Fallback to random number" % PKI_SELF_SIGNED_SERIAL )
             logger.error( e )
         
-        self.exec_openssl( command, env_vars={ self.env_pw: str(self.i.passphrase), })
+        env = { self.env_pw: str(self.i.passphrase), "S_A_N": self.i.subjaltname, "C_D_P": self.i.crl_dpoints }
+        
+        self.exec_openssl( command, env_vars=env )
+        
+        logger.info("Finished self-signed certificate creation")
     
     def generate_csr(self):
         """CSR (Certificate Signing Request) generation"""
         
-        logger.info( 'Generating the CSR for %s' % self.i.name )
+        logger.info("Generating new CSR for %s" % self.i.common_name )
         
         command = ['req', '-config', PKI_OPENSSL_CONF, '-new', '-batch', '-subj', self.subj, '-key', self.key, '-out', self.csr, \
                    '-days', str(self.i.valid_days), '-passin', 'env:%s' % self.env_pw]        
@@ -251,7 +261,7 @@ class OpensslActions():
     def generate_der_encoded(self):
         """Generate a DER encoded certificate"""
         
-        logger.info( 'Generating DER encoded certificate for %s' % self.i.name )
+        logger.info( 'Generating DER encoded certificate for %s' % self.i.common_name )
         
         command = 'x509 -in %s -out %s -outform DER' % (self.crt, self.der)
         self.exec_openssl(command.split())
@@ -260,7 +270,7 @@ class OpensslActions():
         """Remove a DER encoded certificate"""
         
         if os.path.exists(self.der):
-            logger.info( 'Removal of DER encoded certificate for %s' % self.i.name )
+            logger.info( 'Removal of DER encoded certificate for %s' % self.i.common_name )
             
             try:
                 os.remove(self.der)
@@ -275,7 +285,18 @@ class OpensslActions():
         """
         
         command = 'pkcs12 -export -in %s -inkey %s -out %s -passout env:%s' % (self.crt, self.key, self.pkcs12, self.env_pw)
+<<<<<<< HEAD
         self.exec_openssl(command.split(), env_vars={ self.env_pw: str(self.i.pkcs12_passphrase) })
+=======
+        env_vars={ self.env_pw: str(self.i.pkcs12_passphrase), }
+        
+        if self.i.passphrase:
+            key_pw = "".join(random.sample(string.letters+string.digits, 10))
+            command += ' -passin env:%s' % key_pw
+            env_vars[key_pw] = str(self.i.passphrase)
+        
+        self.exec_openssl(command.split(), env_vars)
+>>>>>>> next
     
     def remove_pkcs12_encoded(self):
         """Remove a PKCS12 encoded certificate if it exists"""
@@ -317,14 +338,12 @@ class OpensslActions():
         Certificate signing and hash creation in CA's certificate directory
         """
         
-        try:
-            extension = "-extensions %s" % self.i.cert_extension
-        except:
-            extension = ""
+        env = { self.env_pw: str(self.i.parent_passphrase), "S_A_N": self.i.subjaltname, "C_D_P": self.i.crl_dpoints}
         
-        command = 'ca -config %s -name %s -batch %s -in %s -out %s -days %d %s -passin env:%s' % \
-                  ( PKI_OPENSSL_CONF, self.i.parent, self.ext, self.csr, self.crt, self.i.valid_days, extension, self.env_pw)
-        self.exec_openssl(command.split(), env_vars={ self.env_pw: str(self.i.parent_passphrase), "S_A_N": self.i.subjaltname, })
+        command = 'ca -config %s -name %s -batch -in %s -out %s -days %d -extensions %s -passin env:%s' % \
+                  ( PKI_OPENSSL_CONF, self.i.parent.name, self.csr, self.crt, self.i.valid_days, self.i.extension, self.env_pw)
+        
+        self.exec_openssl(command.split(), env_vars=env)
         
         ## Get the just created serial
         if self.parent_certs:
@@ -347,21 +366,8 @@ class OpensslActions():
             logger.info( "Skipping revoke as it already happened" )
             return True
         
-        command = 'ca -config %s -name %s -batch -revoke %s -passin env:%s' % (PKI_OPENSSL_CONF, self.i.parent, self.crt, self.env_pw)
+        command = 'ca -config %s -name %s -batch -revoke %s -passin env:%s' % (PKI_OPENSSL_CONF, self.i.parent.name, self.crt, self.env_pw)
         self.exec_openssl(command.split(), env_vars={ self.env_pw: str(ppf) })
-    
-    def renew_certificate(self):
-        """Renew/Reissue a given certificate.
-        
-        This requires the CSR to be available.
-        """
-        
-        logger.info( 'Renewing certificate %s' % self.i.name )
-        
-        if os.path.exists(self.csr):
-            self.sign_csr()
-        else:
-            raise Exception( "Failed to renew certificate %s! CSR is missing!" % self.i.name )
     
     def generate_crl(self, ca=None, pf=None):
         """CRL (Certificate Revocation List) generation.
@@ -427,7 +433,11 @@ class OpensslActions():
         
         x = output.rstrip("\n").split('=')
         
-        return x[1]
+        if (len(x[1]) > 2):
+            sl = re.findall('[a-fA-F0-9]{2}', x[1].lower())
+            return ':'.join(sl)
+        
+        return x[1].lower()
     
     def get_hash_from_cert(self):
         """Extract hash from certificate.
@@ -460,3 +470,16 @@ class OpensslActions():
                     return True
         
         return False
+    
+    def dump_certificate(self):
+        """Dump a certificate"""
+        
+        command = "x509 -in %s -noout -text" % self.crt
+        output  = self.exec_openssl(command.split())
+        
+        return "%s" % output
+    
+    def rollback(self):
+        """Rollback on failed operations"""
+        
+        pass
