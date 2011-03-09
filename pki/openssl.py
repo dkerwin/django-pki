@@ -285,7 +285,14 @@ class Openssl():
         """
         
         command = 'pkcs12 -export -in %s -inkey %s -out %s -passout env:%s' % (self.crt, self.key, self.pkcs12, self.env_pw)
-        self.exec_openssl(command.split(), env_vars={ self.env_pw: str(self.i.pkcs12_passphrase) })
+        env_vars={ self.env_pw: str(self.i.pkcs12_passphrase), }
+        
+        if self.i.passphrase:
+            key_pw = "".join(random.sample(string.letters+string.digits, 10))
+            command += ' -passin env:%s' % key_pw
+            env_vars[key_pw] = str(self.i.passphrase)
+        
+        self.exec_openssl(command.split(), env_vars)
     
     def remove_pkcs12_encoded(self):
         """Remove a PKCS12 encoded certificate if it exists"""
