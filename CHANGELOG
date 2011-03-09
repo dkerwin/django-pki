@@ -1,3 +1,68 @@
+0.20.0
+======
+a6e2294 - Failed confilct solving
+805f662 - Merge branch 'next'
+abc07e7 - Fix download zipfile content
+e078c4d - Fix pkcs12 export when key has a passphrase set;
+56c2c7b - Blacklist support to deny ca names; JS fix for x509 form submit;
+8759d41 - get_pki_icon_html moved to helper.py; Centered CRL distribution point in changelist; Fix error in self-signed cert creation; extension filter; New unit test
+1509134 - Fix orm error in migration 0006; New migration for crl distribution points; clr_dpoints in base model; Form validation for crl_dpoints; Fix CRL DP validation; Raw cert parsing unittest
+cbcfe6f - New setting PKI_DEFAULT_KEY_LENGTH; Add string import; More unittests; Fix permission handling in download view
+feed12a - Add missing 0.10.5 changelog; New setting PKI_PASSPHRASE_MIN_LENGTH; Requirement for django>=1.2; Add docs to dist package; Use of model validators to simplify form validation; Remove unused imports; View redirects using urlresolver;
+73144db - Setting version to 0.20.0; Unittests; Updated docs
+ca27b4c - More unittests; Removed not working C_D_P code;
+4240842 - Prevent x509Extension model save; Override PKI_OPENSSL_CONF; Switch to TestCase
+027a0fb - Finally some unittests; Fix revoke handling in CA mode; Removal of all affected CA folders in delete mode; Raise exception if action is invalid in certificate save; Make ca_dir of Openssl available;
+f598c94 - Fix migration 0011; ContentType needs to be populated manually; test command uses south test command; paginate 25 in admin.py;
+539fef6 - Documentation of upgrade procedure; Migration 0006 needs orm to get information of old fields;
+6b83670 - Documentation on PKI_DIR layout; Fix js match for model; Useage of getattr for user in model save to handle missing users; Fix encoding and description changes in update;
+3f8cc46 - Link to project page
+d6b861d - Increased readability; Documentation about keyUsage and extendedKeyUsage; Migration to add download permission for PKI objects; Unique key for keyusage and extendedkeyusage; Set user to UNKNOWN if not given; Add error when revoking a self-signed enduser certificate;
+3c31dbe - Replace templatetag model_for_object by model_for_content_type as this works on all models; Seperate js blocks for all models;
+360aac8 - Double underscore in changlog template
+983538d - Switch to messges framework. Replacement for message_set
+76ee0d4 - Set x509 extensions to disabled via js to prevent modifications
+b10bc96 - Renamed object_history.html to object_changelogs.html; delete_confirmation.html uses default block when object is not ca or cert; Removed special admin urls as handled in admin.py; x509 extension in delete details; Fix exception when x509 form validation when no name was given; Prevent modifications of x509 table from the admin;
+c150ae0 - Remove db fields "type" and "pem_encoded"; Fix extension handling in certificate signing;
+5422bfa - Manage x509 extensions from the admin. This includes 3 new tables, fixtures to make the old certificates still valid, changes foreignkey queries, new openssl.conf template, ...; Removed db fields: pf_encrypted, subcas_allowed, cert_extension; Updated navigation;
+0291bb5 - Updated docs; Updated south migration; Column cycle for history view; Combined deletion form; Simplified image display; Model functions for changelog management
+b98fb17 - Replace builtin admin history. New model PkiChangelog. Override admin save_model funtions to pass username to model save. Partial changelog integration in model.save. Change jquery version in delete_confirmation.
+8161ca5 - Show certificate state in change form
+230289c - Set revoke status in DB for all child objects
+35da21e - Renamed active_center to Valid_center; Changed Expiry_date from div to span and use line-through" when item is revoked; Fix graphviz error when parent is revoked;
+32c6c66 - Added clock image and add to CA clock. Changed action descriptions. Remove nokeys from pkcs12 generation
+966eed6 - Switch to jquery 1.5; Show number of CAs when metadata is refreshed; Add library kinks to docs
+e580497 - Special extension for self-signed certificates; Refresh metadata navigation link and view;
+7a13503 - Tipsy for certificates too; Fix graphviz tree for RootCa's; get_icon_html removed and merged into get_pki_icon_html;
+dedb904 - Rename OpensslActions -> Openssl; Tipsy js integration; More logging in openssl.py
+1a10f61 - Updated documentation
+7923568 - Switched theme. Deletion and exclusion of docs/_build
+2fba0ec - Doc update
+17f7aac - Documentation source and changed CRL DP help text
+44e969b - Merge branch 'gh-pages' of github.com:dkerwin/django-pki into next
+ae62533 - First pages commit
+92b4ad9 - Layout changes; Fix form validation in self-signed mode; Switch to south for db migration; New DB column and  x509 extensions for CRL distribution points; Fix delete view bug; Updated README
+d3f34ae - CA clock to display the current time on the PKI server. Fetched during template rendering and updated without server communication. New templatetag to set initial time
+e07eab1 - New templatetag for MEDIA_URL. Form validation fails when name is used in the PKI store
+97beaa1 - Switched to named URLs
+4e65a5b - Harmonized urls (type -> model). Redirect to admin index from 500.html
+2f3d2ea - Fix image display
+3bc7cf0 - Icons and changelist link to filter associated certificate in a new window. Order field for Creation_date. Replaced a lot of useless <center> tags
+0d935c5 - Updated changelog
+df9aad6 - More css. Faked test command to automatically set the right setings file
+ad0c7b4 - Fix BASE_URL problems
+d7ea863 - Minified js. Getting BASE_URL from get_script_prefix().
+daf0d7e - Fixed settings.py js path
+d12b5f9 - Relocated css and js files.
+4914c03 - Custom css file. Templates for all app related views. New template tag to create navigation menu. Fix delete problem with initial_id variable
+7ebc8f4 - Skip ca-chain for self-signed non CA certificates when zip is created
+6aca879 - Form for removal of self-signed non CA certificates. Cleanup in Certificate model delete. Delete view changed to support deletion of self-signed certificates.
+efaa222 - Fix arrow display in ca_chain field. Fix issue 6 (creation of self-signed non CA certificates). Show certificate dump in detail view. Fix passphrase verify problem.
+041261b - Remove ReadOnlyAdminFields as builtin in Django 1.2; Removed useless readonly_fields; Custom creation date format; P12 passphrase-verify enable in JS; Certificate serial fromat with : as seperator and lowercase; Moved apache/ to wsgi/
+d5ead09 - Passphrase verify form fields + javascript validation. Fieldset reorganization. Update all changeable fields when certificate is renewed.
+34b796d - Combined JS for CA and certificate management. Update encoding and description in model save on all change actions. Simplify pki javascript. Remove renew_certificate. Support renew with changed values. New templatetag model_for_object.
+ed5e092 - __unicode__ for PKI models returns common_namedeathstar-mac django-pki $ 
+
 0.10.5
 ======
 575fb80 - switch version to 0.10.5
