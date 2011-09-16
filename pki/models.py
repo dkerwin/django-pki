@@ -7,14 +7,16 @@ from django.db import models
 from django.core import urlresolvers
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.models import User
-from django.core.validators import MinLengthValidator, MinValueValidator, RegexValidator, URLValidator
+from django.core.validators import MinLengthValidator, MinValueValidator, \
+                                   RegexValidator, URLValidator
 from django.core.exceptions import ValidationError
 from django.contrib.admin.filterspecs import FilterSpec, RelatedFilterSpec
 
 from pki.helper import get_pki_icon_html
 from pki.openssl import Openssl, md5_constructor, refresh_pki_metadata
 from pki.settings import MEDIA_URL, PKI_DEFAULT_COUNTRY, PKI_ENABLE_GRAPHVIZ, \
-                         PKI_ENABLE_EMAIL, PKI_PASSPHRASE_MIN_LENGTH, PKI_DEFAULT_KEY_LENGTH
+                         PKI_ENABLE_EMAIL, PKI_PASSPHRASE_MIN_LENGTH, \
+                         PKI_DEFAULT_KEY_LENGTH
 
 logger = getLogger("pki")
 
@@ -22,14 +24,19 @@ logger = getLogger("pki")
 ## Custom filters
 ##------------------------------------------------------------------##
 
+
 class x509ExtensionFilterSpec(RelatedFilterSpec):
     """
     Based on http://djangosnippets.org/snippets/1051/
-    Custom filter to display on x509 extensions that are valid for the given model
+    Custom filter to display on x509 extensions that are
+    valid for the given model
     """
     
-    def __init__(self, f, request, params, model, model_admin):
-        super(RelatedFilterSpec, self).__init__(f, request, params, model, model_admin)
+    def __init__(self, f, request, params, model, model_admin, \
+        field_path=None):
+        super(RelatedFilterSpec, self).__init__(\
+            f, request, params, model, model_admin, field_path=field_path)
+
         if isinstance(f, models.ManyToManyField):
             self.lookup_title = f.rel.to._meta.verbose_name
         else:
@@ -39,88 +46,128 @@ class x509ExtensionFilterSpec(RelatedFilterSpec):
         self.lookup_val = request.GET.get(self.lookup_kwarg, None)
         if str(f.name) == 'extension':
             if str(model._meta) == 'pki.certificateauthority':
-                self.lookup_choices = set([(i.pk, i.name) for i in x509Extension.objects.filter(basic_constraints__startswith="CA:TRUE")])
+                self.lookup_choices = set([(i.pk, i.name) for i in
+                    x509Extension.objects.filter(
+                        basic_constraints__startswith="CA:TRUE")])
             elif str(model._meta) == 'pki.certificate':
-                self.lookup_choices = set([(i.pk, i.name) for i in x509Extension.objects.exclude(extended_key_usage=None)])
+                self.lookup_choices = set([(i.pk, i.name) for i in
+                    x509Extension.objects.exclude(extended_key_usage=None)])
         else:
             self.lookup_choices = f.get_choices(include_blank=False)
 
-FilterSpec.filter_specs.insert(0, (lambda f: getattr(f, 'x509extension_filter', False), x509ExtensionFilterSpec))
+
+@classmethod
+def register_filterspec(cls):
+    """register the filter."""
+    FilterSpec.filter_specs.insert(0, \
+        (lambda f: getattr(f, 'x509extension_filter', False), \
+        x509ExtensionFilterSpec))
 
 ##------------------------------------------------------------------##
-## Choices
-##------------------------------------------------------------------##
 
-KEY_LENGTH = ( (1024, '1024'), (2048, '2048'), (4096, '4096'), )
-POLICY     = ( ('policy_match', 'policy_match'), ('policy_anything', 'policy_anything'), )
-ACTIONS    = ( ('create', 'Create certificate'),
-               ('update', 'Update description and export options'),
-               ('revoke', 'Revoke certificate'),
-               ('renew',  'Renew CSR (CN and key are kept)'),
-             )
-COUNTRY    = ( ('AD', 'AD'),('AE', 'AE'),('AF', 'AF'),('AG', 'AG'),('AI', 'AI'),('AL', 'AL'),('AM', 'AM'),
-               ('AN', 'AN'),('AO', 'AO'),('AQ', 'AQ'),('AR', 'AR'),('AS', 'AS'),('AT', 'AT'),('AU', 'AU'),
-               ('AW', 'AW'),('AZ', 'AZ'),('BA', 'BA'),('BB', 'BB'),('BD', 'BD'),('BE', 'BE'),('BF', 'BF'),
-               ('BG', 'BG'),('BH', 'BH'),('BI', 'BI'),('BJ', 'BJ'),('BM', 'BM'),('BN', 'BN'),('BO', 'BO'),
-               ('BR', 'BR'),('BS', 'BS'),('BT', 'BT'),('BU', 'BU'),('BV', 'BV'),('BW', 'BW'),('BY', 'BY'),
-               ('BZ', 'BZ'),('CA', 'CA'),('CC', 'CC'),('CF', 'CF'),('CG', 'CG'),('CH', 'CH'),('CI', 'CI'),
-               ('CK', 'CK'),('CL', 'CL'),('CM', 'CM'),('CN', 'CN'),('CO', 'CO'),('CR', 'CR'),('CS', 'CS'),
-               ('CU', 'CU'),('CV', 'CV'),('CX', 'CX'),('CY', 'CY'),('CZ', 'CZ'),('DD', 'DD'),('DE', 'DE'),
-               ('DJ', 'DJ'),('DK', 'DK'),('DM', 'DM'),('DO', 'DO'),('DZ', 'DZ'),('EC', 'EC'),('EE', 'EE'),
-               ('EG', 'EG'),('EH', 'EH'),('ER', 'ER'),('ES', 'ES'),('ET', 'ET'),('FI', 'FI'),('FJ', 'FJ'),
-               ('FK', 'FK'),('FM', 'FM'),('FO', 'FO'),('FR', 'FR'),('FX', 'FX'),('GA', 'GA'),('GB', 'GB'),
-               ('GD', 'GD'),('GE', 'GE'),('GF', 'GF'),('GH', 'GH'),('GI', 'GI'),('GL', 'GL'),('GM', 'GM'),
-               ('GN', 'GN'),('GP', 'GP'),('GQ', 'GQ'),('GR', 'GR'),('GS', 'GS'),('GT', 'GT'),('GU', 'GU'),
-               ('GW', 'GW'),('GY', 'GY'),('HK', 'HK'),('HM', 'HM'),('HN', 'HN'),('HR', 'HR'),('HT', 'HT'),
-               ('HU', 'HU'),('ID', 'ID'),('IE', 'IE'),('IL', 'IL'),('IN', 'IN'),('IO', 'IO'),('IQ', 'IQ'),
-               ('IR', 'IR'),('IS', 'IS'),('IT', 'IT'),('JM', 'JM'),('JO', 'JO'),('JP', 'JP'),('KE', 'KE'),
-               ('KG', 'KG'),('KH', 'KH'),('KI', 'KI'),('KM', 'KM'),('KN', 'KN'),('KP', 'KP'),('KR', 'KR'),
-               ('KW', 'KW'),('KY', 'KY'),('KZ', 'KZ'),('LA', 'LA'),('LB', 'LB'),('LC', 'LC'),('LI', 'LI'),
-               ('LK', 'LK'),('LR', 'LR'),('LS', 'LS'),('LT', 'LT'),('LU', 'LU'),('LV', 'LV'),('LY', 'LY'),
-               ('MA', 'MA'),('MC', 'MC'),('MD', 'MD'),('MG', 'MG'),('MH', 'MH'),('ML', 'ML'),('MM', 'MM'),
-               ('MN', 'MN'),('MO', 'MO'),('MP', 'MP'),('MQ', 'MQ'),('MR', 'MR'),('MS', 'MS'),('MT', 'MT'),
-               ('MU', 'MU'),('MV', 'MV'),('MW', 'MW'),('MX', 'MX'),('MY', 'MY'),('MZ', 'MZ'),('NA', 'NA'),
-               ('NC', 'NC'),('NE', 'NE'),('NF', 'NF'),('NG', 'NG'),('NI', 'NI'),('NL', 'NL'),('NO', 'NO'),
-               ('NP', 'NP'),('NR', 'NR'),('NT', 'NT'),('NU', 'NU'),('NZ', 'NZ'),('OM', 'OM'),('PA', 'PA'),
-               ('PE', 'PE'),('PF', 'PF'),('PG', 'PG'),('PH', 'PH'),('PK', 'PK'),('PL', 'PL'),('PM', 'PM'),
-               ('PN', 'PN'),('PR', 'PR'),('PT', 'PT'),('PW', 'PW'),('PY', 'PY'),('QA', 'QA'),('RE', 'RE'),
-               ('RO', 'RO'),('RU', 'RU'),('RW', 'RW'),('SA', 'SA'),('SB', 'SB'),('SC', 'SC'),('SD', 'SD'),
-               ('SE', 'SE'),('SG', 'SG'),('SH', 'SH'),('SI', 'SI'),('SJ', 'SJ'),('SK', 'SK'),('SL', 'SL'),
-               ('SM', 'SM'),('SN', 'SN'),('SO', 'SO'),('SR', 'SR'),('ST', 'ST'),('SU', 'SU'),('SV', 'SV'),
-               ('SY', 'SY'),('SZ', 'SZ'),('TC', 'TC'),('TD', 'TD'),('TF', 'TF'),('TG', 'TG'),('TH', 'TH'),
-               ('TJ', 'TJ'),('TK', 'TK'),('TM', 'TM'),('TN', 'TN'),('TO', 'TO'),('TP', 'TP'),('TR', 'TR'),
-               ('TT', 'TT'),('TV', 'TV'),('TW', 'TW'),('TZ', 'TZ'),('UA', 'UA'),('UG', 'UG'),('UM', 'UM'),
-               ('US', 'US'),('UY', 'UY'),('UZ', 'UZ'),('VA', 'VA'),('VC', 'VC'),('VE', 'VE'),('VG', 'VG'),
-               ('VI', 'VI'),('VN', 'VN'),('VU', 'VU'),('WF', 'WF'),('WS', 'WS'),('YD', 'YD'),('YE', 'YE'),
-               ('YT', 'YT'),('YU', 'YU'),('ZA', 'ZA'),('ZM', 'ZM'),('ZR', 'ZR'),('ZW', 'ZW'),('ZZ', 'ZZ'),
-               ('ZZ', 'ZZ'),
-              )
+KEY_LENGTH = ((1024, '1024'), (2048, '2048'), (4096, '4096'))
+POLICY = (('policy_match', 'policy_match'),
+          ('policy_anything', 'policy_anything'))
+ACTIONS = (('create', 'Create certificate'),
+           ('update', 'Update description and export options'),
+           ('revoke', 'Revoke certificate'),
+           ('renew', 'Renew CSR (CN and key are kept)'))
+
+COUNTRY = (('AD', 'AD'), ('AE', 'AE'), ('AF', 'AF'), ('AG', 'AG'),
+           ('AI', 'AI'), ('AL', 'AL'), ('AM', 'AM'), ('AN', 'AN'),
+           ('AO', 'AO'), ('AQ', 'AQ'), ('AR', 'AR'), ('AS', 'AS'),
+           ('AT', 'AT'), ('AU', 'AU'), ('AW', 'AW'), ('AZ', 'AZ'),
+           ('BA', 'BA'), ('BB', 'BB'), ('BD', 'BD'), ('BE', 'BE'),
+           ('BF', 'BF'), ('BG', 'BG'), ('BH', 'BH'), ('BI', 'BI'),
+           ('BJ', 'BJ'), ('BM', 'BM'), ('BN', 'BN'), ('BO', 'BO'),
+           ('BR', 'BR'), ('BS', 'BS'), ('BT', 'BT'), ('BU', 'BU'),
+           ('BV', 'BV'), ('BW', 'BW'), ('BY', 'BY'), ('BZ', 'BZ'),
+           ('CA', 'CA'), ('CC', 'CC'), ('CF', 'CF'), ('CG', 'CG'),
+           ('CH', 'CH'), ('CI', 'CI'), ('CK', 'CK'), ('CL', 'CL'),
+           ('CM', 'CM'), ('CN', 'CN'), ('CO', 'CO'), ('CR', 'CR'),
+           ('CS', 'CS'), ('CU', 'CU'), ('CV', 'CV'), ('CX', 'CX'),
+           ('CY', 'CY'), ('CZ', 'CZ'), ('DD', 'DD'), ('DE', 'DE'),
+           ('DJ', 'DJ'), ('DK', 'DK'), ('DM', 'DM'), ('DO', 'DO'),
+           ('DZ', 'DZ'), ('EC', 'EC'), ('EE', 'EE'), ('EG', 'EG'),
+           ('EH', 'EH'), ('ER', 'ER'), ('ES', 'ES'), ('ET', 'ET'),
+           ('FI', 'FI'), ('FJ', 'FJ'), ('FK', 'FK'), ('FM', 'FM'),
+           ('FO', 'FO'), ('FR', 'FR'), ('FX', 'FX'), ('GA', 'GA'),
+           ('GB', 'GB'), ('GD', 'GD'), ('GE', 'GE'), ('GF', 'GF'),
+           ('GH', 'GH'), ('GI', 'GI'), ('GL', 'GL'), ('GM', 'GM'),
+           ('GN', 'GN'), ('GP', 'GP'), ('GQ', 'GQ'), ('GR', 'GR'),
+           ('GS', 'GS'), ('GT', 'GT'), ('GU', 'GU'), ('GW', 'GW'),
+           ('GY', 'GY'), ('HK', 'HK'), ('HM', 'HM'), ('HN', 'HN'),
+           ('HR', 'HR'), ('HT', 'HT'), ('HU', 'HU'), ('ID', 'ID'),
+           ('IE', 'IE'), ('IL', 'IL'), ('IN', 'IN'), ('IO', 'IO'),
+           ('IQ', 'IQ'), ('IR', 'IR'), ('IS', 'IS'), ('IT', 'IT'),
+           ('JM', 'JM'), ('JO', 'JO'), ('JP', 'JP'), ('KE', 'KE'),
+           ('KG', 'KG'), ('KH', 'KH'), ('KI', 'KI'), ('KM', 'KM'),
+           ('KN', 'KN'), ('KP', 'KP'), ('KR', 'KR'), ('KW', 'KW'),
+           ('KY', 'KY'), ('KZ', 'KZ'), ('LA', 'LA'), ('LB', 'LB'),
+           ('LC', 'LC'), ('LI', 'LI'), ('LK', 'LK'), ('LR', 'LR'),
+           ('LS', 'LS'), ('LT', 'LT'), ('LU', 'LU'), ('LV', 'LV'),
+           ('LY', 'LY'), ('MA', 'MA'), ('MC', 'MC'), ('MD', 'MD'),
+           ('MG', 'MG'), ('MH', 'MH'), ('ML', 'ML'), ('MM', 'MM'),
+           ('MN', 'MN'), ('MO', 'MO'), ('MP', 'MP'), ('MQ', 'MQ'),
+           ('MR', 'MR'), ('MS', 'MS'), ('MT', 'MT'), ('MU', 'MU'),
+           ('MV', 'MV'), ('MW', 'MW'), ('MX', 'MX'), ('MY', 'MY'),
+           ('MZ', 'MZ'), ('NA', 'NA'), ('NC', 'NC'), ('NE', 'NE'),
+           ('NF', 'NF'), ('NG', 'NG'), ('NI', 'NI'), ('NL', 'NL'),
+           ('NO', 'NO'), ('NP', 'NP'), ('NR', 'NR'), ('NT', 'NT'),
+           ('NU', 'NU'), ('NZ', 'NZ'), ('OM', 'OM'), ('PA', 'PA'),
+           ('PE', 'PE'), ('PF', 'PF'), ('PG', 'PG'), ('PH', 'PH'),
+           ('PK', 'PK'), ('PL', 'PL'), ('PM', 'PM'), ('PN', 'PN'),
+           ('PR', 'PR'), ('PT', 'PT'), ('PW', 'PW'), ('PY', 'PY'),
+           ('QA', 'QA'), ('RE', 'RE'), ('RO', 'RO'), ('RU', 'RU'),
+           ('RW', 'RW'), ('SA', 'SA'), ('SB', 'SB'), ('SC', 'SC'),
+           ('SD', 'SD'), ('SE', 'SE'), ('SG', 'SG'), ('SH', 'SH'),
+           ('SI', 'SI'), ('SJ', 'SJ'), ('SK', 'SK'), ('SL', 'SL'),
+           ('SM', 'SM'), ('SN', 'SN'), ('SO', 'SO'), ('SR', 'SR'),
+           ('ST', 'ST'), ('SU', 'SU'), ('SV', 'SV'), ('SY', 'SY'),
+           ('SZ', 'SZ'), ('TC', 'TC'), ('TD', 'TD'), ('TF', 'TF'),
+           ('TG', 'TG'), ('TH', 'TH'), ('TJ', 'TJ'), ('TK', 'TK'),
+           ('TM', 'TM'), ('TN', 'TN'), ('TO', 'TO'), ('TP', 'TP'),
+           ('TR', 'TR'), ('TT', 'TT'), ('TV', 'TV'), ('TW', 'TW'),
+           ('TZ', 'TZ'), ('UA', 'UA'), ('UG', 'UG'), ('UM', 'UM'),
+           ('US', 'US'), ('UY', 'UY'), ('UZ', 'UZ'), ('VA', 'VA'),
+           ('VC', 'VC'), ('VE', 'VE'), ('VG', 'VG'), ('VI', 'VI'),
+           ('VN', 'VN'), ('VU', 'VU'), ('WF', 'WF'), ('WS', 'WS'),
+           ('YD', 'YD'), ('YE', 'YE'), ('YT', 'YT'), ('YU', 'YU'),
+           ('ZA', 'ZA'), ('ZM', 'ZM'), ('ZR', 'ZR'), ('ZW', 'ZW'),
+           ('ZZ', 'ZZ'), ('ZZ', 'ZZ'),)
 
 ##------------------------------------------------------------------##
 ## Custom field validators
 ##------------------------------------------------------------------##
 
+
 def validate_subject_altname(value):
-    allowed = { 'email': '^copy|[\w\-\.]+\@[\w\-\.]+\.\w{2,4}$',
-                'IP'   : '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$',
-                'DNS'  : '^[a-zA-Z0-9\-\.\*]+$',
+    allowed = {'email': '^copy|[\w\-\.]+\@[\w\-\.]+\.\w{2,4}$',
+               'IP': '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$',
+               'DNS': '^[a-zA-Z0-9\-\.\*]+$',
               }
     
     items = value.split(',')
     
     for i in items:
         if not re.match('^\s*(email|IP|DNS)\s*:\s*.+$', i):
-            raise ValidationError(u'Item "%s" doesn\'t match specification' % i)
+            raise ValidationError(
+                u'Item "%s" doesn\'t match specification' % i)
         else:
-            kv  = i.split(':')
+            kv = i.split(':')
             key = kv[0].lstrip().rstrip()
             val = kv[1].lstrip().rstrip()
             
             if key in allowed:
-                if not re.match( allowed[key], val ):
-                    raise ValidationError(u'Invalid subjAltName value "%s" for key "%s" supplied' % (val, key))
+                if not re.match(allowed[key], val):
+                    raise ValidationError(
+                        u'Invalid subjAltName value "%s" for key "%s" supplied'
+                        % (val, key))
             else:
-                raise ValidationError(u'Invalid subjAltName key supplied: "%s" (supported are %s)' % (key, ', '.join(allowed.keys())))
+                raise ValidationError(u'Invalid subjAltName key supplied: "%s"\
+                                      (supported are %s)' %
+                                      (key, ', '.join(allowed.keys())))
+
 
 def validate_crl_dp(value):
     items = value.split(',')
@@ -128,39 +175,55 @@ def validate_crl_dp(value):
     for i in items:
         m = re.match('^\s*(?P<uri_key>(URI))\s*:\s*(?P<uri_value>\S+)$', i)
         if not m or (not m.group('uri_key') or not m.group('uri_value')):
-            raise ValidationError(u'Item "%s" doesn\'t match specification' % i)
+            raise ValidationError(
+                u'Item "%s" doesn\'t match specification' % i)
         try:
             URLValidator(verify_exists=False)(m.group('uri_value'))
         except ValidationError:
-            raise ValidationError('Given URI "%s" doesn\'t match the specification' % m.group('uri_value'))
+            raise ValidationError(
+                'Given URI "%s" doesn\'t match the specification' %
+                m.group('uri_value'))
 
 ##------------------------------------------------------------------##
 ## Base DB classes
 ##------------------------------------------------------------------##
 
+
 class CertificateBase(models.Model):
     """Base class for all type of certificates"""
     
-    description  = models.CharField(max_length=255)
-    country      = models.CharField(max_length=2, choices=COUNTRY, default='%s' % PKI_DEFAULT_COUNTRY.upper() )
-    state        = models.CharField(max_length=32)
-    locality     = models.CharField(max_length=32)
+    description = models.CharField(max_length=255)
+    country = models.CharField(max_length=2, choices=COUNTRY, default='%s'
+                               % PKI_DEFAULT_COUNTRY.upper())
+    state = models.CharField(max_length=32)
+    locality = models.CharField(max_length=32)
     organization = models.CharField(max_length=64)
-    OU           = models.CharField(max_length=64,blank=True, null=True)
-    email        = models.EmailField(blank=True, null=True)
-    valid_days   = models.IntegerField(validators=[MinValueValidator(1)])
-    key_length   = models.IntegerField(choices=KEY_LENGTH, default=PKI_DEFAULT_KEY_LENGTH)
-    expiry_date  = models.DateField(blank=True,null=True)
-    created      = models.DateTimeField(blank=True,null=True)
-    revoked      = models.DateTimeField(blank=True,null=True)
-    active       = models.BooleanField(default=True, help_text="Turn off to revoke this certificate")
-    serial       = models.CharField(max_length=64, blank=True, null=True)
-    ca_chain     = models.CharField(max_length=200, blank=True, null=True)
-    der_encoded  = models.BooleanField(default=False, verbose_name="DER encoding")
-    action       = models.CharField(max_length=32, choices=ACTIONS, default='create', help_text="Yellow fields can/have to be modified!")
-    extension    = models.ForeignKey(to="x509Extension", blank=True, null=True, verbose_name="x509 Extension")
-    crl_dpoints  = models.CharField(max_length=255, verbose_name='CRL Distribution Points', null=True, blank=True, validators=[validate_crl_dp], \
-                                    help_text='Comma seperated list of URI elements. Example: URI:http://ca.local/ca.crl,...')
+    OU = models.CharField(max_length=64, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    valid_days = models.IntegerField(validators=[MinValueValidator(1)])
+    key_length = models.IntegerField(choices=KEY_LENGTH,
+                                     default=PKI_DEFAULT_KEY_LENGTH)
+    expiry_date = models.DateField(blank=True, null=True)
+    created = models.DateTimeField(blank=True, null=True)
+    revoked = models.DateTimeField(blank=True, null=True)
+    active = models.BooleanField(default=True, help_text="Turn off to revoke \
+                                 this certificate")
+    serial = models.CharField(max_length=64, blank=True, null=True)
+    ca_chain = models.CharField(max_length=200, blank=True, null=True)
+    der_encoded = models.BooleanField(default=False,
+                                      verbose_name="DER encoding")
+    action = models.CharField(max_length=32, choices=ACTIONS, default='create',
+                              help_text="Yellow fields can/have to be \
+                                        modified!")
+    extension = models.ForeignKey(to="x509Extension", blank=True, null=True,
+                                  verbose_name="x509 Extension")
+    crl_dpoints = models.CharField(max_length=255,
+                                   verbose_name='CRL Distribution Points',
+                                   null=True, blank=True,
+                                   validators=[validate_crl_dp], \
+                                   help_text='Comma seperated list of URI \
+                                   elements. Example: \
+                                   URI:http://ca.local/ca.crl,...')
     
     extension.x509extension_filter = True
     
@@ -178,9 +241,12 @@ class CertificateBase(models.Model):
             return ""
         
         if self.active is True:
-            return get_pki_icon_html('icon-yes.gif', "Certificate is valid", css="") + " <strong>/ valid</strong>"
+            return get_pki_icon_html(
+                'icon-yes.gif', "Certificate is valid",
+                css="") + " <strong>/ valid</strong>"
         else:
-            return get_pki_icon_html('icon-no.gif', "Certificate is revoked", css="") + " <strong>/ revoked</strong>"
+            return get_pki_icon_html('icon-no.gif', "Certificate is revoked",
+                                     css="") + " <strong>/ revoked</strong>"
     
     State.allow_tags = True
     State.short_description = 'State'
@@ -189,9 +255,11 @@ class CertificateBase(models.Model):
         """Overwrite the Booleanfield admin for admin's changelist"""
         
         if self.active is True:
-            return get_pki_icon_html('icon-yes.gif', "Certificate is valid", id="active_%d" % self.pk)
+            return get_pki_icon_html('icon-yes.gif', "Certificate is valid",
+                                     id="active_%d" % self.pk)
         else:
-            return get_pki_icon_html('icon-no.gif', "Certificate is revoked", id="active_%d" % self.pk)
+            return get_pki_icon_html('icon-no.gif', "Certificate is revoked",
+                                     id="active_%d" % self.pk)
     
     Valid_center.allow_tags = True
     Valid_center.short_description = 'Valid'
@@ -209,8 +277,8 @@ class CertificateBase(models.Model):
     def Description(self):
         """Limit description for changelist.
         
-        Limit description to 30 characters to make changelist stay on one line per item.
-        At least in most cases.
+        Limit description to 30 characters to make changelist
+        stay on one line per item. At least in most cases.
         """
         
         if len(self.description) > 30:
@@ -243,17 +311,20 @@ class CertificateBase(models.Model):
         < 30: Orange color
         > 30: Just date and days left
         """
-        now = datetime.datetime.now().date()        
+        now = datetime.datetime.now().date()
         diff = self.expiry_date - now
         
         if not self.active:
-            return '<span class="revoked">%s (%sd)</span>' % (self.expiry_date, diff.days)
+            return '<span class="revoked">%s (%sd)</span>' % (self.expiry_date,
+                                                              diff.days)
         
         if diff.days < 30 and diff.days >= 0:
             span_class = ""
-            return '<span class="almost_expired">%s (%sd)</span>' % (self.expiry_date, diff.days)
+            return '<span class="almost_expired">%s (%sd)</span>' % (
+                self.expiry_date, diff.days)
         elif diff.days < 0:
-            return '<span class="expired">%s (EXPIRED)</span>' % self.expiry_date
+            return '<span class="expired">%s (EXPIRED)</span>' % \
+                                self.expiry_date
         else:
             return '%s (%sd)' % (self.expiry_date, diff.days)
     
@@ -271,15 +342,23 @@ class CertificateBase(models.Model):
     def Chain_link(self):
         """Display chain link.
         
-        If PKI_ENABLE_GRAPHVIZ is True a colored chain link is displayed. Otherwise
-        a b/w chain icon without link is displayed.
+        If PKI_ENABLE_GRAPHVIZ is True a colored chain link is displayed.
+        Otherwise a b/w chain icon without link is displayed.
         """
         
         if PKI_ENABLE_GRAPHVIZ:
-            return '<a href="%s" target="_blank">%s</a>' % (urlresolvers.reverse('pki:chain', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
-                                            get_pki_icon_html('chain.png', "Show object chain", id="chain_link_%d" % self.pk))
+            return '<a href="%s" target="_blank">%s</a>' % (
+                urlresolvers.reverse('pki:chain',
+                                     kwargs={
+                                    'model': self.__class__.__name__.lower(),
+                                    'id': self.pk}),
+                                    get_pki_icon_html('chain.png',
+                                                      "Show object chain",
+                                                      id="chain_link_%d" %
+                                                      self.pk))
         else:
-            return get_pki_icon_html("chain.png", "Enable setting PKI_ENABLE_GRAPHVIZ")
+            return get_pki_icon_html("chain.png",
+                                     "Enable setting PKI_ENABLE_GRAPHVIZ")
     
     Chain_link.allow_tags = True
     Chain_link.short_description = 'Chain'
@@ -287,22 +366,36 @@ class CertificateBase(models.Model):
     def Email_link(self):
         """Display email link based on status.
         
-        If PKI_ENABLE_EMAIL or certificate isn't active a disabled (b/w) icon is displayed.
-        If no email address is set in the certificate a icon with exclamation mark is displayed.
-        Otherwise the normal icon is returned.
+        If PKI_ENABLE_EMAIL or certificate isn't active a disabled (b/w) icon
+        is displayed. If no email address is set in the certificate a icon
+        with exclamation mark is displayed. Otherwise the normal icon is
+        returned.
         """
         
         if not PKI_ENABLE_EMAIL:
-            return get_pki_icon_html("mail--arrow_bw.png", "Enable setting PKI_ENABLE_EMAIL", id="email_delivery_%d" % self.pk)
+            return get_pki_icon_html("mail--arrow_bw.png",
+                                     "Enable setting PKI_ENABLE_EMAIL",
+                                     id="email_delivery_%d" % self.pk)
         elif not self.active:
-            return get_pki_icon_html("mail--arrow_bw.png", "Certificate is revoked. Disabled", id="email_delivery_%d" % self.pk)
+            return get_pki_icon_html("mail--arrow_bw.png",
+                                     "Certificate is revoked. Disabled",
+                                     id="email_delivery_%d" % self.pk)
         else:
             if self.email:
-                return '<a href="%s">%s</a>' % (urlresolvers.reverse('pki:email', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
-                                                get_pki_icon_html("mail--arrow.png", "Send to '<strong>%s</strong>'" % self.email, \
-                                                                       id="email_delivery_%d" % self.pk))
+                return '<a href="%s">%s</a>' % (
+                    urlresolvers.reverse(
+                        'pki:email',
+                        kwargs={'model': self.__class__.__name__.lower(),
+                                'id': self.pk}),
+                    get_pki_icon_html("mail--arrow.png",
+                                      "Send to '<strong>%s</strong>'" %
+                                      self.email,
+                                      id="email_delivery_%d" % self.pk))
             else:
-                return get_pki_icon_html("mail--exclamation.png", "Certificate has no email set. Disabled", id="email_delivery_%d" % self.pk)
+                return get_pki_icon_html(
+                    "mail--exclamation.png",
+                    "Certificate has no email set. Disabled",
+                    id="email_delivery_%d" % self.pk)
     
     Email_link.allow_tags = True
     Email_link.short_description = 'Delivery'
@@ -314,10 +407,18 @@ class CertificateBase(models.Model):
         """
         
         if self.active:
-            return '<a href="%s">%s</a>' % (urlresolvers.reverse('pki:download', kwargs={'model': self.__class__.__name__.lower(), 'id': self.pk}), \
-                                            get_pki_icon_html("drive-download.png", "Download certificate zip", id="download_link_%d" % self.pk))
+            return '<a href="%s">%s</a>' % (
+                urlresolvers.reverse(
+                    'pki:download',
+                    kwargs={'model': self.__class__.__name__.lower(),
+                            'id': self.pk}),
+                get_pki_icon_html("drive-download.png",
+                                  "Download certificate zip",
+                                  id="download_link_%d" % self.pk))
         else:
-            return get_pki_icon_html("drive-download_bw.png", "Certificate is revoked. Disabled", id="download_link_%d" % self.pk)
+            return get_pki_icon_html("drive-download_bw.png",
+                                     "Certificate is revoked. Disabled",
+                                     id="download_link_%d" % self.pk)
     
     Download_link.allow_tags = True
     Download_link.short_description = 'Download'
@@ -329,9 +430,15 @@ class CertificateBase(models.Model):
         """
         
         if self.parent:
-            return '<a href="%s">%s</a>' % (urlresolvers.reverse('admin:pki_certificateauthority_change', args=(self.parent.pk,)), self.parent.common_name)
+            return '<a href="%s">%s</a>' % (
+                urlresolvers.reverse('admin:pki_certificateauthority_change',
+                                     args=(self.parent.pk,)),
+                self.parent.common_name)
         else:
-            return '<a href="%s">self-signed</a>' % (urlresolvers.reverse('admin:pki_%s_change' % self.__class__.__name__.lower(), args=(self.pk,)))
+            return '<a href="%s">self-signed</a>' % (
+                urlresolvers.reverse('admin:pki_%s_change' %
+                                     self.__class__.__name__.lower(),
+                                     args=(self.pk,)))
     
     Parent_link.allow_tags = True
     Parent_link.short_description = 'Parent'
@@ -342,7 +449,8 @@ class CertificateBase(models.Model):
         
         if self.pk and self.active:
             a = Openssl(self)
-            return "<textarea id=\"certdump\">%s</textarea>" % a.dump_certificate()
+            return "<textarea id=\"certdump\">%s</textarea>" % \
+                                 a.dump_certificate()
         else:
             return "Nothing to display"
     
@@ -351,7 +459,9 @@ class CertificateBase(models.Model):
     
     def CA_Clock(self):
         """"""
-        return '<div id="clock_container"><img src="%spki/img/clock-frame.png" style="margin-right:5px"/><span id="clock"></span></div>' % MEDIA_URL
+        return '<div id="clock_container"><img src="%spki/img/clock-frame.png"\
+                style="margin-right:5px"/><span id="clock"></span></div>' % \
+                MEDIA_URL
     
     CA_Clock.allow_tags = True
     CA_Clock.short_description = "CA clock"
@@ -359,16 +469,21 @@ class CertificateBase(models.Model):
     def Update_Changelog(self, obj, user, action, changes):
         """Update changelog for given object"""
         
-        PkiChangelog(model_id=ContentType.objects.get_for_model(obj).pk, object_id=obj.pk, action=action, user=user, changes="; ".join(changes)).save()
+        PkiChangelog(model_id=ContentType.objects.get_for_model(obj).pk,
+                     object_id=obj.pk, action=action, user=user,
+                     changes="; ".join(changes)).save()
     
     def Delete_Changelog(self, obj):
         """Delete changelogs for a given object"""
         
-        PkiChangelog.objects.filter(model_id=ContentType.objects.get_for_model(obj).pk, object_id=obj.pk).delete()
+        PkiChangelog.objects.filter(
+            model_id=ContentType.objects.get_for_model(obj).pk,
+            object_id=obj.pk).delete()
     
 ##------------------------------------------------------------------##
 ## Certificate authority class
 ##------------------------------------------------------------------##
+
 
 class CertificateAuthority(CertificateBase):
     """Certificate Authority model"""
@@ -377,22 +492,39 @@ class CertificateAuthority(CertificateBase):
     ## Model definition
     ##---------------------------------##
     
-    common_name       = models.CharField(max_length=64, unique=True)
-    name              = models.CharField(max_length=64, unique=True, validators=[RegexValidator("[a-zA-Z0-9-_\.]+", message='Name may only contain characters in range a-Z0-9_-.')], \
-                                         help_text="Only change the suggestion if you really know what you're doing")
-    parent            = models.ForeignKey('self', blank=True, null=True)
-    passphrase        = models.CharField(max_length=255, blank=True, validators=[MinLengthValidator(PKI_PASSPHRASE_MIN_LENGTH)],  help_text="At least 8 characters. Remeber this passphrase - <font color='red'> \
-                                                                    <strong>IT'S NOT RECOVERABLE</strong></font><br>Will be shown as md5 encrypted string")
-    parent_passphrase = models.CharField(max_length=255, null=True, blank=True, help_text="Leave empty if this is a top-level CA")
-    policy            = models.CharField(max_length=50, choices=POLICY, default='policy_anything', help_text='policy_match: All subject settings must \
-                                                                                                              match the signing CA<br> \
-                                                                                                              policy_anything: Nothing has to match the \
-                                                                                                              signing CA')
+    common_name = models.CharField(max_length=64, unique=True)
+    name = models.CharField(max_length=64, unique=True,
+                            validators=[
+                                RegexValidator("[a-zA-Z0-9-_\.]+",
+                                               message='Name may only contain \
+                                                       characters in range \
+                                                       a-Z0-9_-.')],
+                            help_text="Only change the suggestion if you \
+                                      really know what you're doing")
+    parent = models.ForeignKey('self', blank=True, null=True)
+    passphrase = models.CharField(max_length=255, blank=True,
+                                  validators=[MinLengthValidator(
+                                    PKI_PASSPHRASE_MIN_LENGTH)],
+                                  help_text="At least 8 characters. \
+                                            Remeber this passphrase - <font \
+                                            color='red'><strong>IT'S NOT \
+                                            RECOVERABLE</strong></font><br>\
+                                            Will be shown as md5 encrypted \
+                                            string")
+    parent_passphrase = models.CharField(max_length=255, null=True, blank=True,
+                                         help_text="Leave empty if this is a \
+                                                   top-level CA")
+    policy = models.CharField(max_length=50, choices=POLICY,
+                              default='policy_anything',
+                              help_text='policy_match: All subject settings \
+                                        must match the signing CA<br>\
+                                        policy_anything: Nothing has to match \
+                                        the signing CA')
     
     class Meta:
-        db_table            = 'pki_certificateauthority'
+        db_table = 'pki_certificateauthority'
         verbose_name_plural = 'Certificate Authorities'
-        permissions         = ( ( "can_download", "Can download", ), )
+        permissions = (("can_download", "Can download"))
 
     def __unicode__(self):
         return self.common_name
@@ -409,35 +541,42 @@ class CertificateAuthority(CertificateBase):
         
         ## Variables to track changes
         c_action = self.action
-        c_list   = []
+        c_list = []
         
         if self.pk:
             if self.action in ('update', 'revoke', 'renew'):
                 action = Openssl(self)
-                prev   = CertificateAuthority.objects.get(pk=self.pk)
+                prev = CertificateAuthority.objects.get(pk=self.pk)
                 
                 if self.action in ('revoke', 'renew'):
                     if self.action == 'revoke':
                         if not self.parent:
-                            raise Exception( "You cannot revoke a self-signed certificate! No parent => No revoke" )
+                            raise Exception("You cannot revoke a self-signed \
+                                            certificate! No parent => \
+                                            No revoke")
                         
                         ## Revoke and generate CRL
                         action.revoke_certificate(self.parent_passphrase)
-                        action.generate_crl(self.parent.name, self.parent_passphrase)
+                        action.generate_crl(self.parent.name,
+                                            self.parent_passphrase)
                         
                         ## Modify fields
-                        prev.active            = False
-                        prev.der_encoded       = False
-                        prev.revoked           = datetime.datetime.now()
+                        prev.active = False
+                        prev.der_encoded = False
+                        prev.revoked = datetime.datetime.now()
                         
-                        c_list.append('Revoked certificate "%s"' % self.common_name)
+                        c_list.append('Revoked certificate "%s"' %
+                                      self.common_name)
                     elif self.action == 'renew':
-                        c_list.append('Renewed certificate "%s"' % self.common_name)
+                        c_list.append('Renewed certificate "%s"' %
+                                      self.common_name)
                         
                         ## Revoke if certificate is active
-                        if self.parent and not action.get_revoke_status_from_cert():
+                        if (self.parent and not
+                        action.get_revoke_status_from_cert()):
                             action.revoke_certificate(self.parent_passphrase)
-                            action.generate_crl(self.parent.name, self.parent_passphrase)
+                            action.generate_crl(self.parent.name,
+                                                self.parent_passphrase)
                         
                         ## Rebuild the ca metadata
                         self.rebuild_ca_metadata(modify=True, task='replace')
@@ -449,7 +588,8 @@ class CertificateAuthority(CertificateBase):
                         else:
                             action.generate_csr()
                             action.sign_csr()
-                            action.generate_crl(self.parent.name, self.parent_passphrase)
+                            action.generate_crl(self.parent.name,
+                                                self.parent_passphrase)
                         
                         action.update_ca_chain_file()
                         
@@ -459,59 +599,80 @@ class CertificateAuthority(CertificateBase):
                         prev.expiry_date = datetime.datetime.now() + delta
                         
                         if prev.valid_days != self.valid_days:
-                            c_list.append("Changed valid days to %d" % (prev.valid_days, self.valid_days))
+                            c_list.append("Changed valid days to %d" % (
+                                prev.valid_days, self.valid_days))
                         
-                        prev.valid_days  = self.valid_days
-                        prev.active      = True
-                        prev.revoked     = None
+                        prev.valid_days = self.valid_days
+                        prev.active = True
+                        prev.revoked = None
                         
                         ## Make sure possibly updated fields are saved to DB
-                        if prev.country != self.country: c_list.append('Updated country to "%s"' % self.country)
-                        if prev.locality != self.locality: c_list.append('Updated locality to "%s"' % self.locality)
-                        if prev.organization != self.organization: c_list.append('Updated organization to "%s"' % self.organization)
-                        if prev.email != self.email: c_list.append('Updated email to "%s"' % self.email)
-                        if prev.OU != self.OU: c_list.append('Updated OU to "%s"' % self.OU)
+                        if prev.country != self.country:
+                            c_list.append('Updated country to "%s"' %
+                                          self.country)
+                        if prev.locality != self.locality:
+                            c_list.append('Updated locality to "%s"' %
+                                          self.locality)
+                        if prev.organization != self.organization:
+                            c_list.append('Updated organization to "%s"' %
+                                          self.organization)
+                        if prev.email != self.email:
+                            c_list.append('Updated email to "%s"' % self.email)
+                        if prev.OU != self.OU:
+                            c_list.append('Updated OU to "%s"' % self.OU)
                         
-                        prev.country      = self.country
-                        prev.locality     = self.locality
+                        prev.country = self.country
+                        prev.locality = self.locality
                         prev.organization = self.organization
-                        prev.email        = self.email
-                        prev.OU           = self.OU
+                        prev.email = self.email
+                        prev.OU = self.OU
                         
                         ## Get the new serial
                         prev.serial = action.get_serial_from_cert()
-                        c_list.append("Serial number changed to %s" % prev.serial)
+                        c_list.append("Serial number changed to %s" %
+                                      prev.serial)
                         
                     ## DB-revoke all related certs
                     garbage = []
-                    id_dict = { 'cert': [], 'ca': [], }
+                    id_dict = {'cert': [], 'ca': []}
                     
                     from pki.views import chain_recursion as r_chain_recursion
                     r_chain_recursion(self.id, garbage, id_dict)
                     
                     for i in id_dict['cert']:
                         x = Certificate.objects.get(pk=i)
-                        x.active         = False
-                        x.der_encoded    = False
+                        x.active = False
+                        x.der_encoded = False
                         x.pkcs12_encoded = False
-                        x.revoked        = datetime.datetime.now()
+                        x.revoked = datetime.datetime.now()
                         
                         super(Certificate, x).save(*args, **kwargs)
-                        self.Update_Changelog(obj=x, user=c_user, action='broken', changes=(['Broken by %s of CA "%s"' % (c_action, self.common_name),]))
+                        self.Update_Changelog(obj=x, user=c_user,
+                                              action='broken',
+                                              changes=(
+                                                ['Broken by %s of CA "%s"' %
+                                                 (c_action, self.common_name)])
+                                              )
                     
                     for i in id_dict['ca']:
                         x = CertificateAuthority.objects.get(pk=i)
-                        x.active      = False
+                        x.active = False
                         x.der_encoded = False
-                        x.revoked     = datetime.datetime.now()
+                        x.revoked = datetime.datetime.now()
                         
                         super(CertificateAuthority, x).save(*args, **kwargs)
                         if x.pk != self.pk:
-                            self.Update_Changelog(obj=x, user=c_user, action='broken', changes=(['Broken by %s of CA "%s"' % (c_action, self.common_name),]))
+                            self.Update_Changelog(obj=x, user=c_user,
+                                                  action='broken',
+                                                  changes=(
+                                                    ['Broken by %s of CA "%s"'
+                                                     % (c_action,
+                                                        self.common_name)]))
                 
                 ## Update description. This is always allowed
                 if prev.description != self.description:
-                    c_list.append('Updated description to "%s"' % self.description)
+                    c_list.append('Updated description to "%s"' %
+                                  self.description)
                     prev.description = self.description
                 
                 if prev.der_encoded is not self.der_encoded:
@@ -525,7 +686,7 @@ class CertificateAuthority(CertificateBase):
                 self = prev
                 self.action = 'update'
             else:
-                raise Exception( 'Invalid action %s supplied' % self.action )
+                raise Exception('Invalid action %s supplied' % self.action)
         else:
             ## Set creation data
             self.created = datetime.datetime.now()
@@ -569,7 +730,7 @@ class CertificateAuthority(CertificateBase):
             if self.parent == None:
                 chain.append('self-signed')
             else:
-                chain.append( self.common_name )
+                chain.append(self.common_name)
                 while p != None:
                     chain.append(p.common_name)
                     p = p.parent
@@ -599,12 +760,13 @@ class CertificateAuthority(CertificateBase):
         super(CertificateAuthority, self).save(*args, **kwargs)
         
         ## Update changelog
-        self.Update_Changelog(obj=self, user=c_user, action=c_action, changes=c_list)
+        self.Update_Changelog(obj=self, user=c_user, action=c_action,
+                              changes=c_list)
     
     def delete(self, passphrase, *args, **kwargs):
         """Delete the CertificateAuthority object"""
         
-        logger.info( "Certificate %s is going to be deleted" % self.name )
+        logger.info("Certificate %s is going to be deleted" % self.name)
         
         ## Container for CA folders to delete
         self.remove_chain = []
@@ -625,12 +787,14 @@ class CertificateAuthority(CertificateBase):
                     chain_recursion(ca.pk)
         
         if not self.parent:
-            logger.info( "No revoking of certitifcates. %s is a toplevel CA" % self.name )
+            logger.info("No revoking of certitifcates. %s is a toplevel CA" %
+                        self.name)
             revoke_required = False
         
         ## Collect child CA's and certificates
         chain_recursion(self.pk)
-        logger.info( "Full chain is %s and pf is %s" % (self.remove_chain, self.passphrase))
+        logger.info("Full chain is %s and pf is %s" % (self.remove_chain,
+                                                       self.passphrase))
         
         ## Remoke first ca in the chain
         if revoke_required:
@@ -639,7 +803,8 @@ class CertificateAuthority(CertificateBase):
             a.generate_crl(ca=self.parent.name, pf=passphrase)
         
         ## Rebuild the ca metadata
-        self.rebuild_ca_metadata(modify=True, task='exclude', skip_list=self.remove_chain)
+        self.rebuild_ca_metadata(modify=True, task='exclude',
+                                 skip_list=self.remove_chain)
         
         ## Remove object history
         self.Delete_Changelog(obj=self)
@@ -660,10 +825,12 @@ class CertificateAuthority(CertificateBase):
                 known_cas = list(CertificateAuthority.objects.all())
                 known_cas.append(self)
             elif task == 'replace':
-                known_cas = list(CertificateAuthority.objects.exclude(pk=self.pk))
+                known_cas = list(CertificateAuthority.objects.exclude(
+                    pk=self.pk))
                 known_cas.append(self)
             elif task == 'exclude':
-                known_cas = list(CertificateAuthority.objects.exclude(pk__in=skip_list))
+                known_cas = list(CertificateAuthority.objects.exclude(
+                    pk__in=skip_list))
         else:
             known_cas = list(CertificateAuthority.objects.all())
         
@@ -682,10 +849,13 @@ class CertificateAuthority(CertificateBase):
     def Tree_link(self):
         
         if PKI_ENABLE_GRAPHVIZ:
-            return '<a href="%s" target="_blank">%s</a>' % (urlresolvers.reverse('pki:tree', kwargs={'id': self.pk}), \
-                                                            get_pki_icon_html("tree.png", "Show CA tree", id="tree_link_%d" % self.pk))
+            return '<a href="%s" target="_blank">%s</a>' % (
+                urlresolvers.reverse('pki:tree', kwargs={'id': self.pk}),
+                get_pki_icon_html("tree.png", "Show CA tree",
+                                  id="tree_link_%d" % self.pk))
         else:
-            return get_pki_icon_html("tree_disabled.png", "Enable setting PKI_ENABLE_GRAPHVIZ")
+            return get_pki_icon_html("tree_disabled.png",
+                                     "Enable setting PKI_ENABLE_GRAPHVIZ")
     
     Tree_link.allow_tags = True
     Tree_link.short_description = 'Tree'
@@ -694,11 +864,17 @@ class CertificateAuthority(CertificateBase):
         """Show associated client certificates"""
         
         if not self.is_edge_ca():
-            return get_pki_icon_html("blue-document-tree_bw.png", "No children", id="show_child_certs_%d" % self.pk)
+            return get_pki_icon_html("blue-document-tree_bw.png",
+                                     "No children",
+                                     id="show_child_certs_%d" % self.pk)
         else:
-            return "<a href=\"%s\" target=\"_blank\">%s</a>" % ('?'.join([urlresolvers.reverse('admin:pki_certificate_changelist'), 'parent__id__exact=%d' % self.pk]), \
-                                                                get_pki_icon_html("blue-document-tree.png", "Show child certificates", \
-                                                                                       id="show_child_certs_%d" % self.pk))
+            return "<a href=\"%s\" target=\"_blank\">%s</a>" % (
+                '?'.join([urlresolvers.reverse(
+                    'admin:pki_certificate_changelist'),
+                          'parent__id__exact=%d' % self.pk]),
+                get_pki_icon_html("blue-document-tree.png",
+                                  "Show child certificates",
+                                  id="show_child_certs_%d" % self.pk))
     
     Child_certs.allow_tags = True
     Child_certs.short_description = "Children"
@@ -707,26 +883,44 @@ class CertificateAuthority(CertificateBase):
 ## Certificate class
 ##------------------------------------------------------------------##
 
+
 class Certificate(CertificateBase):
     """Certificate model"""
     
-    common_name       = models.CharField(max_length=64)
-    name              = models.CharField(max_length=64, validators=[RegexValidator("[a-zA-Z0-9-_\.]+", message='Name may only contain characters in range a-Z0-9_-.')], \
-                                         help_text="Only change the suggestion if you really know what you're doing")
-    parent            = models.ForeignKey('CertificateAuthority', blank=True, null=True, help_text='Leave blank to generate self-signed certificate')
-    passphrase        = models.CharField(max_length=255, null=True, blank=True, validators=[MinLengthValidator(PKI_PASSPHRASE_MIN_LENGTH)])
+    common_name = models.CharField(max_length=64)
+    name = models.CharField(max_length=64, validators=[
+            RegexValidator("[a-zA-Z0-9-_\.]+", message='Name may only contain \
+                       characters in range a-Z0-9_-.')],
+                            help_text="Only change the suggestion if you \
+                                      really know what you're doing")
+    parent = models.ForeignKey('CertificateAuthority', blank=True, null=True,
+                               help_text='Leave blank to generate self-signed \
+                                         certificate')
+    passphrase = models.CharField(max_length=255, null=True, blank=True,
+                                  validators=[MinLengthValidator(
+                                    PKI_PASSPHRASE_MIN_LENGTH)])
     parent_passphrase = models.CharField(max_length=255, blank=True, null=True)
-    pkcs12_encoded    = models.BooleanField(default=False, verbose_name="PKCS#12 encoding")
-    pkcs12_passphrase = models.CharField(max_length=255, verbose_name="PKCS#12 passphrase", blank=True, null=True, validators=[MinLengthValidator(8)])
-    subjaltname       = models.CharField(max_length=255, blank=True, null=True, verbose_name="SubjectAltName", validators=[validate_subject_altname], \
-                                         help_text='Comma seperated list of alt names. Valid are DNS:www.xyz.com, IP:1.2.3.4 and email:a@b.com in any \
-                                         combination. Refer to the official openssl documentation for details' )
+    pkcs12_encoded = models.BooleanField(default=False,
+                                         verbose_name="PKCS#12 encoding")
+    pkcs12_passphrase = models.CharField(max_length=255,
+                                         verbose_name="PKCS#12 passphrase",
+                                         blank=True, null=True,
+                                         validators=[MinLengthValidator(8)])
+    subjaltname = models.CharField(max_length=255, blank=True, null=True,
+                                   verbose_name="SubjectAltName",
+                                   validators=[validate_subject_altname],
+                                   help_text='Comma seperated list of alt \
+                                             names. Valid are DNS:www.xyz.com,\
+                                             IP:1.2.3.4 and email:a@b.com in\
+                                             any combination. Refer to the \
+                                             official openssl documentation \
+                                             for details')
 
     class Meta:
-        db_table            = 'pki_certificate'
+        db_table = 'pki_certificate'
         verbose_name_plural = 'Certificates'
-        permissions         = ( ( "can_download", "Can download", ), )
-        unique_together     = ( ( "name", "parent" ), ("common_name", "parent"), )
+        permissions = (("can_download", "Can download"))
+        unique_together = (("name", "parent"), ("common_name", "parent"))
     
     def __unicode__(self):
         return self.common_name
@@ -743,34 +937,40 @@ class Certificate(CertificateBase):
         
         ## Variables to track changes
         c_action = self.action
-        c_list   = []
+        c_list = []
         
         if self.pk:
             if self.action in ('update', 'revoke', 'renew'):
                 action = Openssl(self)
-                prev   = Certificate.objects.get(pk=self.pk)
+                prev = Certificate.objects.get(pk=self.pk)
                 
                 if self.action == 'revoke':
                     if not self.parent:
-                        raise Exception( "You cannot revoke a self-signed certificate! No parent => No revoke" )
+                        raise Exception("You cannot revoke a self-signed \
+                                        certificate! No parent => No revoke")
                     
                     ## Revoke and generate CRL
                     action.revoke_certificate(self.parent_passphrase)
-                    action.generate_crl(self.parent.name, self.parent_passphrase)
+                    action.generate_crl(self.parent.name,
+                                        self.parent_passphrase)
                     
                     ## Modify fields
-                    prev.active            = False
-                    prev.der_encoded       = False
-                    prev.pkcs12_encoded    = False
-                    prev.revoked           = datetime.datetime.now()
-                    c_list.append('Revoked certificate "%s"' % self.common_name)
+                    prev.active = False
+                    prev.der_encoded = False
+                    prev.pkcs12_encoded = False
+                    prev.revoked = datetime.datetime.now()
+                    c_list.append('Revoked certificate "%s"' %
+                                  self.common_name)
                 elif self.action == 'renew':
-                    c_list.append('Renewed certificate "%s"' % self.common_name)
+                    c_list.append('Renewed certificate "%s"' %
+                                  self.common_name)
                     
                     ## Revoke if certificate is active
-                    if self.parent and not action.get_revoke_status_from_cert():
+                    if (self.parent and not
+                        action.get_revoke_status_from_cert()):
                         action.revoke_certificate(self.parent_passphrase)
-                        action.generate_crl(self.parent.name, self.parent_passphrase)
+                        action.generate_crl(self.parent.name,
+                                            self.parent_passphrase)
                     
                     ## Renew certificate and update CRL
                     if self.parent == None:
@@ -778,32 +978,41 @@ class Certificate(CertificateBase):
                     else:
                         action.generate_csr()
                         action.sign_csr()
-                        action.generate_crl(self.parent.name, self.parent_passphrase)
+                        action.generate_crl(self.parent.name,
+                                            self.parent_passphrase)
                     
                     ## Modify fields
-                    prev.created     = datetime.datetime.now()
-                    delta            = datetime.timedelta(self.valid_days)
+                    prev.created = datetime.datetime.now()
+                    delta = datetime.timedelta(self.valid_days)
                     prev.expiry_date = datetime.datetime.now() + delta
                     
                     if prev.valid_days != self.valid_days:
-                        c_list.append("Changed valid days to %d" % (prev.valid_days, self.valid_days))
+                        c_list.append("Changed valid days to %d" % (
+                            prev.valid_days, self.valid_days))
                     
-                    prev.valid_days  = self.valid_days
-                    prev.active      = True
-                    prev.revoked     = None
+                    prev.valid_days = self.valid_days
+                    prev.active = True
+                    prev.revoked = None
                     
                     ## Make sure possibly updated fields are saved to DB
-                    if prev.country != self.country: c_list.append('Updated country to "%s"' % self.country)
-                    if prev.locality != self.locality: c_list.append('Updated locality to "%s"' % self.locality)
-                    if prev.organization != self.organization: c_list.append('Updated organization to "%s"' % self.organization)
-                    if prev.email != self.email: c_list.append('Updated email to "%s"' % self.email)
-                    if prev.OU != self.OU: c_list.append('Updated OU to "%s"' % self.OU)
+                    if prev.country != self.country:
+                        c_list.append('Updated country to "%s"' % self.country)
+                    if prev.locality != self.locality:
+                        c_list.append('Updated locality to "%s"' %
+                                      self.locality)
+                    if prev.organization != self.organization:
+                        c_list.append('Updated organization to "%s"' %
+                                      self.organization)
+                    if prev.email != self.email:
+                        c_list.append('Updated email to "%s"' % self.email)
+                    if prev.OU != self.OU:
+                        c_list.append('Updated OU to "%s"' % self.OU)
                     
-                    prev.country      = self.country
-                    prev.locality     = self.locality
+                    prev.country = self.country
+                    prev.locality = self.locality
                     prev.organization = self.organization
-                    prev.email        = self.email
-                    prev.OU           = self.OU
+                    prev.email = self.email
+                    prev.OU = self.OU
                     
                     ## Get the new serial
                     prev.serial = action.get_serial_from_cert()
@@ -811,11 +1020,13 @@ class Certificate(CertificateBase):
                 
                 if self.action != 'revoke':
                     if prev.pkcs12_encoded != self.pkcs12_encoded:
-                        c_list.append("PKCS12 encoding set to %s" % self.der_encoded)
+                        c_list.append("PKCS12 encoding set to %s" %
+                                      self.der_encoded)
                     
                     if self.pkcs12_encoded:
-                        if prev.pkcs12_encoded and prev.pkcs12_passphrase == self.pkcs12_passphrase:
-                            logger.debug( 'PKCS12 passphrase is unchanged. Nothing to do' )
+                        if (prev.pkcs12_encoded and
+                            prev.pkcs12_passphrase == self.pkcs12_passphrase):
+                            logger.debug('PKCS12 passphrase is unchanged')
                         else:
                             action.generate_pkcs12_encoded()
                     else:
@@ -823,12 +1034,14 @@ class Certificate(CertificateBase):
                         self.pkcs12_passphrase = prev.pkcs12_passphrase = None
                     
                     if self.pkcs12_passphrase:
-                        prev.pkcs12_passphrase = md5_constructor(self.pkcs12_passphrase).hexdigest()
+                        prev.pkcs12_passphrase = md5_constructor(
+                            self.pkcs12_passphrase).hexdigest()
                     else:
                         prev.pkcs12_passphrase = None
                     
                     if prev.der_encoded is not self.der_encoded:
-                        c_list.append("DER encoding set to %s" % self.der_encoded)
+                        c_list.append("DER encoding set to %s" %
+                                      self.der_encoded)
                     
                     if self.der_encoded:
                         action.generate_der_encoded()
@@ -837,14 +1050,16 @@ class Certificate(CertificateBase):
                     
                 ## Update description. This is always allowed
                 if prev.description != self.description:
-                    c_list.append('Updated description to "%s"' % self.description)
+                    c_list.append('Updated description to "%s"' %
+                                  self.description)
                     prev.description = self.description
                 
                 ## Save the data
                 self = prev
                 self.action = 'update'
             else:
-                raise Exception( 'Invalid action %s supplied' % self.action )
+                raise Exception('Invalid action %s supplied' %
+                                self.action)
         else:
             ## Set creation data
             self.created = datetime.datetime.now()
@@ -854,7 +1069,8 @@ class Certificate(CertificateBase):
             ## Force instance to be active
             self.active = True
             
-            logger.info( "***** { New certificate generation: %s } *****" % self.name )
+            logger.info("***** { New certificate generation: %s } *****" %
+                        self.name)
             
             ## Generate key and certificate
             action = Openssl(self)
@@ -894,7 +1110,8 @@ class Certificate(CertificateBase):
         super(Certificate, self).save(*args, **kwargs)
         
         ## Update changelog
-        self.Update_Changelog(obj=self, user=c_user, action=c_action, changes=c_list)
+        self.Update_Changelog(obj=self, user=c_user, action=c_action,
+                              changes=c_list)
     
     def delete(self, passphrase, *args, **kwargs):
         """Delete the Certificate object"""
@@ -914,15 +1131,16 @@ class Certificate(CertificateBase):
         ## Call the "real" delete function
         super(Certificate, self).delete(*args, **kwargs)
 
+
 class PkiChangelog(models.Model):
     """Changlog for changes on the PKI. Overrides the builtin admin history"""
     
-    model_id    = models.IntegerField()
-    object_id   = models.IntegerField()
+    model_id = models.IntegerField()
+    object_id = models.IntegerField()
     action_time = models.DateTimeField(auto_now=True)
-    action      = models.CharField(max_length=64)
-    user        = models.ForeignKey(User, blank=True, null=True)
-    changes     = models.TextField()
+    action = models.CharField(max_length=64)
+    user = models.ForeignKey(User, blank=True, null=True)
+    changes = models.TextField()
     
     class Meta:
         db_table = 'pki_changelog'
@@ -931,43 +1149,90 @@ class PkiChangelog(models.Model):
     def __unicode__(self):
         return str(self.pk)
 
+
 class x509Extension(models.Model):
     """x509 extensions"""
     
-    SUBJECT_KEY_IDENTIFIER   = ( ('hash', 'hash'), )
-    AUTHORITY_KEY_IDENTIFIER = ( ('keyid:always,issuer:always', 'keyid: always, issuer: always'), )
-    BASIC_CONSTRAINTS        = ( ('CA:TRUE', 'Root or Intermediate CA (CA:TRUE)'),
-                                 ('CA:TRUE,pathlen:0', 'Edge CA (CA:TRUE, pathlen:0)'),
-                                 ('CA:FALSE', 'Enduser Certificate (CA:FALSE)'), )
+    SUBJECT_KEY_IDENTIFIER = (('hash', 'hash'),)
+    AUTHORITY_KEY_IDENTIFIER = (('keyid:always,issuer:always',
+                                 'keyid: always, issuer: always'),)
+    BASIC_CONSTRAINTS = (('CA:TRUE', 'Root or Intermediate CA (CA:TRUE)'),
+                         ('CA:TRUE,pathlen:0', 'Edge CA (CA:TRUE, pathlen:0)'),
+                         ('CA:FALSE', 'Enduser Certificate (CA:FALSE)'),)
     
-    name                        = models.CharField(max_length=255, unique=True, \
-                                                   validators=[RegexValidator("[a-zA-Z0-9-_\.]+", \
-                                                                              message='Name may only contain characters in range a-Z0-9_-.')])
-    description                 = models.CharField(max_length=255)
-    created                     = models.DateTimeField(auto_now_add=True)
-    basic_constraints           = models.CharField(max_length=255, choices=BASIC_CONSTRAINTS, verbose_name="basicConstraints")
-    basic_constraints_critical  = models.BooleanField(default=True, verbose_name="Make basicConstraints critical")
-    key_usage                   = models.ManyToManyField("KeyUsage", verbose_name="keyUsage",
-                                                         help_text="Usual values:<br />\
-                                                                    CA: keyCertSign, cRLsign<br />\
-                                                                    Cert: digitalSignature, nonRedupiation, keyEncipherment<br />")
-    key_usage_critical          = models.BooleanField(verbose_name="Make keyUsage critical")
-    extended_key_usage          = models.ManyToManyField("ExtendedKeyUsage", blank=True, null=True, verbose_name="extendedKeyUsage", \
-                                                         help_text="serverAuth - SSL/TLS Web Server Authentication<br /> \
-                                                                    clientAuth - SSL/TLS Web Client Authentication.<br /> \
-                                                                    codeSigning - Code signing<br /> \
-                                                                    emailProtection - E-mail Protection (S/MIME)<br /> \
-                                                                    timeStamping - Trusted Timestamping<br /> \
-                                                                    msCodeInd - Microsoft Individual Code Signing (authenticode)<br /> \
-                                                                    msCodeCom - Microsoft Commercial Code Signing (authenticode)<br /> \
-                                                                    msCTLSign - Microsoft Trust List Signing<br /> \
-                                                                    msSGC - Microsoft Server Gated Crypto<br /> \
-                                                                    msEFS - Microsoft Encrypted File System<br /> \
-                                                                    nsSGC - Netscape Server Gated Crypto<br />")
-    extended_key_usage_critical = models.BooleanField(verbose_name="Make extendedKeyUsage critical")
-    subject_key_identifier      = models.CharField(max_length=255, choices=SUBJECT_KEY_IDENTIFIER, default="hash", verbose_name="subjectKeyIdentifier")
-    authority_key_identifier    = models.CharField(max_length=255, choices=AUTHORITY_KEY_IDENTIFIER, default="keyid:always,issuer:always", verbose_name="authorityKeyIdentifier")
-    crl_distribution_point      = models.BooleanField(verbose_name="Require CRL Distribution Point", help_text="All objects using this x509 extension will require a CRLDistributionPoint")
+    name = models.CharField(max_length=255, unique=True,
+                            validators=[
+                                RegexValidator("[a-zA-Z0-9-_\.]+",
+                                               message='Name may only contain \
+                                                       characters in range \
+                                                       a-Z0-9_-.')])
+    description = models.CharField(max_length=255)
+    created = models.DateTimeField(auto_now_add=True)
+    basic_constraints = models.CharField(max_length=255,
+                                         choices=BASIC_CONSTRAINTS,
+                                         verbose_name="basicConstraints")
+    basic_constraints_critical = models.BooleanField(default=True,
+                                        verbose_name="Make basicConstraints \
+                                                     critical")
+    key_usage = models.ManyToManyField("KeyUsage", verbose_name="keyUsage",
+                                       help_text="Usual values:<br />\
+                                                CA: keyCertSign, cRLsign<br />\
+                                                Cert: digitalSignature, \
+                                                nonRedupiation, \
+                                                keyEncipherment<br />")
+    key_usage_critical = models.BooleanField(
+                                    verbose_name="Make keyUsage critical")
+    extended_key_usage = models.ManyToManyField("ExtendedKeyUsage", blank=True,
+                                                null=True,
+                                               verbose_name="extendedKeyUsage",
+                                                help_text="serverAuth - \
+                                                          SSL/TLS Web Server \
+                                                          Authentication<br />\
+                                                          clientAuth - SSL/TLS\
+                                                          Web Client \
+                                                          Authentication.\
+                                                          <br /> codeSigning -\
+                                                          Code signing<br /> \
+                                                          emailProtection - \
+                                                          E-mail Protection \
+                                                          (S/MIME)<br /> \
+                                                          timeStamping - \
+                                                          Trusted \
+                                                          Timestamping<br /> \
+                                                          msCodeInd - \
+                                                          Microsoft Individual\
+                                                          Code Signing \
+                                                          (authenticode)<br />\
+                                                          msCodeCom - \
+                                                          Microsoft Commercial\
+                                                          Code Signing \
+                                                          (authenticode)<br />\
+                                                          msCTLSign - \
+                                                          Microsoft Trust List\
+                                                          Signing<br /> msSGC \
+                                                          - Microsoft Server \
+                                                          Gated Crypto<br /> \
+                                                          msEFS - Microsoft \
+                                                          Encrypted File \
+                                                          System<br /> \
+                                                          nsSGC - Netscape \
+                                                          Server Gated \
+                                                          Crypto<br />")
+    extended_key_usage_critical = models.BooleanField(
+                                verbose_name="Make extendedKeyUsage critical")
+    subject_key_identifier = models.CharField(max_length=255,
+                                              choices=SUBJECT_KEY_IDENTIFIER,
+                                              default="hash",
+                                              verbose_name="subjectKey\
+                                                           Identifier")
+    authority_key_identifier = models.CharField(max_length=255,
+                                        choices=AUTHORITY_KEY_IDENTIFIER,
+                                        default="keyid:always,issuer:always",
+                                        verbose_name="authorityKeyIdentifier")
+    crl_distribution_point = models.BooleanField(
+        verbose_name="Require CRL Distribution Point",
+        help_text="All objects using this x509 extension will require a \
+                  CRLDistributionPoint")
     
     class Meta:
         db_table = 'pki_x509extension'
@@ -984,9 +1249,13 @@ class x509Extension(models.Model):
     
     def CrlDpoint_center(self):
         if self.crl_distribution_point:
-            return get_pki_icon_html('icon-yes.gif', "CRL Distribution Point is required", id="crl_dpoint_%d" % self.pk)
+            return get_pki_icon_html('icon-yes.gif',
+                                     "CRL Distribution Point is required",
+                                     id="crl_dpoint_%d" % self.pk)
         else:
-            return get_pki_icon_html('icon-no.gif', "CRL Distribution Points are disabled ", id="crl_dpoint_%d" % self.pk)
+            return get_pki_icon_html('icon-no.gif',
+                                     "CRL Distribution Points are disabled ",
+                                     id="crl_dpoint_%d" % self.pk)
     
     CrlDpoint_center.allow_tags = True
     CrlDpoint_center.short_description = 'CRL'
@@ -1017,6 +1286,7 @@ class x509Extension(models.Model):
     
     ext_key_usage_csv.short_description = "Extended Key Usage"
     
+
 class KeyUsage(models.Model):
     """Container table for KeyUsage"""
     
@@ -1025,6 +1295,7 @@ class KeyUsage(models.Model):
     def __unicode__(self):
         return self.name
 
+
 class ExtendedKeyUsage(models.Model):
     """Container table for Extended Key Usage"""
     
@@ -1032,4 +1303,3 @@ class ExtendedKeyUsage(models.Model):
     
     def __unicode__(self):
         return self.name
-    

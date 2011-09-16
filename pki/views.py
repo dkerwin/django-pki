@@ -92,7 +92,7 @@ def pki_chain(request, model, id):
             x = f.read()
             f.close()
             os.remove(png)
-    except OSError,e:
+    except OSError, e:
         logger.error( "Failed to load depency tree: %s" % e)
         raise Exception( e )
     
@@ -123,7 +123,7 @@ def pki_tree(request, id):
             f.close()
             
             os.remove(png)
-    except OSError,e:
+    except OSError, e:
         logger.error( "Failed to load depency tree: %s" % e)
         raise Exception( e )
     
@@ -147,7 +147,7 @@ def pki_email(request, model, id):
         return HttpResponseRedirect(urlresolvers.reverse('admin:pki_%s_changelist' % model))
     
     if model == "certificateauthority":
-        obj  = get_object_or_404(CertificateAuthority, pk=id)
+        obj = get_object_or_404(CertificateAuthority, pk=id)
     elif model == "certificate":
         obj = get_object_or_404(Certificate, pk=id)
     
@@ -188,7 +188,7 @@ def admin_history(request, model, id):
     from django.contrib.contenttypes.models import ContentType
     from pki.models import PkiChangelog
     
-    ct  = ContentType.objects.get(model=model)
+    ct = ContentType.objects.get(model=model)
     model_obj = ct.model_class()
     obj = model_obj.objects.get(pk=id)
     

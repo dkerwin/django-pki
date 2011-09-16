@@ -3,11 +3,12 @@
 from django import http
 from django.conf import settings
 from logging import getLogger
-from django.core.urlresolvers import RegexURLResolver 
+from django.core.urlresolvers import RegexURLResolver
 
 import sys
 
 logger = getLogger("pki")
+
 
 def resolver(request):
     """
@@ -19,6 +20,7 @@ def resolver(request):
     from django.conf import settings
     urlconf = getattr(request, "urlconf", settings.ROOT_URLCONF)
     return RegexURLResolver(r'^/', urlconf)
+
 
 class PkiExceptionMiddleware(object):
     """Exception logging moddleware for django-pki.
@@ -38,7 +40,7 @@ class PkiExceptionMiddleware(object):
             callback, param_dict = resolver(request).resolve404()
             return callback(request, **param_dict)
     
-    def handle_500(self, request, exception):        
+    def handle_500(self, request, exception):
         exc_info = sys.exc_info()
         if settings.DEBUG:
             return self.debug_500_response(request, exception, exc_info)
@@ -57,17 +59,19 @@ class PkiExceptionMiddleware(object):
     
     def log_exception(self, request, exception, exc_info):
         
-        logger.error( '' )
-        logger.error( '=============================================================' )
-        logger.error( ' Exception ' )
-        logger.error( '=============================================================' )
-        logger.error( '' )
-        logger.error( 'REMOTE_ADDR: %s' % request.META.get('REMOTE_ADDR') )
-        logger.error( 'REQUEST_URI: %s' % request.META.get('REQUEST_URI') )
-        logger.error( 'HTTP_REFERER: %s' % request.META.get('HTTP_REFERER') )
-        logger.error( 'HTTP_USER_AGENT: %s' % request.META.get('HTTP_USER_AGENT') )
-        logger.error( '' )
-        logger.error( _get_traceback(exc_info) )
+        logger.error('')
+        logger.error('=' * 60)
+        logger.error(' Exception ')
+        logger.error('=' * 60)
+        logger.error('')
+        logger.error('REMOTE_ADDR: %s' % request.META.get('REMOTE_ADDR'))
+        logger.error('REQUEST_URI: %s' % request.META.get('REQUEST_URI'))
+        logger.error('HTTP_REFERER: %s' % request.META.get('HTTP_REFERER'))
+        logger.error('HTTP_USER_AGENT: %s' % request.META.get(
+                                                        'HTTP_USER_AGENT'))
+        logger.error('')
+        logger.error(_get_traceback(exc_info))
+
 
 def _get_traceback(self, exc_info=None):
     """Helper function to return the traceback as a string"""
